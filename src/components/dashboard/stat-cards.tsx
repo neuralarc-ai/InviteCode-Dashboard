@@ -5,38 +5,41 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { CheckCircle, Code, Mail, Users } from 'lucide-react';
+import { getDashboardStats } from '@/lib/data';
 
-const stats = [
-  {
-    title: 'Total Codes',
-    value: '1,250',
-    icon: Code,
-    description: '+20.1% from last month',
-  },
-  {
-    title: 'Usage Rate',
-    value: '68.4%',
-    icon: CheckCircle,
-    description: '+180.1% from last month',
-  },
-  {
-    title: 'Active Codes',
-    value: '392',
-    icon: Users,
-    description: '+12 since last hour',
-  },
-  {
-    title: 'Emails Sent',
-    value: '857',
-    icon: Mail,
-    description: '+32 invites sent today',
-  },
-];
+export async function StatCards() {
+  const stats = await getDashboardStats();
 
-export function StatCards() {
+  const statCards = [
+    {
+      title: 'Total Codes',
+      value: stats.totalCodes.toLocaleString(),
+      icon: Code,
+      description: 'All generated invite codes',
+    },
+    {
+      title: 'Usage Rate',
+      value: `${stats.usageRate}%`,
+      icon: CheckCircle,
+      description: 'Percentage of codes used',
+    },
+    {
+      title: 'Active Codes',
+      value: stats.activeCodes.toLocaleString(),
+      icon: Users,
+      description: 'Available for use',
+    },
+    {
+      title: 'Emails Sent',
+      value: stats.emailsSent.toLocaleString(),
+      icon: Mail,
+      description: 'Invitation emails sent',
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat) => (
+      {statCards.map((stat) => (
         <Card key={stat.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>

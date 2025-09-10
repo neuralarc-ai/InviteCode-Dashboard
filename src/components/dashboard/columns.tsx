@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Send, Trash2, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import type { WaitlistUser, UserStatus } from '@/lib/types';
+import type { WaitlistUser } from '@/lib/types';
 import { sendInviteEmailAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -57,10 +57,11 @@ function SendInviteAction({ user }: { user: WaitlistUser }) {
   return (
     <>
       <form ref={formRef} action={sendInviteEmailAction} className="hidden">
-        <input type="hidden" name="userName" value={user.name} />
-        <input type="hidden" name="inviteCode" value={user.code} />
+        <input type="hidden" name="userId" value={user.id} />
+        <input type="hidden" name="userName" value={user.fullName} />
+        <input type="hidden" name="inviteCode" value="NA-SAMPLE" />
         <input type="hidden" name="email" value={user.email} />
-        <input type="hidden" name="companyName" value={user.company} />
+        <input type="hidden" name="companyName" value={user.company || ''} />
       </form>
       <ActionMenuItem onSelect={handleSendInvite}>
         <Send />
@@ -70,10 +71,9 @@ function SendInviteAction({ user }: { user: WaitlistUser }) {
   );
 }
 
-const statusColors: Record<UserStatus, string> = {
-  'Not Used': 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30',
-  'Used': 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30',
-  'Expired': 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30',
+const notificationColors = {
+  true: 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30',
+  false: 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30',
 };
 
 interface ColumnDefinition {
@@ -91,46 +91,53 @@ export const columns: ColumnDefinition[] = [
     cell: ({ row }) => <Checkbox aria-label="Select row" />,
   },
   {
-    accessorKey: 'name',
+    accessorKey: 'fullName',
     header: 'User',
     width: '250px',
     cell: ({ row }) => (
       <div className="flex items-center gap-3">
         <Avatar className="h-8 w-8 text-xs">
-          <AvatarFallback>{row.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+          <AvatarFallback>{row.fullName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
         </Avatar>
         <div>
-          <div className="font-medium">{row.name}</div>
+          <div className="font-medium">{row.fullName}</div>
           <div className="text-muted-foreground text-xs">{row.email}</div>
         </div>
       </div>
     ),
   },
   {
-    accessorKey: 'status',
+    accessorKey: 'isNotified',
     header: 'Status',
     width: '120px',
     cell: ({ row }) => (
-      <Badge variant="outline" className={cn("font-mono text-xs", statusColors[row.status])}>
-        {row.status}
+      <Badge variant="outline" className={cn("font-mono text-xs", notificationColors[row.isNotified])}>
+        {row.isNotified ? 'Notified' : 'Pending'}
       </Badge>
     ),
   },
   {
-    accessorKey: 'code',
-    header: 'Invite Code',
+    accessorKey: 'phoneNumber',
+    header: 'Phone',
     width: '150px',
-    cell: ({ row }) => <span className="font-mono text-sm">{row.code}</span>,
+    cell: ({ row }) => <span className="font-mono text-sm">{row.countryCode} {row.phoneNumber}</span>,
   },
   {
     accessorKey: 'company',
     header: 'Company',
+    cell: ({ row }) => <span className="text-sm">{row.company || 'N/A'}</span>,
   },
   {
-    accessorKey: 'createdAt',
+    accessorKey: 'referralSource',
+    header: 'Source',
+    width: '120px',
+    cell: ({ row }) => <span className="text-sm">{row.referralSource || 'N/A'}</span>,
+  },
+  {
+    accessorKey: 'joinedAt',
     header: 'Date Added',
     width: '180px',
-    cell: ({ row }) => new Intl.DateTimeFormat('en-US').format(row.createdAt),
+    cell: ({ row }) => new Intl.DateTimeFormat('en-US').format(row.joinedAt),
   },
   {
     accessorKey: 'actions',

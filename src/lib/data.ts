@@ -1,109 +1,308 @@
-import type { WaitlistUser } from '@/lib/types';
+import type { WaitlistUser, DashboardStats, InviteCode } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 
-const waitlistUsers: WaitlistUser[] = [
-  {
-    id: '1',
-    name: 'Alice Johnson',
-    email: 'alice.j@example.com',
-    company: 'Innovate Inc.',
-    phone: '123-456-7890',
-    code: 'NA-A9B3D',
-    status: 'Not Used',
-    notified: false,
-    referralSource: 'Twitter',
-    createdAt: new Date('2023-10-01T10:00:00Z'),
-  },
-  {
-    id: '2',
-    name: 'Bob Smith',
-    email: 'bob.smith@example.com',
-    company: 'Tech Solutions',
-    phone: '234-567-8901',
-    code: 'NA-FGH8J',
-    status: 'Used',
-    notified: true,
-    referralSource: 'LinkedIn',
-    createdAt: new Date('2023-10-02T11:30:00Z'),
-  },
-  {
-    id: '3',
-    name: 'Charlie Brown',
-    email: 'charlie.b@example.com',
-    company: 'Data Corp',
-    phone: '345-678-9012',
-    code: 'NA-KL2MN',
-    status: 'Expired',
-    notified: true,
-    referralSource: 'Friend',
-    createdAt: new Date('2023-09-05T09:00:00Z'),
-  },
-  {
-    id: '4',
-    name: 'Diana Prince',
-    email: 'diana.p@example.com',
-    company: 'StartupX',
-    phone: '456-789-0123',
-    code: 'NA-PQR7S',
-    status: 'Not Used',
-    notified: false,
-    referralSource: 'Blog Post',
-    createdAt: new Date('2023-10-15T14:00:00Z'),
-  },
-    {
-    id: '5',
-    name: 'Ethan Hunt',
-    email: 'ethan.h@example.com',
-    company: 'Synergy LLC',
-    phone: '567-890-1234',
-    code: 'NA-TUV5W',
-    status: 'Used',
-    notified: true,
-    referralSource: 'Google',
-    createdAt: new Date('2023-10-10T18:00:00Z'),
-  },
-  {
-    id: '6',
-    name: 'Fiona Glenanne',
-    email: 'fiona.g@example.com',
-    company: 'Creative Minds',
-    phone: '678-901-2345',
-    code: 'NA-XYZ1A',
-    status: 'Not Used',
-    notified: false,
-    referralSource: 'Twitter',
-    createdAt: new Date('2023-10-20T12:00:00Z'),
-  },
-  {
-    id: '7',
-    name: 'George Costanza',
-    email: 'george.c@example.com',
-    company: 'Vandelay Industries',
-    phone: '789-012-3456',
-    code: 'NA-BC2DE',
-    status: 'Expired',
-    notified: true,
-    referralSource: 'Friend',
-    createdAt: new Date('2023-09-12T08:00:00Z'),
-  },
-  {
-    id: '8',
-    name: 'Hannah Montana',
-    email: 'hannah.m@example.com',
-    company: 'PopStar Inc.',
-    phone: '890-123-4567',
-    code: 'NA-FGH3I',
-    status: 'Not Used',
-    notified: false,
-    referralSource: 'Instagram',
-    createdAt: new Date('2023-10-22T20:00:00Z'),
-  },
-];
+// Transform database row to WaitlistUser type
+function transformWaitlistUser(row: any): WaitlistUser {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    email: row.email,
+    company: row.company,
+    phoneNumber: row.phone_number,
+    countryCode: row.country_code,
+    reference: row.reference,
+    referralSource: row.referral_source,
+    referralSourceOther: row.referral_source_other,
+    userAgent: row.user_agent,
+    ipAddress: row.ip_address,
+    joinedAt: new Date(row.joined_at),
+    notifiedAt: row.notified_at ? new Date(row.notified_at) : null,
+    isNotified: row.is_notified,
+  };
+}
+
+// Transform database row to InviteCode type
+function transformInviteCode(row: any): InviteCode {
+  return {
+    id: row.id,
+    code: row.code,
+    isUsed: row.is_used,
+    usedBy: row.used_by,
+    usedAt: row.used_at ? new Date(row.used_at) : null,
+    createdAt: new Date(row.created_at),
+    expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+    maxUses: row.max_uses,
+    currentUses: row.current_uses,
+    emailSentTo: row.email_sent_to || [],
+  };
+}
 
 export async function getWaitlistUsers(): Promise<WaitlistUser[]> {
-  // In a real app, you would fetch this data from a database.
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(waitlistUsers);
-    }, 500); // Simulate network delay
-  });
+  try {
+    const { data, error } = await supabase
+      .from('waitlist')
+      .select('*')
+      .order('joined_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching waitlist users:', error);
+      throw new Error('Failed to fetch waitlist users');
+    }
+
+    return data ? data.map(transformWaitlistUser) : [];
+  } catch (error) {
+    console.error('Error in getWaitlistUsers:', error);
+    throw error;
+  }
+}
+
+export async function getInviteCodes(): Promise<InviteCode[]> {
+  try {
+    const { data, error } = await supabase
+      .from('invite_codes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching invite codes:', error);
+      throw new Error('Failed to fetch invite codes');
+    }
+
+    return data ? data.map(transformInviteCode) : [];
+  } catch (error) {
+    console.error('Error in getInviteCodes:', error);
+    throw error;
+  }
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  try {
+    // Get total codes count
+    const { count: totalCodes, error: codesError } = await supabase
+      .from('invite_codes')
+      .select('*', { count: 'exact', head: true });
+
+    if (codesError) {
+      console.error('Error fetching total codes:', codesError);
+    }
+
+    // Get used codes count
+    const { count: usedCodes, error: usedError } = await supabase
+      .from('invite_codes')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_used', true);
+
+    if (usedError) {
+      console.error('Error fetching used codes:', usedError);
+    }
+
+    // Get active codes count (not used and not expired)
+    const { count: activeCodes, error: activeError } = await supabase
+      .from('invite_codes')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_used', false)
+      .or('expires_at.is.null,expires_at.gt.now()');
+
+    if (activeError) {
+      console.error('Error fetching active codes:', activeError);
+    }
+
+    // Get emails sent count (users who have been notified)
+    const { count: emailsSent, error: emailsError } = await supabase
+      .from('waitlist')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_notified', true);
+
+    if (emailsError) {
+      console.error('Error fetching emails sent:', emailsError);
+    }
+
+    const total = totalCodes || 0;
+    const used = usedCodes || 0;
+    const usageRate = total > 0 ? Math.round((used / total) * 100 * 10) / 10 : 0;
+
+    return {
+      totalCodes: total,
+      usageRate,
+      activeCodes: activeCodes || 0,
+      emailsSent: emailsSent || 0,
+    };
+  } catch (error) {
+    console.error('Error in getDashboardStats:', error);
+    throw error;
+  }
+}
+
+export async function createWaitlistUser(userData: {
+  fullName: string;
+  email: string;
+  company?: string;
+  phoneNumber: string;
+  countryCode: string;
+  reference?: string;
+  referralSource?: string;
+  referralSourceOther?: string;
+  userAgent?: string;
+  ipAddress?: string;
+}): Promise<WaitlistUser> {
+  try {
+    const { data, error } = await supabase
+      .from('waitlist')
+      .insert({
+        full_name: userData.fullName,
+        email: userData.email,
+        company: userData.company,
+        phone_number: userData.phoneNumber,
+        country_code: userData.countryCode,
+        reference: userData.reference,
+        referral_source: userData.referralSource,
+        referral_source_other: userData.referralSourceOther,
+        user_agent: userData.userAgent,
+        ip_address: userData.ipAddress,
+        is_notified: false,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating waitlist user:', error);
+      throw new Error('Failed to create waitlist user');
+    }
+
+    return transformWaitlistUser(data);
+  } catch (error) {
+    console.error('Error in createWaitlistUser:', error);
+    throw error;
+  }
+}
+
+export async function updateWaitlistUser(
+  id: string,
+  updates: Partial<WaitlistUser>
+): Promise<WaitlistUser> {
+  try {
+    const updateData: any = {};
+    
+    if (updates.fullName) updateData.full_name = updates.fullName;
+    if (updates.email) updateData.email = updates.email;
+    if (updates.company !== undefined) updateData.company = updates.company;
+    if (updates.phoneNumber) updateData.phone_number = updates.phoneNumber;
+    if (updates.countryCode) updateData.country_code = updates.countryCode;
+    if (updates.reference !== undefined) updateData.reference = updates.reference;
+    if (updates.referralSource !== undefined) updateData.referral_source = updates.referralSource;
+    if (updates.referralSourceOther !== undefined) updateData.referral_source_other = updates.referralSourceOther;
+    if (updates.userAgent !== undefined) updateData.user_agent = updates.userAgent;
+    if (updates.ipAddress !== undefined) updateData.ip_address = updates.ipAddress;
+    if (updates.isNotified !== undefined) updateData.is_notified = updates.isNotified;
+    if (updates.notifiedAt) updateData.notified_at = updates.notifiedAt.toISOString();
+
+    const { data, error } = await supabase
+      .from('waitlist')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating waitlist user:', error);
+      throw new Error('Failed to update waitlist user');
+    }
+
+    return transformWaitlistUser(data);
+  } catch (error) {
+    console.error('Error in updateWaitlistUser:', error);
+    throw error;
+  }
+}
+
+export async function generateInviteCodes(count: number, maxUses: number = 1): Promise<string[]> {
+  try {
+    const codes: string[] = [];
+    const codeData: any[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const code = `NA-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+      codes.push(code);
+      codeData.push({
+        code,
+        is_used: false,
+        max_uses: maxUses,
+        current_uses: 0,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        email_sent_to: [],
+      });
+    }
+
+    const { error } = await supabase
+      .from('invite_codes')
+      .insert(codeData);
+
+    if (error) {
+      console.error('Error generating invite codes:', error);
+      throw new Error('Failed to generate invite codes');
+    }
+
+    return codes;
+  } catch (error) {
+    console.error('Error in generateInviteCodes:', error);
+    throw error;
+  }
+}
+
+export async function markInviteCodeAsUsed(code: string, userId?: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('invite_codes')
+      .update({
+        is_used: true,
+        used_by: userId,
+        used_at: new Date().toISOString(),
+        current_uses: supabase.raw('current_uses + 1'),
+      })
+      .eq('code', code);
+
+    if (error) {
+      console.error('Error marking invite code as used:', error);
+      throw new Error('Failed to mark invite code as used');
+    }
+  } catch (error) {
+    console.error('Error in markInviteCodeAsUsed:', error);
+    throw error;
+  }
+}
+
+export async function addEmailToInviteCode(code: string, email: string): Promise<void> {
+  try {
+    // First check if the code exists in the database
+    const { data: currentData, error: fetchError } = await supabase
+      .from('invite_codes')
+      .select('email_sent_to')
+      .eq('code', code)
+      .single();
+
+    if (fetchError) {
+      // If the code doesn't exist in the database (e.g., it's a preview code), 
+      // we can't update it, so we'll just log this and continue
+      console.log(`Code ${code} not found in database (likely a preview code). Email tracking will be handled by preview context.`);
+      return;
+    }
+
+    const currentEmails = currentData?.email_sent_to || [];
+    const updatedEmails = [...currentEmails, email];
+
+    const { error } = await supabase
+      .from('invite_codes')
+      .update({
+        email_sent_to: updatedEmails,
+      })
+      .eq('code', code);
+
+    if (error) {
+      console.error('Error adding email to invite code:', error);
+      throw new Error('Failed to add email to invite code');
+    }
+  } catch (error) {
+    console.error('Error in addEmailToInviteCode:', error);
+    throw error;
+  }
 }
