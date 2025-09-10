@@ -11,7 +11,7 @@ export function Logo({ className }: { className?: string }) {
           filter: 'drop-shadow(0 0 0.5rem hsl(var(--primary) / 0.5))',
         }}
       >
-        Neon Access
+        CEO Insights
       </span>
     </div>
   );

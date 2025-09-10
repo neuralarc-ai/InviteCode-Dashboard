@@ -6,7 +6,7 @@ import { AuthProvider } from '@/components/auth-provider';
 
 export const metadata: Metadata = {
   title: 'Neon Access',
-  description: 'Dashboard for managing invite codes and waitlist for Neon Access.',
+  description: 'Dashboard for managing invite codes and waitlist for CEO Insights.',
 };
 
 export default function RootLayout({

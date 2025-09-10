@@ -42,24 +42,24 @@ const invitationEmailPrompt = ai.definePrompt({
   Subject: Beta Invitation - Exclusive Access for You!
   HTML Body:
   <p>Hi {{userName}},</p>
-  <p>We're excited to invite you to join the beta program for Neon Access! As a valued member of our community, you've been selected to get early access and shape the future of our platform.</p>
+  <p>We're excited to invite you to join the beta program for CEO Panel! As a valued member of our community, you've been selected to get early access and shape the future of our platform.</p>
   {{#if companyName}}
-  <p>We know you're passionate about innovation at {{companyName}}, and we believe Neon Access will revolutionize how you manage access and invitations.</p>
+  <p>We know you're passionate about innovation at {{companyName}}, and we believe CEO Panel will revolutionize how you manage access and invitations.</p>
   {{/if}}
   <p>Use this invite code: <b>{{inviteCode}}</b> to get started.</p>
 
   <p>Thanks,
-The Neon Access Team</p>
+The CEO Panel Team</p>
   Text Body:
   Hi {{userName}},
-  We're excited to invite you to join the beta program for Neon Access! As a valued member of our community, you've been selected to get early access and shape the future of our platform.
+  We're excited to invite you to join the beta program for CEO Panel! As a valued member of our community, you've been selected to get early access and shape the future of our platform.
   {{#if companyName}}
   We know you're passionate about innovation at {{companyName}}, and we believe Neon Access will revolutionize how you manage access and invitations.
   {{/if}}
   Use this invite code: {{inviteCode}} to get started.
 
   Thanks,
-  The Neon Access Team`,
+  The CEO Panel Team`,
 });
 
 const generateInvitationEmailFlow = ai.defineFlow(

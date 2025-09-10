@@ -16,7 +16,6 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/page-header';
 import { StatCardsRealtime } from '@/components/dashboard/stat-cards-realtime';
 import { RecentWaitlistEntries } from '@/components/dashboard/recent-waitlist-entries';
@@ -69,17 +68,7 @@ export default function Dashboard() {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <div className="flex items-center justify-between gap-3 p-2 rounded-md transition-colors">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9">
-                <AvatarImage src="https://picsum.photos/seed/1/40/40" alt="Admin User" />
-                <AvatarFallback>AU</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col text-sm truncate">
-                <span className="font-semibold text-foreground">Admin User</span>
-                <span className="text-muted-foreground">admin@neonaccess.dev</span>
-              </div>
-            </div>
+          <div className="flex items-center justify-end gap-3 p-2 rounded-md transition-colors">
             <LogoutButton />
           </div>
         </SidebarFooter>
