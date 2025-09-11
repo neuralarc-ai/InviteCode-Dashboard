@@ -5,7 +5,7 @@ import { PreviewCodesProvider } from '@/contexts/preview-codes-context';
 import { AuthProvider } from '@/components/auth-provider';
 
 export const metadata: Metadata = {
-  title: 'Neon Access',
+  title: 'CEO Insights',
   description: 'Dashboard for managing invite codes and waitlist for CEO Insights.',
 };
 

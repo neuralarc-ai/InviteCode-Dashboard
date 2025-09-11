@@ -56,7 +56,7 @@ function SendInviteAction({ user }: { user: WaitlistUser }) {
 
   return (
     <>
-      <form ref={formRef} action={sendInviteEmailAction} className="hidden">
+      <form ref={formRef} className="hidden">
         <input type="hidden" name="userId" value={user.id} />
         <input type="hidden" name="userName" value={user.fullName} />
         <input type="hidden" name="inviteCode" value="NA-SAMPLE" />
@@ -110,11 +110,14 @@ export const columns: ColumnDefinition[] = [
     accessorKey: 'isNotified',
     header: 'Status',
     width: '120px',
-    cell: ({ row }) => (
-      <Badge variant="outline" className={cn("font-mono text-xs", notificationColors[row.isNotified])}>
-        {row.isNotified ? 'Notified' : 'Pending'}
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const colorKey = row.isNotified ? 'true' : 'false';
+      return (
+        <Badge variant="outline" className={cn("font-mono text-xs", notificationColors[colorKey])}>
+          {row.isNotified ? 'Notified' : 'Pending'}
+        </Badge>
+      );
+    },
   },
   {
     accessorKey: 'phoneNumber',
@@ -132,6 +135,12 @@ export const columns: ColumnDefinition[] = [
     header: 'Source',
     width: '120px',
     cell: ({ row }) => <span className="text-sm">{row.referralSource || 'N/A'}</span>,
+  },
+  {
+    accessorKey: 'reference',
+    header: 'Reference',
+    width: '150px',
+    cell: ({ row }) => <span className="text-sm">{row.reference || 'N/A'}</span>,
   },
   {
     accessorKey: 'joinedAt',

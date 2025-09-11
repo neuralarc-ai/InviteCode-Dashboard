@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fustat:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,28 +8,28 @@
   :root {
     --background: 0 0% 0%; /* Pure black background */
     --foreground: 0 0% 98%;
-    --card: 0 0% 5%;
+    --card: 0 0% 8%;
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 5%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 100%; /* White primary for contrast */
-    --primary-foreground: 0 0% 0%;
+    --primary: 12 70% 55%; /* #DC613D - Orange */
+    --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 8%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 8%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 100%; /* White accent */
+    --accent: 60 100% 60%; /* #FFFF45 - Yellow */
     --accent-foreground: 0 0% 0%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 15%;
     --input: 0 0% 8%;
-    --ring: 0 0% 100%;
-    --chart-1: 0 0% 100%; /* White charts */
-    --chart-2: 0 0% 100%;
-    --chart-3: 0 0% 100%;
-    --chart-4: 0 0% 100%;
-    --chart-5: 0 0% 100%;
+    --ring: 12 70% 55%; /* Orange ring */
+    --chart-1: 12 70% 55%; /* #DC613D - Orange */
+    --chart-2: 60 100% 60%; /* #FFFF45 - Yellow */
+    --chart-3: 240 100% 65%; /* #455BFF - Blue */
+    --chart-4: 90 100% 60%; /* #96FF45 - Green */
+    --chart-5: 0 0% 100%; /* White fallback */
     --radius: 0.5rem;
   }
 
@@ -65,5 +67,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Fustat', sans-serif;
   }
 }

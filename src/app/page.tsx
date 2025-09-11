@@ -20,6 +20,7 @@ import { PageHeader } from '@/components/page-header';
 import { StatCardsRealtime } from '@/components/dashboard/stat-cards-realtime';
 import { RecentWaitlistEntries } from '@/components/dashboard/recent-waitlist-entries';
 import { RecentUsedInviteCodes } from '@/components/dashboard/recent-used-invite-codes';
+import { AnalyticsCharts } from '@/components/dashboard/analytics-charts';
 import { Logo } from '@/components/logo';
 import { LogoutButton } from '@/components/logout-button';
 import Link from 'next/link';
@@ -86,6 +87,9 @@ export default function Dashboard() {
             <RecentWaitlistEntries />
             <RecentUsedInviteCodes />
           </div>
+          
+          {/* Analytics Charts */}
+          <AnalyticsCharts />
         </main>
       </SidebarInset>
     </SidebarProvider>
