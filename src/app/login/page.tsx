@@ -24,7 +24,7 @@ export default function LoginPage() {
     // Simulate a small delay for better UX
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (password === 'admin@123') {
+    if (password === 'neuralarc.ai@2025$') {
       // Store authentication state in sessionStorage
       sessionStorage.setItem('isAuthenticated', 'true');
       sessionStorage.setItem('loginTime', new Date().toISOString());

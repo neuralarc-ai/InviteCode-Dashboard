@@ -265,13 +265,27 @@ export async function generateInviteCodes(count: number, maxUses: number = 1): P
 
 export async function markInviteCodeAsUsed(code: string, userId?: string): Promise<void> {
   try {
+    // Fetch current uses
+    const { data: current, error: fetchError } = await supabase
+      .from('invite_codes')
+      .select('current_uses')
+      .eq('code', code)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching invite code before update:', fetchError);
+      throw new Error('Failed to update invite code');
+    }
+
+    const nextUses = (current?.current_uses || 0) + 1;
+
     const { error } = await supabase
       .from('invite_codes')
       .update({
         is_used: true,
         used_by: userId,
         used_at: new Date().toISOString(),
-        current_uses: supabase.raw('current_uses + 1'),
+        current_uses: nextUses,
       })
       .eq('code', code);
 

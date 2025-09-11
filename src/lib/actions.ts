@@ -1,12 +1,12 @@
 
 'use server';
 
-import { generateInvitationEmail } from '@/ai/flows/automated-invitation-emails';
 import { revalidatePath } from 'next/cache';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
 import { updateWaitlistUser, generateInviteCodes, markInviteCodeAsUsed, addEmailToInviteCode } from '@/lib/data';
 import { supabaseAdmin } from '@/lib/supabase';
+import { generateInvitationEmail } from '@/ai/flows/automated-invitation-emails';
 
 const sendInviteSchema = z.object({
   userId: z.string(),
@@ -38,6 +38,7 @@ export async function sendInviteEmailAction(formData: FormData) {
       },
     });
 
+
     // Generate email content using the AI flow
     const emailContent = await generateInvitationEmail({
       userName,
@@ -47,6 +48,7 @@ export async function sendInviteEmailAction(formData: FormData) {
 
     // Email content with simplified, clean layout and background color #D4D5D0
     const htmlContent = `
+
     <!DOCTYPE html>
     <html>
     <head>
@@ -95,7 +97,7 @@ export async function sendInviteEmailAction(formData: FormData) {
     `;
 
     // Plain text version for email clients that don't support HTML
-    const textContent = `Dear ${userName},
+    let textContent = `Dear ${userName},
 
 Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
 
@@ -115,23 +117,39 @@ https://he2.ai
 
 Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
+    // Try AI-generated email; fallback to defaults if it fails
+    try {
+      const aiEmail = await generateInvitationEmail({
+        userName,
+        inviteCode,
+        companyName: companyName || '',
+      });
+      subject = aiEmail.subject || subject;
+      htmlContent = aiEmail.bodyHtml || htmlContent;
+      textContent = aiEmail.bodyText || textContent;
+    } catch (genErr) {
+      console.error('AI email generation failed, using fallback template:', genErr);
+    }
+
     // Send email
     const info = await transporter.sendMail({
       from: `"${process.env.SMTP_FROM}" <${process.env.SENDER_EMAIL}>`,
       to: email,
-      subject: 'Welcome to Helium OS - Your Invitation is Here!',
+      subject,
       text: textContent,
       html: htmlContent,
     });
 
     console.log('Email sent:', info.messageId);
 
+
     // Update the database to mark the user as notified
     await updateWaitlistUser(userId, {
+
       isNotified: true,
       notifiedAt: new Date()
     });
-
+    
     // Mark the invite code as used
     await markInviteCodeAsUsed(inviteCode);
 
@@ -319,4 +337,6 @@ export async function saveGeneratedCodesAction(formData: FormData) {
   }
 }
 
+
 // (Removed test email action to keep only the single clean template in use)
+
