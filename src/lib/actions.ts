@@ -48,8 +48,8 @@ export async function sendInviteEmailAction(formData: FormData) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Welcome to Helium OS</title>
     </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">      
-        <div style="max-width: 600px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #D4D5D0;">
+      <div style="max-width: 600px; margin: 40px auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <h1 style="color: #333; font-size: 28px; margin-bottom: 20px; text-align: center;">Welcome to Helium OS</h1>
           
           <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
@@ -57,15 +57,15 @@ export async function sendInviteEmailAction(formData: FormData) {
           </p>
           
           <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
+            <strong>Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with <span style=\"font-size:18px; font-weight:800;\">1500</span> free Helium credits to explore and experience the power of Helium.</strong>
           </p>
           
-          <div style="text-align: center; margin: 30px 0; padding: 20px; background: #000; border-radius: 8px; border: 2px solid #455BFF; overflow: hidden;">
-            <p style="color: #96FF45; font-size: 16px; margin-bottom: 10px; font-weight: bold;">Your Invite Code:</p>
-            <div style="background: #455BFF; color: white; padding: 15px 30px; border-radius: 5px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap;">
+          <div style="text-align: center; margin: 30px 0; padding: 20px; background: transparent; border-radius: 8px; overflow: hidden;">
+            <p style="color: #333; font-size: 16px; margin-bottom: 10px; font-weight: bold;">Your Invite Code:</p>
+            <div style="background: transparent; color: #333; padding: 15px 30px; border-radius: 5px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; border: 2px solid #455BFF;">
               ${inviteCode}
             </div>
-            <p style="color: #74EEF4; font-size: 14px; margin-top: 15px;">
+            <p style="color: #555; font-size: 14px; margin-top: 15px;">
               Use this code to activate your account at <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
             </p>
           </div>
@@ -89,11 +89,11 @@ export async function sendInviteEmailAction(formData: FormData) {
           </p>
           
           <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #455BFF;">
-            <p style="color: #74EEF4; font-size: 14px; margin: 0;">
-              Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: #455BFF; text-decoration: none;">https://neuralarc.ai</a>
+            <p style="color: #000; font-size: 14px; margin: 0;">
+              Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: #000; text-decoration: none;">https://neuralarc.ai</a>
             </p>
           </div>
-        </div>
+      </div>
     </body>
     </html>
     `;
@@ -217,9 +217,8 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Welcome to Helium OS</title>
     </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
-      <div style="background-image: url('https://he2.ai/images/Eamil_bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; min-height: 100vh; padding: 40px 20px;">
-        <div style="max-width: 600px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #D4D5D0;">
+      <div style="max-width: 600px; margin: 40px auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <h1 style="color: #333; font-size: 28px; margin-bottom: 20px; text-align: center;">Welcome to Helium OS</h1>
           
           <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
@@ -227,15 +226,15 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
           </p>
           
           <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
+            <strong>Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with <span style=\"font-size:18px; font-weight:800;\">1500</span> free Helium credits to explore and experience the power of Helium.</strong>
           </p>
           
-          <div style="text-align: center; margin: 30px 0; padding: 20px; background: #000; border-radius: 8px; border: 2px solid #455BFF; overflow: hidden;">
-            <p style="color: #96FF45; font-size: 16px; margin-bottom: 10px; font-weight: bold;">Your Invite Code:</p>
-            <div style="background: #455BFF; color: white; padding: 15px 30px; border-radius: 5px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap;">
+          <div style="text-align: center; margin: 30px 0; padding: 20px; background: transparent; border-radius: 8px; overflow: hidden;">
+            <p style="color: #333; font-size: 16px; margin-bottom: 10px; font-weight: bold;">Your Invite Code:</p>
+            <div style="background: transparent; color: #333; padding: 15px 30px; border-radius: 5px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; border: 2px solid #455BFF;">
               ${inviteCode}
             </div>
-            <p style="color: #74EEF4; font-size: 14px; margin-top: 15px;">
+            <p style="color: #555; font-size: 14px; margin-top: 15px;">
               Use this code to activate your account at <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
             </p>
           </div>
@@ -259,11 +258,10 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
           </p>
           
           <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #455BFF;">
-            <p style="color: #74EEF4; font-size: 14px; margin: 0;">
-              Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: #455BFF; text-decoration: none;">https://neuralarc.ai</a>
+            <p style="color: #000; font-size: 14px; margin: 0;">
+              Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: #000; text-decoration: none;">https://neuralarc.ai</a>
             </p>
           </div>
-        </div>
       </div>
     </body>
     </html>
@@ -361,7 +359,7 @@ export async function saveGeneratedCodesAction(formData: FormData) {
   }
 }
 
-export async function sendTestEmailAction() {
+export async function sendTestEmailAction(toEmail?: string, recipientName?: string, testInviteCode?: string) {
   try {
     // Create Nodemailer transporter
     const transporter = nodemailer.createTransport({
@@ -383,26 +381,25 @@ export async function sendTestEmailAction() {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Welcome to Helium OS</title>
     </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
-      <div style="background-image: url('https://he2.ai/images/Eamil_bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; min-height: 100vh; padding: 40px 20px;">
-        <div style="max-width: 600px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #D4D5D0;">
+      <div style="max-width: 600px; margin: 40px auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <h1 style="color: #333; font-size: 28px; margin-bottom: 20px; text-align: center;">Welcome to Helium OS</h1>
           
           <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Dear Aditya,
+            Dear ${recipientName || 'Friend'},
           </p>
           
           <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
+            <strong>Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with <span style=\"font-size:18px; font-weight:800;\">1500</span> free Helium credits to explore and experience the power of Helium.</strong>
           </p>
           
-          <div style="text-align: center; margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 2px solid #7c3aed; overflow: hidden;">
+          <div style="text-align: center; margin: 30px 0; padding: 20px; background: transparent; border-radius: 8px; overflow: hidden;">
             <p style="color: #333; font-size: 16px; margin-bottom: 10px; font-weight: bold;">Your Invite Code:</p>
-            <div style="background: #7c3aed; color: white; padding: 15px 30px; border-radius: 5px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap;">
-              TEST123
+            <div style="background: transparent; color: #333; padding: 15px 30px; border-radius: 5px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; border: 2px solid #455BFF;">
+              ${testInviteCode || 'TEST123'}
             </div>
-            <p style="color: #666; font-size: 14px; margin-top: 15px;">
-              Use this code to activate your account at <a href="https://he2.ai" style="color: #7c3aed; text-decoration: none;">https://he2.ai</a>
+            <p style="color: #555; font-size: 14px; margin-top: 15px;">
+              Use this code to activate your account at <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
             </p>
           </div>
           
@@ -425,22 +422,21 @@ export async function sendTestEmailAction() {
           </p>
           
           <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #455BFF;">
-            <p style="color: #74EEF4; font-size: 14px; margin: 0;">
-              Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: #455BFF; text-decoration: none;">https://neuralarc.ai</a>
+            <p style="color: #000; font-size: 14px; margin: 0;">
+              Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: #000; text-decoration: none;">https://neuralarc.ai</a>
             </p>
           </div>
-        </div>
       </div>
     </body>
     </html>
     `;
 
     // Plain text version for email clients that don't support HTML
-    const textContent = `Dear Aditya,
+    const textContent = `Dear ${recipientName || 'Friend'},
 
 Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
 
-Your Invite Code: TEST123
+Your Invite Code: ${testInviteCode || 'TEST123'}
 
 Use this code to activate your account at https://he2.ai
 
@@ -459,7 +455,7 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
     // Send email
     const info = await transporter.sendMail({
       from: `"${process.env.SMTP_FROM}" <${process.env.SENDER_EMAIL}>`,
-      to: 'aditya.kemdarne@neuralarc.ai',
+      to: toEmail || 'aditya.kemdarne@neuralarc.ai',
       subject: 'Welcome to Helium OS - Your Invitation is Here! (Test Email)',
       text: textContent,
       html: emailContent,
@@ -467,7 +463,7 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
     console.log('Test email sent:', info.messageId);
     
-    return { success: true, message: 'Test email sent to aditya.kemdarne@neuralarc.ai' };
+    return { success: true, message: `Test email sent to ${toEmail || 'aditya.kemdarne@neuralarc.ai'}` };
   } catch (error) {
     console.error('Failed to send test email:', error);
     return { success: false, message: 'Failed to send test email. Please check your SMTP configuration.' };
