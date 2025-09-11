@@ -23,7 +23,7 @@ export async function sendInviteEmailAction(formData: FormData) {
   if (!validation.success) {
     return { success: false, message: 'Invalid form data.' };
   }
-  
+
   const { userId, userName, inviteCode, companyName, email } = validation.data;
 
   try {
@@ -45,7 +45,7 @@ export async function sendInviteEmailAction(formData: FormData) {
       companyName: companyName || '',
     });
 
-    // Email content with HTML and background image
+    // Email content with simplified, clean layout and background color #D4D5D0
     const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -53,52 +53,42 @@ export async function sendInviteEmailAction(formData: FormData) {
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Welcome to Helium OS</title>
+      <style>
+        body { margin: 0; padding: 0; background-color: #D4D5D0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 32px 20px; }
+        p { margin: 0 0 16px 0; font-size: 18px; text-align: left; }
+        .footer { text-align: center; font-size: 14px; color: #666; margin-top: 32px; }
+        @media (max-width: 600px) { .container { padding: 24px 14px; } }
+      </style>
     </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #D4D5D0;">
-      <div style="max-width: 600px; margin: 40px auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          <h1 style="color: #333; font-size: 28px; margin-bottom: 20px; text-align: center;">Welcome to Helium OS</h1>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Dear ${userName},
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            <strong>Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with <span style=\"font-size:18px; font-weight:800;\">1500</span> free Helium credits to explore and experience the power of Helium.</strong>
-          </p>
-          
-          <div style="text-align: center; margin: 30px 0; padding: 20px; background: transparent; border-radius: 8px; overflow: hidden;">
-            <p style="color: #333; font-size: 16px; margin-bottom: 10px; font-weight: bold;">Your Invite Code:</p>
-            <div style="background: transparent; color: #333; padding: 15px 30px; border-radius: 5px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; border: 2px solid #455BFF;">
-              ${inviteCode}
-            </div>
-            <p style="color: #555; font-size: 14px; margin-top: 15px;">
-              Use this code to activate your account at <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
-            </p>
+    <body style="margin:0; padding:0; background-color:#D4D5D0;" bgcolor="#D4D5D0">
+      <div class="container">
+        <h1 style="margin:0 0 16px; font-size: 28px; text-align: center;">
+          Welcome to Helium OS
+        </h1>
+        <p>Dear ${userName},</p>
+
+        <p>Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with <strong><span style="font-size:18px; font-weight:800;">1500</span> free Helium credits</strong> to explore and experience the power of Helium.</p>
+
+        <p style="font-weight: bold;">Your Invite Code:</p>
+        <div style="text-align: center; margin: 16px 0 8px;">
+          <div style="color: #333; padding: 12px 24px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; border: 2px solid #333;">
+            ${inviteCode}
           </div>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Helium is designed to be the operating system for business intelligence, giving you a single, seamless layer to connect data, decisions, and workflows. As this is our first public beta, you may notice minor bugs or quirks. If you do, your feedback will help us make Helium even better.
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            You are not just testing a product. You are helping shape the future of business intelligence.
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Welcome to Helium OS. The future of work is here.
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Cheers,<br>
-            Team Helium<br>
-            <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
-          </p>
-          
-          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #455BFF;">
-            <p style="color: #000; font-size: 14px; margin: 0;">
-              Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: #000; text-decoration: none;">https://neuralarc.ai</a>
-            </p>
-          </div>
+        </div>
+        <p style="margin-top: 12px;">Use this code to activate your account at <a href="https://he2.ai" style="color: inherit; text-decoration: underline;">https://he2.ai</a></p>
+
+        <p>Helium is designed to be the operating system for business intelligence, giving you a single, seamless layer to connect data, decisions, and workflows. As this is our first public beta, you may notice minor bugs or quirks. If you do, your feedback will help us make Helium even better.</p>
+
+        <p>You are not just testing a product. You are helping shape the future of business intelligence.</p>
+
+        <p>Welcome to Helium OS. The future of work is here.</p>
+
+        <p>Cheers,<br>Team Helium<br><a href="https://he2.ai" style="color: inherit; text-decoration: underline;">https://he2.ai</a></p>
+
+        <div class="footer">
+          Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: inherit; text-decoration: underline;">https://neuralarc.ai</a>
+        </div>
       </div>
     </body>
     </html>
@@ -135,19 +125,19 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
     });
 
     console.log('Email sent:', info.messageId);
-    
+
     // Update the database to mark the user as notified
-    await updateWaitlistUser(userId, { 
+    await updateWaitlistUser(userId, {
       isNotified: true,
       notifiedAt: new Date()
     });
-    
+
     // Mark the invite code as used
     await markInviteCodeAsUsed(inviteCode);
-    
+
     // Add email to the invite code's email_sent_to array
     await addEmailToInviteCode(inviteCode, email);
-    
+
     revalidatePath('/');
     return { success: true, message: `Invitation sent to ${userName}.` };
   } catch (error) {
@@ -184,63 +174,57 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
       },
     });
 
-    // Email content with HTML and background image
+    // Email content with simplified, clean layout and background color #D4D5D0
     const emailContent = `
     <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Welcome to Helium OS</title>
-    </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #D4D5D0;">
-      <div style="max-width: 600px; margin: 40px auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          <h1 style="color: #333; font-size: 28px; margin-bottom: 20px; text-align: center;">Welcome to Helium OS</h1>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Dear ${firstName},
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            <strong>Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with <span style=\"font-size:18px; font-weight:800;\">1500</span> free Helium credits to explore and experience the power of Helium.</strong>
-          </p>
-          
-          <div style="text-align: center; margin: 30px 0; padding: 20px; background: transparent; border-radius: 8px; overflow: hidden;">
-            <p style="color: #333; font-size: 16px; margin-bottom: 10px; font-weight: bold;">Your Invite Code:</p>
-            <div style="background: transparent; color: #333; padding: 15px 30px; border-radius: 5px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; border: 2px solid #455BFF;">
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Helium OS</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #333; line-height: 1.6; }
+    .container { max-width: 600px; margin: 20px auto; padding: 32px 20px; background-color: #D4D5D0; }
+    p { margin: 0 0 16px 0; font-size: 18px; text-align: left; }
+    .footer { text-align: center; font-size: 14px; color: #666; margin-top: 32px; }
+    @media (max-width: 600px) { .container { padding: 24px 14px; } }
+  </style>
+</head>
+<body style="margin:0; padding:0; background-color:#ffffff;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0; padding:0; background-color:#ffffff;">
+    <tr>
+      <td align="center">
+        <div class="container">
+          <h1 style="margin:0 0 16px; font-size: 28px; text-align: center;">Welcome to Helium OS</h1>
+          <p>Dear ${firstName},</p>
+
+          <p>Congratulations! You have been selected to join Helium OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with <strong><span style="font-size:18px; font-weight:800;">1500</span> free Helium credits</strong> to explore and experience the power of Helium.</p>
+
+          <p style="font-weight: bold;">Your Invite Code:</p>
+          <div style="text-align: center; margin: 16px 0 8px;">
+            <div style="color: #333; padding: 12px 24px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; border: 2px solid #333; background-color: #fff;">
               ${inviteCode}
             </div>
-            <p style="color: #555; font-size: 14px; margin-top: 15px;">
-              Use this code to activate your account at <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
-            </p>
           </div>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Helium is designed to be the operating system for business intelligence, giving you a single, seamless layer to connect data, decisions, and workflows. As this is our first public beta, you may notice minor bugs or quirks. If you do, your feedback will help us make Helium even better.
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            You are not just testing a product. You are helping shape the future of business intelligence.
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Welcome to Helium OS. The future of work is here.
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Cheers,<br>
-            Team Helium<br>
-            <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
-          </p>
-          
-          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #455BFF;">
-            <p style="color: #000; font-size: 14px; margin: 0;">
-              Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: #000; text-decoration: none;">https://neuralarc.ai</a>
-            </p>
+          <p style="margin-top: 12px;">Use this code to activate your account at <a href="https://he2.ai" style="color: inherit; text-decoration: underline;">https://he2.ai</a></p>
+
+          <p>Helium is designed to be the operating system for business intelligence, giving you a single, seamless layer to connect data, decisions, and workflows. As this is our first public beta, you may notice minor bugs or quirks. If you do, your feedback will help us make Helium even better.</p>
+
+          <p>You are not just testing a product. You are helping shape the future of business intelligence.</p>
+
+          <p>Welcome to Helium OS. The future of work is here.</p>
+
+          <p>Cheers,<br>Team Helium<br><a href="https://he2.ai" style="color: inherit; text-decoration: underline;">https://he2.ai</a></p>
+
+          <div class="footer">
+            Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: inherit; text-decoration: underline;">https://neuralarc.ai</a>
           </div>
-      </div>
-    </body>
-    </html>
+        </div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
     `;
 
     // Plain text version for email clients that don't support HTML
@@ -274,11 +258,11 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
     });
 
     console.log('Email sent:', info.messageId);
-    
+
     // First, save the invite code to the database with 7-day expiration
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
-    
+
     if (!supabaseAdmin) {
       console.error('Supabase admin client not available');
       return { success: false, message: 'Database configuration error' };
@@ -303,7 +287,7 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
       console.log('Invite code saved to database:', inviteCode);
       console.log('Database insert successful for code:', inviteCode);
     }
-    
+
     return { success: true, message: `Invitation sent to ${firstName} at ${email}` };
   } catch (error) {
     console.error('Failed to send email:', error);
@@ -326,7 +310,7 @@ export async function saveGeneratedCodesAction(formData: FormData) {
   try {
     const codesData = JSON.parse(validation.data.codes);
     const codes = await generateInviteCodes(codesData.length, codesData[0]?.maxUses || 1);
-    
+
     console.log(`Saved ${codes.length} codes to database:`, codes);
     return { success: true, message: `${codes.length} codes saved to database.` };
   } catch (error) {
@@ -335,113 +319,4 @@ export async function saveGeneratedCodesAction(formData: FormData) {
   }
 }
 
-export async function sendTestEmailAction(toEmail?: string, recipientName?: string, testInviteCode?: string) {
-  try {
-    // Create Nodemailer transporter
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    // Email content with HTML and background image
-    const emailContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Welcome to Helium OS</title>
-    </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #D4D5D0;">
-      <div style="max-width: 600px; margin: 40px auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          <h1 style="color: #333; font-size: 28px; margin-bottom: 20px; text-align: center;">Welcome to Helium OS</h1>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Dear ${recipientName || 'Friend'},
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            <strong>Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with <span style=\"font-size:18px; font-weight:800;\">1500</span> free Helium credits to explore and experience the power of Helium.</strong>
-          </p>
-          
-          <div style="text-align: center; margin: 30px 0; padding: 20px; background: transparent; border-radius: 8px; overflow: hidden;">
-            <p style="color: #333; font-size: 16px; margin-bottom: 10px; font-weight: bold;">Your Invite Code:</p>
-            <div style="background: transparent; color: #333; padding: 15px 30px; border-radius: 5px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; border: 2px solid #455BFF;">
-              ${testInviteCode || 'TEST123'}
-            </div>
-            <p style="color: #555; font-size: 14px; margin-top: 15px;">
-              Use this code to activate your account at <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
-            </p>
-          </div>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Helium is designed to be the operating system for business intelligence, giving you a single, seamless layer to connect data, decisions, and workflows. As this is our first public beta, you may notice minor bugs or quirks. If you do, your feedback will help us make Helium even better.
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            You are not just testing a product. You are helping shape the future of business intelligence.
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Welcome to Helium OS. The future of work is here.
-          </p>
-          
-          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-            Cheers,<br>
-            Team Helium<br>
-            <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
-          </p>
-          
-          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #455BFF;">
-            <p style="color: #000; font-size: 14px; margin: 0;">
-              Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: #000; text-decoration: none;">https://neuralarc.ai</a>
-            </p>
-          </div>
-      </div>
-    </body>
-    </html>
-    `;
-
-    // Plain text version for email clients that don't support HTML
-    const textContent = `Dear ${recipientName || 'Friend'},
-
-Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
-
-Your Invite Code: ${testInviteCode || 'TEST123'}
-
-Use this code to activate your account at https://he2.ai
-
-Helium is designed to be the operating system for business intelligence, giving you a single, seamless layer to connect data, decisions, and workflows. As this is our first public beta, you may notice minor bugs or quirks. If you do, your feedback will help us make Helium even better.
-
-You are not just testing a product. You are helping shape the future of business intelligence.
-
-Welcome to Helium OS. The future of work is here.
-
-Cheers,
-Team Helium
-https://he2.ai
-
-Helium AI by Neural Arc Inc. https://neuralarc.ai`;
-
-    // Send email
-    const info = await transporter.sendMail({
-      from: `"${process.env.SMTP_FROM}" <${process.env.SENDER_EMAIL}>`,
-      to: toEmail || 'aditya.kemdarne@neuralarc.ai',
-      subject: 'Welcome to Helium OS - Your Invitation is Here! (Test Email)',
-      text: textContent,
-      html: emailContent,
-    });
-
-    console.log('Test email sent:', info.messageId);
-    
-    return { success: true, message: `Test email sent to ${toEmail || 'aditya.kemdarne@neuralarc.ai'}` };
-  } catch (error) {
-    console.error('Failed to send test email:', error);
-    return { success: false, message: 'Failed to send test email. Please check your SMTP configuration.' };
-  }
-}
+// (Removed test email action to keep only the single clean template in use)
