@@ -27,17 +27,116 @@ export async function sendInviteEmailAction(formData: FormData) {
   const { userId, userName, inviteCode, companyName, email } = validation.data;
 
   try {
+    // Create Nodemailer transporter
+    const transporter = nodemailer.createTransporter({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    // Generate email content using the AI flow
     const emailContent = await generateInvitationEmail({
       userName,
       inviteCode,
       companyName: companyName || '',
     });
 
-    // Here you would integrate with an email sending service (e.g., SendGrid, Mailgun)
-    // For this example, we'll just log the content to the console
-    console.log(`Email prepared for: ${email}`);
-    console.log(`Subject: ${emailContent.subject}`);
-    console.log(`Text Body: ${emailContent.bodyText}`);
+    // Email content with HTML and background image
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Welcome to Helium OS</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
+      <div style="background-image: url('https://he2.ai/images/Eamil_bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; min-height: 100vh; padding: 40px 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <h1 style="color: #333; font-size: 28px; margin-bottom: 20px; text-align: center;">Welcome to Helium OS</h1>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            Dear ${userName},
+          </p>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
+          </p>
+          
+          <div style="text-align: center; margin: 30px 0; padding: 20px; background: #000; border-radius: 8px; border: 2px solid #455BFF; overflow: hidden;">
+            <p style="color: #96FF45; font-size: 16px; margin-bottom: 10px; font-weight: bold;">Your Invite Code:</p>
+            <div style="background: #455BFF; color: white; padding: 15px 30px; border-radius: 5px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap;">
+              ${inviteCode}
+            </div>
+            <p style="color: #74EEF4; font-size: 14px; margin-top: 15px;">
+              Use this code to activate your account at <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
+            </p>
+          </div>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            Helium is designed to be the operating system for business intelligence, giving you a single, seamless layer to connect data, decisions, and workflows. As this is our first public beta, you may notice minor bugs or quirks. If you do, your feedback will help us make Helium even better.
+          </p>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            You are not just testing a product. You are helping shape the future of business intelligence.
+          </p>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            Welcome to Helium OS. The future of work is here.
+          </p>
+          
+          <p style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+            Cheers,<br>
+            Team Helium<br>
+            <a href="https://he2.ai" style="color: #455BFF; text-decoration: none;">https://he2.ai</a>
+          </p>
+          
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #455BFF;">
+            <p style="color: #74EEF4; font-size: 14px; margin: 0;">
+              Helium AI by Neural Arc Inc. <a href="https://neuralarc.ai" style="color: #455BFF; text-decoration: none;">https://neuralarc.ai</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    // Plain text version for email clients that don't support HTML
+    const textContent = `Dear ${userName},
+
+Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
+
+Your Invite Code: ${inviteCode}
+
+Use this code to activate your account at https://he2.ai
+
+Helium is designed to be the operating system for business intelligence, giving you a single, seamless layer to connect data, decisions, and workflows. As this is our first public beta, you may notice minor bugs or quirks. If you do, your feedback will help us make Helium even better.
+
+You are not just testing a product. You are helping shape the future of business intelligence.
+
+Welcome to Helium OS. The future of work is here.
+
+Cheers,
+Team Helium
+https://he2.ai
+
+Helium AI by Neural Arc Inc. https://neuralarc.ai`;
+
+    // Send email
+    const info = await transporter.sendMail({
+      from: `"${process.env.SMTP_FROM}" <${process.env.SENDER_EMAIL}>`,
+      to: email,
+      subject: 'Welcome to Helium OS - Your Invitation is Here!',
+      text: textContent,
+      html: htmlContent,
+    });
+
+    console.log('Email sent:', info.messageId);
     
     // Update the database to mark the user as notified
     await updateWaitlistUser(userId, { 
@@ -55,7 +154,7 @@ export async function sendInviteEmailAction(formData: FormData) {
     return { success: true, message: `Invitation sent to ${userName}.` };
   } catch (error) {
     console.error('Failed to send invitation:', error);
-    return { success: false, message: 'An error occurred while generating the email.' };
+    return { success: false, message: 'An error occurred while sending the email.' };
   }
 }
 

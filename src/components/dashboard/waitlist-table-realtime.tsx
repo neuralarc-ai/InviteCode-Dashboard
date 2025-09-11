@@ -162,6 +162,16 @@ export function WaitlistTableRealtime() {
           </Button>
         </div>
       </div>
+      
+      {/* Waitlist Count */}
+      <div className="text-center text-sm text-muted-foreground">
+        Total waitlist entries: <span className="font-semibold text-foreground">{users.length}</span>
+        {filter && (
+          <span className="ml-2">
+            (Filtered: <span className="font-semibold text-foreground">{filteredUsers.length}</span>)
+          </span>
+        )}
+      </div>
     </div>
   );
 }

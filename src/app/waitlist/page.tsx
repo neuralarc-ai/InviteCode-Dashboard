@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Settings,
   Users,
+  CreditCard,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -52,6 +53,14 @@ export default function WaitlistPage() {
                 <Link href="/waitlist">
                   <Users />
                   Waitlist
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/credit-balance">
+                  <CreditCard />
+                  Credit Balance
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

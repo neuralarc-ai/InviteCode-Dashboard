@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '../ui/checkbox';
+import { GenerateCodesDialog } from './generate-codes-dialog';
 
 function ActionMenuItem({
   children,
@@ -37,36 +38,24 @@ function ActionMenuItem({
 }
 
 function SendInviteAction({ user }: { user: WaitlistUser }) {
-  const { toast } = useToast();
-  const formRef = React.useRef<HTMLFormElement>(null);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
-  const handleSendInvite = async () => {
-    if (!formRef.current) return;
-    const formData = new FormData(formRef.current);
-    const result = await sendInviteEmailAction(formData);
-
-    if (!result.success) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: result.message,
-      });
-    }
+  const handleSendInvite = () => {
+    setIsDialogOpen(true);
   };
 
   return (
     <>
-      <form ref={formRef} className="hidden">
-        <input type="hidden" name="userId" value={user.id} />
-        <input type="hidden" name="userName" value={user.fullName} />
-        <input type="hidden" name="inviteCode" value="NA-SAMPLE" />
-        <input type="hidden" name="email" value={user.email} />
-        <input type="hidden" name="companyName" value={user.company || ''} />
-      </form>
       <ActionMenuItem onSelect={handleSendInvite}>
         <Send />
         Send Invite
       </ActionMenuItem>
+      <GenerateCodesDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        prefilledEmail={user.email}
+        prefilledName={user.fullName}
+      />
     </>
   );
 }

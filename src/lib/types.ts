@@ -1,5 +1,17 @@
 export type UserStatus = 'Used' | 'Not Used' | 'Expired';
 
+export type CreditBalance = {
+  userId: string;
+  balanceDollars: number;
+  totalPurchased: number;
+  totalUsed: number;
+  lastUpdated: Date;
+  metadata: Record<string, any>;
+  // Additional fields we'll fetch from auth.users
+  userEmail?: string;
+  userName?: string;
+};
+
 export type WaitlistUser = {
   id: string;
   fullName: string;
@@ -121,6 +133,32 @@ export interface Database {
           max_uses?: number;
           current_uses?: number;
           email_sent_to?: string[];
+        };
+      };
+      credit_balance: {
+        Row: {
+          user_id: string;
+          balance_dollars: number;
+          total_purchased: number;
+          total_used: number;
+          last_updated: string;
+          metadata: Record<string, any>;
+        };
+        Insert: {
+          user_id: string;
+          balance_dollars?: number;
+          total_purchased?: number;
+          total_used?: number;
+          last_updated?: string;
+          metadata?: Record<string, any>;
+        };
+        Update: {
+          user_id?: string;
+          balance_dollars?: number;
+          total_purchased?: number;
+          total_used?: number;
+          last_updated?: string;
+          metadata?: Record<string, any>;
         };
       };
     };

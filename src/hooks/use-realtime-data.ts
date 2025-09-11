@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { WaitlistUser, DashboardStats, InviteCode } from '@/lib/types';
+import type { WaitlistUser, DashboardStats, InviteCode, CreditBalance } from '@/lib/types';
 
 export function useWaitlistUsers() {
   const [users, setUsers] = useState<WaitlistUser[]>([]);
@@ -244,4 +244,102 @@ export function useDashboardStats() {
   }, []);
 
   return { stats, loading, error };
+}
+
+export function useCreditBalances() {
+  const [creditBalances, setCreditBalances] = useState<CreditBalance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Initial fetch
+    const fetchCreditBalances = async () => {
+      try {
+        setLoading(true);
+        // Use server endpoint to bypass RLS/permissions issues
+        const res = await fetch('/api/credit-balance', { cache: 'no-store' });
+        const json = await res.json();
+        if (!json.success) {
+          throw new Error(json.message || 'Failed to fetch credit balances');
+        }
+
+        const transformedData = (json.data as any[]).map((row: any) => ({
+          userId: row.user_id,
+          balanceDollars: parseFloat(row.balance_dollars),
+          totalPurchased: parseFloat(row.total_purchased),
+          totalUsed: parseFloat(row.total_used),
+          lastUpdated: new Date(row.last_updated),
+          metadata: row.metadata || {},
+          userEmail: `user-${row.user_id.slice(0, 8)}@example.com`,
+          userName: row.user_name || `User ${row.user_id.slice(0, 8)}`,
+        }));
+
+        setCreditBalances(transformedData);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching credit balances:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch credit balances');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCreditBalances();
+
+    // Set up real-time subscription
+    const creditBalanceSubscription = supabase
+      .channel('credit_balance_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'credit_balance',
+        },
+        (payload) => {
+          console.log('Credit balance change received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newBalance = {
+              userId: payload.new.user_id,
+              balanceDollars: parseFloat(payload.new.balance_dollars),
+              totalPurchased: parseFloat(payload.new.total_purchased),
+              totalUsed: parseFloat(payload.new.total_used),
+              lastUpdated: new Date(payload.new.last_updated),
+              metadata: payload.new.metadata || {},
+              userEmail: `user-${payload.new.user_id.slice(0, 8)}@example.com`,
+              userName: `User ${payload.new.user_id.slice(0, 8)}`,
+            };
+            setCreditBalances(prev => [newBalance, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedBalance = {
+              userId: payload.new.user_id,
+              balanceDollars: parseFloat(payload.new.balance_dollars),
+              totalPurchased: parseFloat(payload.new.total_purchased),
+              totalUsed: parseFloat(payload.new.total_used),
+              lastUpdated: new Date(payload.new.last_updated),
+              metadata: payload.new.metadata || {},
+              userEmail: `user-${payload.new.user_id.slice(0, 8)}@example.com`,
+              userName: `User ${payload.new.user_id.slice(0, 8)}`,
+            };
+            setCreditBalances(prev => 
+              prev.map(balance => 
+                balance.userId === updatedBalance.userId ? updatedBalance : balance
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setCreditBalances(prev => 
+              prev.filter(balance => balance.userId !== payload.old.user_id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      creditBalanceSubscription.unsubscribe();
+    };
+  }, []);
+
+  return { creditBalances, loading, error };
 }

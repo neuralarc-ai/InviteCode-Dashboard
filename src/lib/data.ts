@@ -1,4 +1,4 @@
-import type { WaitlistUser, DashboardStats, InviteCode } from '@/lib/types';
+import type { WaitlistUser, DashboardStats, InviteCode, CreditBalance } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 
 // Transform database row to WaitlistUser type
@@ -34,6 +34,20 @@ function transformInviteCode(row: any): InviteCode {
     maxUses: row.max_uses,
     currentUses: row.current_uses,
     emailSentTo: row.email_sent_to || [],
+  };
+}
+
+// Transform database row to CreditBalance type
+function transformCreditBalance(row: any): CreditBalance {
+  return {
+    userId: row.user_id,
+    balanceDollars: parseFloat(row.balance_dollars),
+    totalPurchased: parseFloat(row.total_purchased),
+    totalUsed: parseFloat(row.total_used),
+    lastUpdated: new Date(row.last_updated),
+    metadata: row.metadata || {},
+    userEmail: row.user_email,
+    userName: row.user_name,
   };
 }
 
@@ -303,6 +317,67 @@ export async function addEmailToInviteCode(code: string, email: string): Promise
     }
   } catch (error) {
     console.error('Error in addEmailToInviteCode:', error);
+    throw error;
+  }
+}
+
+// Credit Balance functions
+export async function getCreditBalances(): Promise<CreditBalance[]> {
+  try {
+    const { data, error } = await supabase
+      .from('credit_balance')
+      .select('*')
+      .order('last_updated', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching credit balances:', error);
+      throw new Error('Failed to fetch credit balances');
+    }
+
+    return data.map((row: any) => ({
+      userId: row.user_id,
+      balanceDollars: parseFloat(row.balance_dollars),
+      totalPurchased: parseFloat(row.total_purchased),
+      totalUsed: parseFloat(row.total_used),
+      lastUpdated: new Date(row.last_updated),
+      metadata: row.metadata || {},
+      userEmail: `user-${row.user_id.slice(0, 8)}@example.com`,
+      userName: `User ${row.user_id.slice(0, 8)}`,
+    }));
+  } catch (error) {
+    console.error('Error in getCreditBalances:', error);
+    throw error;
+  }
+}
+
+export async function updateCreditBalance(
+  userId: string,
+  updates: Partial<CreditBalance>
+): Promise<CreditBalance> {
+  try {
+    const updateData: any = {};
+    
+    if (updates.balanceDollars !== undefined) updateData.balance_dollars = updates.balanceDollars;
+    if (updates.totalPurchased !== undefined) updateData.total_purchased = updates.totalPurchased;
+    if (updates.totalUsed !== undefined) updateData.total_used = updates.totalUsed;
+    if (updates.metadata !== undefined) updateData.metadata = updates.metadata;
+    if (updates.lastUpdated !== undefined) updateData.last_updated = updates.lastUpdated.toISOString();
+
+    const { data, error } = await supabase
+      .from('credit_balance')
+      .update(updateData)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating credit balance:', error);
+      throw new Error('Failed to update credit balance');
+    }
+
+    return transformCreditBalance(data);
+  } catch (error) {
+    console.error('Error in updateCreditBalance:', error);
     throw error;
   }
 }

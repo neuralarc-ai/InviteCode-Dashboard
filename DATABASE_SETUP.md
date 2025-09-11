@@ -8,6 +8,7 @@ Your existing database already has the correct tables:
 
 - `waitlist` - Stores user information and notification status
 - `invite_codes` - Stores generated invite codes and their usage status
+- `credit_balance` - Stores user credit balance information
 
 ## 2. Environment Variables
 
@@ -68,6 +69,20 @@ The application now includes:
 - `max_uses` (INTEGER)
 - `current_uses` (INTEGER)
 - `email_sent_to` (JSONB Array)
+
+### credit_balance table:
+- `id` (UUID, Primary Key)
+- `user_id` (VARCHAR)
+- `user_email` (VARCHAR)
+- `user_name` (VARCHAR)
+- `current_balance` (INTEGER)
+- `total_credits` (INTEGER)
+- `used_credits` (INTEGER)
+- `last_updated` (TIMESTAMP)
+- `status` (VARCHAR: 'active', 'suspended', 'expired')
+- `notes` (TEXT, Nullable)
+- `created_at` (TIMESTAMP)
+- `updated_at` (TIMESTAMP)
 
 ## 6. Features Implemented
 

@@ -25,16 +25,32 @@ interface GeneratedCode {
   emailSentTo?: string[];
 }
 
-export function GenerateCodesDialog() {
-  const [isOpen, setIsOpen] = React.useState(false);
+interface GenerateCodesDialogProps {
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  prefilledEmail?: string;
+  prefilledName?: string;
+}
+
+export function GenerateCodesDialog({ 
+  isOpen: externalIsOpen, 
+  onOpenChange: externalOnOpenChange,
+  prefilledEmail = '',
+  prefilledName = ''
+}: GenerateCodesDialogProps = {}) {
+  const [internalIsOpen, setInternalIsOpen] = React.useState(false);
   const [generatedCode, setGeneratedCode] = React.useState<GeneratedCode | null>(null);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [copiedCode, setCopiedCode] = React.useState(false);
-  const [email, setEmail] = React.useState('');
-  const [firstName, setFirstName] = React.useState('');
+  const [email, setEmail] = React.useState(prefilledEmail);
+  const [firstName, setFirstName] = React.useState(prefilledName);
   const [isSendingEmail, setIsSendingEmail] = React.useState(false);
   const { toast } = useToast();
   const { addPreviewCodes, clearPreviewCodes } = usePreviewCodes();
+
+  // Use external state if provided, otherwise use internal state
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const setIsOpen = externalOnOpenChange || setInternalIsOpen;
 
   const generatePreviewCode = React.useCallback(() => {
     setIsGenerating(true);
@@ -53,6 +69,16 @@ export function GenerateCodesDialog() {
     addPreviewCodes([newCode]); // Add to global preview context
     setIsGenerating(false);
   }, [addPreviewCodes]);
+
+  // Update email and firstName when prefilled values change
+  React.useEffect(() => {
+    if (prefilledEmail) {
+      setEmail(prefilledEmail);
+    }
+    if (prefilledName) {
+      setFirstName(prefilledName);
+    }
+  }, [prefilledEmail, prefilledName]);
 
   // Auto-generate code when dialog opens
   React.useEffect(() => {

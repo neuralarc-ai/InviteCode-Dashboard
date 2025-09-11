@@ -37,5 +37,37 @@ ALTER PUBLICATION supabase_realtime ADD TABLE waitlist;
 -- Enable real-time for invite_codes table  
 ALTER PUBLICATION supabase_realtime ADD TABLE invite_codes;
 
+-- Create credit_balance table if it doesn't exist
+CREATE TABLE IF NOT EXISTS credit_balance (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id VARCHAR(255) NOT NULL,
+  user_email VARCHAR(255) NOT NULL,
+  user_name VARCHAR(255) NOT NULL,
+  current_balance INTEGER DEFAULT 0,
+  total_credits INTEGER DEFAULT 0,
+  used_credits INTEGER DEFAULT 0,
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'expired')),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for credit_balance table
+ALTER TABLE credit_balance ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for credit_balance table
+CREATE POLICY "Allow public read access to credit_balance" ON credit_balance
+    FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert access to credit_balance" ON credit_balance
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update access to credit_balance" ON credit_balance
+    FOR UPDATE USING (true);
+
+-- Enable real-time for credit_balance table
+ALTER PUBLICATION supabase_realtime ADD TABLE credit_balance;
+
 -- Note: If you get an error about the publication not existing, you may need to create it first:
 -- CREATE PUBLICATION supabase_realtime FOR ALL TABLES;
