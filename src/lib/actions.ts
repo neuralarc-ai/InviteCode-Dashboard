@@ -9,7 +9,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { generateInvitationEmail } from '@/ai/flows/automated-invitation-emails';
 
 const sendInviteSchema = z.object({
-  userId: z.string(),
+  userId: z.string().optional(),
   userName: z.string(),
   inviteCode: z.string(),
   email: z.string().email(),
@@ -39,15 +39,11 @@ export async function sendInviteEmailAction(formData: FormData) {
     });
 
 
-    // Generate email content using the AI flow
-    const emailContent = await generateInvitationEmail({
-      userName,
-      inviteCode,
-      companyName: companyName || '',
-    });
+    // If you want AI-generated content, enable below; by default we use the hand-crafted template.
+    // const emailContent = await generateInvitationEmail({ userName, inviteCode, companyName: companyName || '' });
 
     // Email content with simplified, clean layout and background color #D4D5D0
-    const htmlContent = `
+    let htmlContent = `
 
     <!DOCTYPE html>
     <html>
@@ -96,6 +92,9 @@ export async function sendInviteEmailAction(formData: FormData) {
     </html>
     `;
 
+    // Default subject line; may be overridden by AI-generated content
+    let subject = 'Welcome to Helium OS - Your Invitation is Here!';
+
     // Plain text version for email clients that don't support HTML
     let textContent = `Dear ${userName},
 
@@ -117,19 +116,7 @@ https://he2.ai
 
 Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
-    // Try AI-generated email; fallback to defaults if it fails
-    try {
-      const aiEmail = await generateInvitationEmail({
-        userName,
-        inviteCode,
-        companyName: companyName || '',
-      });
-      subject = aiEmail.subject || subject;
-      htmlContent = aiEmail.bodyHtml || htmlContent;
-      textContent = aiEmail.bodyText || textContent;
-    } catch (genErr) {
-      console.error('AI email generation failed, using fallback template:', genErr);
-    }
+    // Keep the custom template by default. To switch to AI content, uncomment the block above.
 
     // Send email
     const info = await transporter.sendMail({
@@ -142,19 +129,42 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
     console.log('Email sent:', info.messageId);
 
+    // Save the invite code to the database with 7-day expiration (so it's trackable after email)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // Update the database to mark the user as notified
-    await updateWaitlistUser(userId, {
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not available');
+      return { success: false, message: 'Database configuration error' };
+    }
 
-      isNotified: true,
-      notifiedAt: new Date()
-    });
-    
-    // Mark the invite code as used
-    await markInviteCodeAsUsed(inviteCode);
+    const { error: insertError } = await supabaseAdmin
+      .from('invite_codes')
+      .insert({
+        code: inviteCode,
+        is_used: false,
+        max_uses: 1,
+        current_uses: 0,
+        expires_at: expiresAt.toISOString(),
+        email_sent_to: [email],
+      });
 
-    // Add email to the invite code's email_sent_to array
-    await addEmailToInviteCode(inviteCode, email);
+    if (insertError) {
+      // If it already exists, just append the email for tracking
+      console.warn('Invite code insert failed, attempting to append email:', insertError);
+      try { await addEmailToInviteCode(inviteCode, email); } catch {}
+    }
+
+    // Update the database to mark the user as notified (only if userId provided)
+    if (userId) {
+      await updateWaitlistUser(userId, {
+        isNotified: true,
+        notifiedAt: new Date()
+      });
+    }
+
+    // Ensure email is associated with the code (no-op if already added above)
+    try { await addEmailToInviteCode(inviteCode, email); } catch {}
 
     revalidatePath('/');
     return { success: true, message: `Invitation sent to ${userName}.` };
@@ -340,3 +350,42 @@ export async function saveGeneratedCodesAction(formData: FormData) {
 
 // (Removed test email action to keep only the single clean template in use)
 
+
+// Delete waitlist user
+const deleteWaitlistSchema = z.object({
+  userId: z.string(),
+});
+
+export async function deleteWaitlistUserAction(formData: FormData) {
+  const rawFormData = Object.fromEntries(formData.entries());
+  const validation = deleteWaitlistSchema.safeParse(rawFormData);
+
+  if (!validation.success) {
+    return { success: false, message: 'Invalid form data.' };
+  }
+
+  const { userId } = validation.data;
+
+  try {
+    if (!supabaseAdmin) {
+      console.error('Supabase admin client not available');
+      return { success: false, message: 'Database configuration error' };
+    }
+
+    const { error } = await supabaseAdmin
+      .from('waitlist')
+      .delete()
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Error deleting waitlist user:', error);
+      return { success: false, message: 'Failed to delete user.' };
+    }
+
+    revalidatePath('/');
+    return { success: true, message: 'User deleted successfully.' };
+  } catch (err) {
+    console.error('Unexpected error deleting waitlist user:', err);
+    return { success: false, message: 'An error occurred while deleting the user.' };
+  }
+}
