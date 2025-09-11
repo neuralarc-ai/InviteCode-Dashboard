@@ -11,12 +11,13 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Send, Trash2, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { WaitlistUser } from '@/lib/types';
-import { sendInviteEmailAction } from '@/lib/actions';
+import { deleteWaitlistUserAction, sendInviteEmailAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '../ui/checkbox';
 import { GenerateCodesDialog } from './generate-codes-dialog';
+import { useRouter } from 'next/navigation';
 
 function ActionMenuItem({
   children,
@@ -55,8 +56,41 @@ function SendInviteAction({ user }: { user: WaitlistUser }) {
         onOpenChange={setIsDialogOpen}
         prefilledEmail={user.email}
         prefilledName={user.fullName}
+        userId={user.id}
+        userName={user.fullName}
+        companyName={user.company || undefined}
       />
     </>
+  );
+}
+
+function DeleteWaitlistAction({ user }: { user: WaitlistUser }) {
+  const { toast } = useToast();
+  const [isPending, startTransition] = React.useTransition();
+  const router = useRouter();
+
+  const onDelete = () => {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.append('userId', user.id);
+      const result = await deleteWaitlistUserAction(formData);
+      if (result.success) {
+        toast({ title: 'Deleted', description: result.message });
+        router.refresh();
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.message });
+      }
+    });
+  };
+
+  return (
+    <DropdownMenuItem
+      onSelect={onDelete}
+      disabled={isPending}
+      className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
+    >
+      <Trash2 /> Delete
+    </DropdownMenuItem>
   );
 }
 
@@ -77,7 +111,9 @@ export const columns: ColumnDefinition[] = [
     accessorKey: 'select',
     header: '',
     width: '40px',
-    cell: ({ row }) => <Checkbox aria-label="Select row" />,
+    cell: ({ row }) => (
+      <Checkbox aria-label="Select row" checked={row.isNotified} disabled />
+    ),
   },
   {
     accessorKey: 'fullName',
@@ -152,7 +188,7 @@ export const columns: ColumnDefinition[] = [
         <DropdownMenuContent align="end">
           <SendInviteAction user={row} />
           <DropdownMenuItem className="gap-2"><User /> View Details</DropdownMenuItem>
-          <DropdownMenuItem className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"><Trash2 /> Delete</DropdownMenuItem>
+          <DeleteWaitlistAction user={row} />
         </DropdownMenuContent>
       </DropdownMenu>
     ),

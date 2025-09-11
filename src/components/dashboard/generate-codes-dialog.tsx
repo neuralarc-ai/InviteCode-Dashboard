@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { PlusCircle, Copy, Check, Mail, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { saveGeneratedCodesAction, sendHeliumInviteEmailAction } from '@/lib/actions';
+import { saveGeneratedCodesAction, sendInviteEmailAction } from '@/lib/actions';
 import { usePreviewCodes } from '@/contexts/preview-codes-context';
 
 interface GeneratedCode {
@@ -30,13 +30,19 @@ interface GenerateCodesDialogProps {
   onOpenChange?: (open: boolean) => void;
   prefilledEmail?: string;
   prefilledName?: string;
+  userId?: string;
+  userName?: string;
+  companyName?: string;
 }
 
 export function GenerateCodesDialog({ 
   isOpen: externalIsOpen, 
   onOpenChange: externalOnOpenChange,
   prefilledEmail = '',
-  prefilledName = ''
+  prefilledName = '',
+  userId,
+  userName,
+  companyName,
 }: GenerateCodesDialogProps = {}) {
   const [internalIsOpen, setInternalIsOpen] = React.useState(false);
   const [generatedCode, setGeneratedCode] = React.useState<GeneratedCode | null>(null);
@@ -150,11 +156,14 @@ export function GenerateCodesDialog({
     
     try {
       const formData = new FormData();
-      formData.append('firstName', firstName);
-      formData.append('email', email);
+      // Use the action that also marks waitlist user as notified
+      if (userId) formData.append('userId', userId);
+      formData.append('userName', userName || firstName);
       formData.append('inviteCode', generatedCode.code);
+      formData.append('email', email);
+      if (companyName) formData.append('companyName', companyName);
       
-      const result = await sendHeliumInviteEmailAction(formData);
+      const result = await sendInviteEmailAction(formData);
       
       if (result.success) {
         toast({
@@ -315,27 +324,19 @@ export function GenerateCodesDialog({
                         <div className="border rounded-md overflow-hidden">
                           <div 
                             className="p-4 text-sm"
-                            style={{
-                              backgroundImage: "url('https://he2.ai/images/Eamil_bg.png')",
-                              backgroundSize: 'cover',
-                              backgroundPosition: 'center',
-                              backgroundRepeat: 'no-repeat',
-                              minHeight: '300px',
-                              position: 'relative'
-                            }}
                           >
                             <div 
                               className="bg-white/95 p-6 rounded-lg shadow-lg"
                               style={{ maxWidth: '500px', margin: '0 auto' }}
                             >
-                              <h3 className="text-lg font-bold text-center mb-4 text-gray-800">Welcome to Helium OS</h3>
+                              <h3 className="text-lg text-center mb-4 text-gray-800">Welcome to Helium OS</h3>
                               <p className="text-gray-600 mb-3">Dear {firstName},</p>
                               <p className="text-gray-600 mb-3">
                                 Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
                               </p>
                               <div className="text-center my-4 p-4 bg-gray-50 rounded-lg border-2 border-purple-600">
                                 <p className="text-gray-800 font-bold mb-2">Your Invite Code:</p>
-                                <div className="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold text-xl font-mono tracking-wider inline-block">
+                                <div className="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold text-xl font-mono tracking-wider inline-block">
                                   {generatedCode.code}
                                 </div>
                                 <p className="text-gray-600 text-sm mt-3">

@@ -1,12 +1,12 @@
 
 'use server';
 
-import { generateInvitationEmail } from '@/ai/flows/automated-invitation-emails';
 import { revalidatePath } from 'next/cache';
 import nodemailer from 'nodemailer';
 import { z } from 'zod';
 import { updateWaitlistUser, generateInviteCodes, markInviteCodeAsUsed, addEmailToInviteCode } from '@/lib/data';
 import { supabaseAdmin } from '@/lib/supabase';
+import { generateInvitationEmail } from '@/ai/flows/automated-invitation-emails';
 
 const sendInviteSchema = z.object({
   userId: z.string(),
@@ -28,7 +28,7 @@ export async function sendInviteEmailAction(formData: FormData) {
 
   try {
     // Create Nodemailer transporter
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: false, // true for 465, false for other ports
@@ -37,16 +37,10 @@ export async function sendInviteEmailAction(formData: FormData) {
         pass: process.env.SMTP_PASS,
       },
     });
-
-    // Generate email content using the AI flow
-    const emailContent = await generateInvitationEmail({
-      userName,
-      inviteCode,
-      companyName: companyName || '',
-    });
-
-    // Email content with HTML and background image
-    const htmlContent = `
+    
+    // Defaults (fallback) for subject/html/text
+    let subject = 'Welcome to Helium OS - Your Invitation is Here!';
+    let htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -54,8 +48,7 @@ export async function sendInviteEmailAction(formData: FormData) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Welcome to Helium OS</title>
     </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
-      <div style="background-image: url('https://he2.ai/images/Eamil_bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; min-height: 100vh; padding: 40px 20px;">
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">      
         <div style="max-width: 600px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <h1 style="color: #333; font-size: 28px; margin-bottom: 20px; text-align: center;">Welcome to Helium OS</h1>
           
@@ -101,13 +94,12 @@ export async function sendInviteEmailAction(formData: FormData) {
             </p>
           </div>
         </div>
-      </div>
     </body>
     </html>
     `;
 
     // Plain text version for email clients that don't support HTML
-    const textContent = `Dear ${userName},
+    let textContent = `Dear ${userName},
 
 Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
 
@@ -127,22 +119,52 @@ https://he2.ai
 
 Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
+    // Try AI-generated email; fallback to defaults if it fails
+    try {
+      const aiEmail = await generateInvitationEmail({
+        userName,
+        inviteCode,
+        companyName: companyName || '',
+      });
+      subject = aiEmail.subject || subject;
+      htmlContent = aiEmail.bodyHtml || htmlContent;
+      textContent = aiEmail.bodyText || textContent;
+    } catch (genErr) {
+      console.error('AI email generation failed, using fallback template:', genErr);
+    }
+
     // Send email
     const info = await transporter.sendMail({
       from: `"${process.env.SMTP_FROM}" <${process.env.SENDER_EMAIL}>`,
       to: email,
-      subject: 'Welcome to Helium OS - Your Invitation is Here!',
+      subject,
       text: textContent,
       html: htmlContent,
     });
 
     console.log('Email sent:', info.messageId);
     
-    // Update the database to mark the user as notified
+    // Update the database to mark the user (by id) as notified
     await updateWaitlistUser(userId, { 
       isNotified: true,
       notifiedAt: new Date()
     });
+
+    // Additionally, mark any waitlist record with this email as notified
+    // This covers cases where the operator typed a different email than the selected row
+    try {
+      if (supabaseAdmin) {
+        await supabaseAdmin
+          .from('waitlist')
+          .update({
+            is_notified: true,
+            notified_at: new Date().toISOString(),
+          })
+          .eq('email', email);
+      }
+    } catch (e) {
+      console.error('Failed to mark user by email as notified:', e);
+    }
     
     // Mark the invite code as used
     await markInviteCodeAsUsed(inviteCode);
@@ -449,5 +471,44 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
   } catch (error) {
     console.error('Failed to send test email:', error);
     return { success: false, message: 'Failed to send test email. Please check your SMTP configuration.' };
+  }
+}
+
+// Delete waitlist user
+const deleteWaitlistSchema = z.object({
+  userId: z.string(),
+});
+
+export async function deleteWaitlistUserAction(formData: FormData) {
+  const rawFormData = Object.fromEntries(formData.entries());
+  const validation = deleteWaitlistSchema.safeParse(rawFormData);
+
+  if (!validation.success) {
+    return { success: false, message: 'Invalid form data.' };
+  }
+
+  const { userId } = validation.data;
+
+  try {
+    if (!supabaseAdmin) {
+      return { success: false, message: 'Database configuration error' };
+    }
+
+    const { error } = await supabaseAdmin
+      .from('waitlist')
+      .delete()
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Failed to delete waitlist user:', error);
+      return { success: false, message: 'Failed to delete user.' };
+    }
+
+    revalidatePath('/waitlist');
+    revalidatePath('/');
+    return { success: true, message: 'User deleted.' };
+  } catch (err) {
+    console.error('Error deleting waitlist user:', err);
+    return { success: false, message: 'An unexpected error occurred.' };
   }
 }
