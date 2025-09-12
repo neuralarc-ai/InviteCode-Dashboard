@@ -28,6 +28,9 @@ CREATE POLICY "Allow public insert access to invite_codes" ON invite_codes
 CREATE POLICY "Allow public update access to invite_codes" ON invite_codes
     FOR UPDATE USING (true);
 
+CREATE POLICY "Allow public delete access to invite_codes" ON invite_codes
+    FOR DELETE USING (true);
+
 -- Enable real-time subscriptions for live updates
 -- This allows the frontend to receive real-time updates when data changes
 

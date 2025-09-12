@@ -13,11 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import type { WaitlistUser } from '@/lib/types';
 import { deleteWaitlistUserAction, sendInviteEmailAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { useRefresh } from '@/contexts/refresh-context';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '../ui/checkbox';
 import { GenerateCodesDialog } from './generate-codes-dialog';
-import { useRouter } from 'next/navigation';
 
 function ActionMenuItem({
   children,
@@ -66,8 +66,8 @@ function SendInviteAction({ user }: { user: WaitlistUser }) {
 
 function DeleteWaitlistAction({ user }: { user: WaitlistUser }) {
   const { toast } = useToast();
+  const { refreshInviteCodes: refreshUsers } = useRefresh();
   const [isPending, startTransition] = React.useTransition();
-  const router = useRouter();
 
   const onDelete = () => {
     startTransition(async () => {
@@ -76,7 +76,7 @@ function DeleteWaitlistAction({ user }: { user: WaitlistUser }) {
       const result = await deleteWaitlistUserAction(formData);
       if (result.success) {
         toast({ title: 'Deleted', description: result.message });
-        router.refresh();
+        await refreshUsers();
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.message });
       }

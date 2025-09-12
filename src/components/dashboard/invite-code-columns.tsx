@@ -7,11 +7,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Copy, Trash2, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { InviteCode } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useRefresh } from '@/contexts/refresh-context';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 
@@ -58,6 +69,96 @@ function CopyCodeAction({ code }: { code: string }) {
       <Copy />
       Copy Code
     </ActionMenuItem>
+  );
+}
+
+function DeleteCodeAction({ code }: { code: InviteCode }) {
+  const { toast } = useToast();
+  const { refreshInviteCodes } = useRefresh();
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+
+  const handleDeleteCode = async () => {
+    if (code.isPreview) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot delete',
+        description: 'Preview codes cannot be deleted',
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/delete-invite-code?id=${code.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete invite code');
+      }
+
+      toast({
+        title: 'Deleted!',
+        description: 'Invite code has been deleted successfully',
+      });
+
+      // Refresh the invite codes list
+      await refreshInviteCodes();
+    } catch (error) {
+      console.error('Error deleting invite code:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete invite code',
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowDeleteDialog(true);
+  };
+
+  return (
+    <>
+      <DropdownMenuItem 
+        className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
+        onSelect={(e) => {
+          e.preventDefault();
+          setShowDeleteDialog(true);
+        }}
+      >
+        <Trash2 />
+        Delete
+      </DropdownMenuItem>
+      
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invite Code</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the invite code <strong>{code.code}</strong>? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCode}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -220,7 +321,7 @@ export const inviteCodeColumns: ColumnDefinition[] = [
         <DropdownMenuContent align="end">
           <CopyCodeAction code={row.code} />
           <DropdownMenuItem className="gap-2"><Eye /> View Details</DropdownMenuItem>
-          <DropdownMenuItem className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"><Trash2 /> Delete</DropdownMenuItem>
+          <DeleteCodeAction code={row} />
         </DropdownMenuContent>
       </DropdownMenu>
     ),

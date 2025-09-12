@@ -395,3 +395,20 @@ export async function updateCreditBalance(
     throw error;
   }
 }
+
+export async function deleteInviteCode(codeId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('invite_codes')
+      .delete()
+      .eq('id', codeId);
+
+    if (error) {
+      console.error('Error deleting invite code:', error);
+      throw new Error('Failed to delete invite code');
+    }
+  } catch (error) {
+    console.error('Error in deleteInviteCode:', error);
+    throw error;
+  }
+}

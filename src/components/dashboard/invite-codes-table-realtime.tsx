@@ -14,12 +14,13 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useInviteCodes } from '@/hooks/use-realtime-data';
 import { usePreviewCodes } from '@/contexts/preview-codes-context';
+import { RefreshProvider } from '@/contexts/refresh-context';
 import type { InviteCode } from '@/lib/types';
 import { inviteCodeColumns } from './invite-code-columns';
 import { GenerateCodesDialog } from './generate-codes-dialog';
 
 export function InviteCodesTableRealtime() {
-  const { codes, loading, error } = useInviteCodes();
+  const { codes, loading, error, refreshCodes } = useInviteCodes();
   const { previewCodes, clearPreviewCodes } = usePreviewCodes();
   const [filter, setFilter] = React.useState('');
   const [page, setPage] = React.useState(0);
@@ -130,74 +131,76 @@ export function InviteCodesTableRealtime() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search invite codes..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="pl-9"
-          />
+    <RefreshProvider refreshInviteCodes={refreshCodes}>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search invite codes..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <GenerateCodesDialog />
         </div>
-        <GenerateCodesDialog />
-      </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {inviteCodeColumns.map((column) => (
-                <TableHead key={column.accessorKey} style={{ width: column.width }}>
-                  {column.header}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedCodes.length > 0 ? (
-              paginatedCodes.map((code) => (
-                <TableRow key={code.id}>
-                  {inviteCodeColumns.map((column) => (
-                    <TableCell key={column.accessorKey}>
-                      {column.cell ? column.cell({ row: code }) : code[column.accessorKey as keyof InviteCode]?.toString()}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={inviteCodeColumns.length} className="h-24 text-center">
-                  No invite codes found.
-                </TableCell>
+                {inviteCodeColumns.map((column) => (
+                  <TableHead key={column.accessorKey} style={{ width: column.width }}>
+                    {column.header}
+                  </TableHead>
+                ))}
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Showing {paginatedCodes.length} of {filteredCodes.length} codes
+            </TableHeader>
+            <TableBody>
+              {paginatedCodes.length > 0 ? (
+                paginatedCodes.map((code) => (
+                  <TableRow key={code.id}>
+                    {inviteCodeColumns.map((column) => (
+                      <TableCell key={column.accessorKey}>
+                        {column.cell ? column.cell({ row: code }) : code[column.accessorKey as keyof InviteCode]?.toString()}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={inviteCodeColumns.length} className="h-24 text-center">
+                    No invite codes found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(Math.max(0, page - 1))}
-            disabled={page === 0}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-            disabled={page >= totalPages - 1}
-          >
-            Next
-          </Button>
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {paginatedCodes.length} of {filteredCodes.length} codes
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(Math.max(0, page - 1))}
+              disabled={page === 0}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+              disabled={page >= totalPages - 1}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </RefreshProvider>
   );
 }

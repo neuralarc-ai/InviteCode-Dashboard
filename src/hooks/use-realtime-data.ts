@@ -9,44 +9,50 @@ export function useWaitlistUsers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Initial fetch function
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('waitlist')
+        .select('*')
+        .order('joined_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedUsers = data?.map((row: any) => ({
+        id: row.id,
+        fullName: row.full_name,
+        email: row.email,
+        company: row.company,
+        phoneNumber: row.phone_number,
+        countryCode: row.country_code,
+        reference: row.reference,
+        referralSource: row.referral_source,
+        referralSourceOther: row.referral_source_other,
+        userAgent: row.user_agent,
+        ipAddress: row.ip_address,
+        joinedAt: new Date(row.joined_at),
+        notifiedAt: row.notified_at ? new Date(row.notified_at) : null,
+        isNotified: row.is_notified,
+      })) || [];
+
+      setUsers(transformedUsers);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError('Failed to fetch users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const refreshUsers = async () => {
+    setLoading(true);
+    await fetchUsers();
+  };
+
   useEffect(() => {
-    // Initial fetch
-    const fetchUsers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('waitlist')
-          .select('*')
-          .order('joined_at', { ascending: false });
-
-        if (error) throw error;
-
-        const transformedUsers = data?.map((row: any) => ({
-          id: row.id,
-          fullName: row.full_name,
-          email: row.email,
-          company: row.company,
-          phoneNumber: row.phone_number,
-          countryCode: row.country_code,
-          reference: row.reference,
-          referralSource: row.referral_source,
-          referralSourceOther: row.referral_source_other,
-          userAgent: row.user_agent,
-          ipAddress: row.ip_address,
-          joinedAt: new Date(row.joined_at),
-          notifiedAt: row.notified_at ? new Date(row.notified_at) : null,
-          isNotified: row.is_notified,
-        })) || [];
-
-        setUsers(transformedUsers);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching users:', err);
-        setError('Failed to fetch users');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUsers();
 
     // Set up real-time subscription
@@ -71,7 +77,7 @@ export function useWaitlistUsers() {
     };
   }, []);
 
-  return { users, loading, error };
+  return { users, loading, error, refreshUsers };
 }
 
 export function useInviteCodes() {
@@ -79,40 +85,46 @@ export function useInviteCodes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Initial fetch function
+  const fetchCodes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('invite_codes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedCodes = data?.map((row: any) => ({
+        id: row.id,
+        code: row.code,
+        isUsed: row.is_used,
+        usedBy: row.used_by,
+        usedAt: row.used_at ? new Date(row.used_at) : null,
+        createdAt: new Date(row.created_at),
+        expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+        maxUses: row.max_uses,
+        currentUses: row.current_uses,
+        emailSentTo: row.email_sent_to || [],
+      })) || [];
+
+      setCodes(transformedCodes);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching invite codes:', err);
+      setError('Failed to fetch invite codes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const refreshCodes = async () => {
+    setLoading(true);
+    await fetchCodes();
+  };
+
   useEffect(() => {
-    // Initial fetch
-    const fetchCodes = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('invite_codes')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        const transformedCodes = data?.map((row: any) => ({
-          id: row.id,
-          code: row.code,
-          isUsed: row.is_used,
-          usedBy: row.used_by,
-          usedAt: row.used_at ? new Date(row.used_at) : null,
-          createdAt: new Date(row.created_at),
-          expiresAt: row.expires_at ? new Date(row.expires_at) : null,
-          maxUses: row.max_uses,
-          currentUses: row.current_uses,
-          emailSentTo: row.email_sent_to || [],
-        })) || [];
-
-        setCodes(transformedCodes);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching invite codes:', err);
-        setError('Failed to fetch invite codes');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCodes();
 
     // Set up real-time subscription
@@ -137,7 +149,7 @@ export function useInviteCodes() {
     };
   }, []);
 
-  return { codes, loading, error };
+  return { codes, loading, error, refreshCodes };
 }
 
 export function useDashboardStats() {
