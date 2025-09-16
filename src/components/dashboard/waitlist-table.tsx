@@ -11,10 +11,12 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, Mail, Filter } from 'lucide-react';
 import type { WaitlistUser } from '@/lib/types';
 import { columns } from './columns';
 import { GenerateCodesDialog } from './generate-codes-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface WaitlistTableProps {
   users: WaitlistUser[];
@@ -22,16 +24,27 @@ interface WaitlistTableProps {
 
 export function WaitlistTable({ users }: WaitlistTableProps) {
   const [filter, setFilter] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
   const [page, setPage] = React.useState(0);
+  const [isTestingEmail, setIsTestingEmail] = React.useState(false);
   const rowsPerPage = 10;
+  const { toast } = useToast();
 
-  const filteredUsers = users.filter((user) =>
-    Object.values(user).some(
+  const filteredUsers = users.filter((user) => {
+    // Text filter
+    const matchesText = Object.values(user).some(
       (value) =>
         typeof value === 'string' &&
         value.toLowerCase().includes(filter.toLowerCase())
-    )
-  );
+    );
+    
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'notified' && user.isNotified) ||
+      (statusFilter === 'pending' && !user.isNotified);
+    
+    return matchesText && matchesStatus;
+  });
 
   const paginatedUsers = filteredUsers.slice(
     page * rowsPerPage,
@@ -40,19 +53,90 @@ export function WaitlistTable({ users }: WaitlistTableProps) {
 
   const totalPages = Math.ceil(filteredUsers.length / rowsPerPage);
 
+  const testEmail = async () => {
+    if (!users.length) {
+      toast({
+        variant: 'destructive',
+        title: 'No users',
+        description: 'No waitlist users available for testing',
+      });
+      return;
+    }
+
+    const testUser = users[0];
+    setIsTestingEmail(true);
+    
+    try {
+      const response = await fetch('/api/test-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: testUser.email }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: 'Test Email Sent!',
+          description: `Test email sent to ${testUser.email}`,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Email Test Failed',
+          description: result.message,
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to send test email',
+      });
+    } finally {
+      setIsTestingEmail(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search users or codes..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="pl-9"
-          />
+        <div className="flex items-center gap-2 flex-1">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="notified">Notified</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <GenerateCodesDialog />
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={testEmail}
+            disabled={isTestingEmail || !users.length}
+            className="flex items-center gap-2"
+          >
+            <Mail className="h-4 w-4" />
+            {isTestingEmail ? 'Testing...' : 'Test Email'}
+          </Button>
+          <GenerateCodesDialog />
+        </div>
       </div>
       <div className="rounded-md border">
         <Table>
@@ -113,6 +197,11 @@ export function WaitlistTable({ users }: WaitlistTableProps) {
       {/* Waitlist Count */}
       <div className="text-center text-sm text-muted-foreground">
         Total waitlist entries: <span className="font-semibold text-foreground">{users.length}</span>
+        {statusFilter !== 'all' && (
+          <span className="ml-2">
+            ({statusFilter === 'notified' ? 'Notified' : 'Pending'}: <span className="font-semibold text-foreground">{filteredUsers.length}</span>)
+          </span>
+        )}
         {filter && (
           <span className="ml-2">
             (Filtered: <span className="font-semibold text-foreground">{filteredUsers.length}</span>)

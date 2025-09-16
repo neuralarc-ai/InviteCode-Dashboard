@@ -316,6 +316,13 @@ export async function addEmailToInviteCode(code: string, email: string): Promise
     }
 
     const currentEmails = currentData?.email_sent_to || [];
+    
+    // Check if email already exists to prevent duplicates
+    if (currentEmails.includes(email)) {
+      console.log(`Email ${email} already exists for code ${code}, skipping duplicate addition`);
+      return;
+    }
+    
     const updatedEmails = [...currentEmails, email];
 
     const { error } = await supabase

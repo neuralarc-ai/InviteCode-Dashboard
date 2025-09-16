@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRefresh } from '@/contexts/refresh-context';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
+import { ViewInviteCodeDetailsDialog } from './view-invite-code-details-dialog';
 
 function ActionMenuItem({
   children,
@@ -69,6 +70,36 @@ function CopyCodeAction({ code }: { code: string }) {
       <Copy />
       Copy Code
     </ActionMenuItem>
+  );
+}
+
+function ViewDetailsAction({ code }: { code: InviteCode }) {
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+
+  const handleViewDetails = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDialogOpen(true);
+  };
+
+  return (
+    <>
+      <DropdownMenuItem 
+        className="gap-2"
+        onSelect={(e) => {
+          e.preventDefault();
+          setIsDialogOpen(true);
+        }}
+      >
+        <Eye />
+        View Details
+      </DropdownMenuItem>
+      <ViewInviteCodeDetailsDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        inviteCode={code}
+      />
+    </>
   );
 }
 
@@ -186,12 +217,29 @@ interface ColumnDefinition {
     cell?: ({ row }: { row: InviteCode }) => React.ReactNode;
 }
 
-export const inviteCodeColumns: ColumnDefinition[] = [
+interface InviteCodeColumnsProps {
+  selectedCodes: string[];
+  onSelectionChange: (selectedCodes: string[]) => void;
+}
+
+export const getInviteCodeColumns = ({ selectedCodes, onSelectionChange }: InviteCodeColumnsProps): ColumnDefinition[] => [
   {
     accessorKey: 'select',
     header: '',
     width: '40px',
-    cell: ({ row }) => <Checkbox aria-label="Select row" />,
+    cell: ({ row }) => (
+      <Checkbox 
+        aria-label="Select row"
+        checked={selectedCodes.includes(row.id)}
+        onCheckedChange={(checked) => {
+          if (checked) {
+            onSelectionChange([...selectedCodes, row.id]);
+          } else {
+            onSelectionChange(selectedCodes.filter(id => id !== row.id));
+          }
+        }}
+      />
+    ),
   },
   {
     accessorKey: 'code',
@@ -320,10 +368,13 @@ export const inviteCodeColumns: ColumnDefinition[] = [
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <CopyCodeAction code={row.code} />
-          <DropdownMenuItem className="gap-2"><Eye /> View Details</DropdownMenuItem>
+          <ViewDetailsAction code={row} />
           <DeleteCodeAction code={row} />
         </DropdownMenuContent>
       </DropdownMenu>
     ),
   },
 ];
+
+// Export the old columns for backward compatibility
+export const inviteCodeColumns = getInviteCodeColumns({ selectedCodes: [], onSelectionChange: () => {} });

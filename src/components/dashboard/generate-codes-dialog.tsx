@@ -173,12 +173,16 @@ export function GenerateCodesDialog({
         
         // Update the preview code to include the sent email
         if (generatedCode) {
-          const updatedCode = {
-            ...generatedCode,
-            emailSentTo: [...(generatedCode.emailSentTo || []), email]
-          };
-          setGeneratedCode(updatedCode);
-          addPreviewCodes([updatedCode]); // Keep preview with email until database updates
+          const currentEmails = generatedCode.emailSentTo || [];
+          // Check if email already exists to prevent duplicates
+          if (!currentEmails.includes(email)) {
+            const updatedCode = {
+              ...generatedCode,
+              emailSentTo: [...currentEmails, email]
+            };
+            setGeneratedCode(updatedCode);
+            addPreviewCodes([updatedCode]); // Keep preview with email until database updates
+          }
         }
         
         // Clear form after sending

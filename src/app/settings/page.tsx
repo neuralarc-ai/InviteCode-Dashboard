@@ -424,7 +424,7 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
-
+            
             {/* System Information */}
             <Card>
               <CardHeader>
@@ -438,14 +438,14 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Database Status</span>
                     <Badge variant="secondary" className="gap-1">
-                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                       Connected
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Real-time Updates</span>
                     <Badge variant="secondary" className="gap-1">
-                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                       Active
                     </Badge>
                   </div>

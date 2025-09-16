@@ -23,12 +23,31 @@ export async function sendInviteEmailAction(formData: FormData) {
   const validation = sendInviteSchema.safeParse(rawFormData);
 
   if (!validation.success) {
+    console.error('Validation failed:', validation.error);
     return { success: false, message: 'Invalid form data.' };
   }
-
+  
   const { userId, userName, inviteCode, companyName, email } = validation.data;
 
   try {
+    // Validate required environment variables
+    const requiredEnvVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SENDER_EMAIL', 'SMTP_FROM'];
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    
+    if (missingVars.length > 0) {
+      console.error('Missing environment variables:', missingVars);
+      return { success: false, message: `Missing email configuration: ${missingVars.join(', ')}` };
+    }
+
+    console.log('Email configuration:', {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER,
+      senderEmail: process.env.SENDER_EMAIL,
+      smtpFrom: process.env.SMTP_FROM,
+      recipient: email
+    });
+
     // Create Nodemailer transporter
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -40,14 +59,30 @@ export async function sendInviteEmailAction(formData: FormData) {
       },
     });
 
+    // Verify transporter configuration
+    try {
+      await transporter.verify();
+      console.log('SMTP connection verified successfully');
+    } catch (verifyError) {
+      console.error('SMTP verification failed:', verifyError);
+      return { success: false, message: 'SMTP configuration error. Please check email settings.' };
+    }
+
 
     // If you want AI-generated content, enable below; by default we use the hand-crafted template.
     // const emailContent = await generateInvitationEmail({ userName, inviteCode, companyName: companyName || '' });
 
     // Read the Email.png image file
-    const imagePath = path.join(process.cwd(), 'src', 'public', 'images', 'Email.png');
-    const imageBuffer = fs.readFileSync(imagePath);
-    const imageBase64 = imageBuffer.toString('base64');
+    let imageBuffer;
+    try {
+      const imagePath = path.join(process.cwd(), 'src', 'public', 'images', 'Email.png');
+      imageBuffer = fs.readFileSync(imagePath);
+      console.log('Email image loaded successfully');
+    } catch (imageError) {
+      console.error('Failed to load email image:', imageError);
+      // Continue without image attachment
+      imageBuffer = null;
+    }
 
     // Email content with simplified, clean layout and background color #D4D5D0
     let htmlContent = `
@@ -130,21 +165,26 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
     // Keep the custom template by default. To switch to AI content, uncomment the block above.
 
+    // Prepare email attachments
+    const attachments = [];
+    if (imageBuffer) {
+      attachments.push({
+        filename: 'Email.png',
+        content: imageBuffer,
+        cid: 'email-logo', // Content-ID for referencing in HTML
+        contentType: 'image/png'
+      });
+    }
+
     // Send email
+    console.log('Sending email to:', email);
     const info = await transporter.sendMail({
       from: `"${process.env.SMTP_FROM}" <${process.env.SENDER_EMAIL}>`,
       to: email,
       subject,
       text: textContent,
       html: htmlContent,
-      attachments: [
-        {
-          filename: 'Email.png',
-          content: imageBuffer,
-          cid: 'email-logo', // Content-ID for referencing in HTML
-          contentType: 'image/png'
-        }
-      ]
+      attachments
     });
 
     console.log('Email sent:', info.messageId);
@@ -182,10 +222,7 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
         notifiedAt: new Date()
       });
     }
-
-    // Ensure email is associated with the code (no-op if already added above)
-    try { await addEmailToInviteCode(inviteCode, email); } catch {}
-
+    
     revalidatePath('/');
     return { success: true, message: `Invitation sent to ${userName}.` };
   } catch (error) {
@@ -205,12 +242,31 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
   const validation = sendEmailSchema.safeParse(rawFormData);
 
   if (!validation.success) {
+    console.error('Validation failed:', validation.error);
     return { success: false, message: 'Invalid form data.' };
   }
 
   const { firstName, email, inviteCode } = validation.data;
 
   try {
+    // Validate required environment variables
+    const requiredEnvVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SENDER_EMAIL', 'SMTP_FROM'];
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    
+    if (missingVars.length > 0) {
+      console.error('Missing environment variables:', missingVars);
+      return { success: false, message: `Missing email configuration: ${missingVars.join(', ')}` };
+    }
+
+    console.log('Email configuration:', {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER,
+      senderEmail: process.env.SENDER_EMAIL,
+      smtpFrom: process.env.SMTP_FROM,
+      recipient: email
+    });
+
     // Create Nodemailer transporter
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -222,18 +278,35 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
       },
     });
 
+    // Verify transporter configuration
+    try {
+      await transporter.verify();
+      console.log('SMTP connection verified successfully');
+    } catch (verifyError) {
+      console.error('SMTP verification failed:', verifyError);
+      return { success: false, message: 'SMTP configuration error. Please check email settings.' };
+    }
+
     // Read the Email.png image file
-    const imagePath = path.join(process.cwd(), 'src', 'public', 'images', 'Email.png');
-    const imageBuffer = fs.readFileSync(imagePath);
+    let imageBuffer;
+    try {
+      const imagePath = path.join(process.cwd(), 'src', 'public', 'images', 'Email.png');
+      imageBuffer = fs.readFileSync(imagePath);
+      console.log('Email image loaded successfully');
+    } catch (imageError) {
+      console.error('Failed to load email image:', imageError);
+      // Continue without image attachment
+      imageBuffer = null;
+    }
 
     // Email content with simplified, clean layout and background color #D4D5D0
     const emailContent = `
     <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Helium OS</title>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Welcome to Helium OS</title>
   <style>
     body { margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #333; line-height: 1.6; }
     .container { max-width: 600px; margin: 20px auto; padding: 32px 20px; background-color: #D4D5D0; }
@@ -243,7 +316,7 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
     .header-image img { max-width: 400px; height: auto; }
     @media (max-width: 600px) { .container { padding: 24px 14px; } }
   </style>
-</head>
+    </head>
 <body style="margin:0; padding:0; background-color:#ffffff;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0; padding:0; background-color:#ffffff;">
     <tr>
@@ -280,8 +353,8 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
       </td>
     </tr>
   </table>
-</body>
-</html>
+    </body>
+    </html>
     `;
 
     // Plain text version for email clients that don't support HTML
@@ -305,29 +378,34 @@ https://he2.ai
 
 Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
+    // Prepare email attachments
+    const attachments = [];
+    if (imageBuffer) {
+      attachments.push({
+        filename: 'Email.png',
+        content: imageBuffer,
+        cid: 'email-logo', // Content-ID for referencing in HTML
+        contentType: 'image/png'
+      });
+    }
+
     // Send email
+    console.log('Sending email to:', email);
     const info = await transporter.sendMail({
       from: `"${process.env.SMTP_FROM}" <${process.env.SENDER_EMAIL}>`,
       to: email,
       subject: 'Welcome to Helium OS - Your Invitation is Here!',
       text: textContent,
       html: emailContent,
-      attachments: [
-        {
-          filename: 'Email.png',
-          content: imageBuffer,
-          cid: 'email-logo', // Content-ID for referencing in HTML
-          contentType: 'image/png'
-        }
-      ]
+      attachments
     });
 
     console.log('Email sent:', info.messageId);
-
+    
     // First, save the invite code to the database with 7-day expiration
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
-
+    
     if (!supabaseAdmin) {
       console.error('Supabase admin client not available');
       return { success: false, message: 'Database configuration error' };
@@ -352,7 +430,7 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
       console.log('Invite code saved to database:', inviteCode);
       console.log('Database insert successful for code:', inviteCode);
     }
-
+    
     return { success: true, message: `Invitation sent to ${firstName} at ${email}` };
   } catch (error) {
     console.error('Failed to send email:', error);
@@ -375,7 +453,7 @@ export async function saveGeneratedCodesAction(formData: FormData) {
   try {
     const codesData = JSON.parse(validation.data.codes);
     const codes = await generateInviteCodes(codesData.length, codesData[0]?.maxUses || 1);
-
+    
     console.log(`Saved ${codes.length} codes to database:`, codes);
     return { success: true, message: `${codes.length} codes saved to database.` };
   } catch (error) {
