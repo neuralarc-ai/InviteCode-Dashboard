@@ -7,6 +7,8 @@ import { z } from 'zod';
 import { updateWaitlistUser, generateInviteCodes, markInviteCodeAsUsed, addEmailToInviteCode } from '@/lib/data';
 import { supabaseAdmin } from '@/lib/supabase';
 import { generateInvitationEmail } from '@/ai/flows/automated-invitation-emails';
+import fs from 'fs';
+import path from 'path';
 
 const sendInviteSchema = z.object({
   userId: z.string().optional(),
@@ -42,6 +44,11 @@ export async function sendInviteEmailAction(formData: FormData) {
     // If you want AI-generated content, enable below; by default we use the hand-crafted template.
     // const emailContent = await generateInvitationEmail({ userName, inviteCode, companyName: companyName || '' });
 
+    // Read the Email.png image file
+    const imagePath = path.join(process.cwd(), 'src', 'public', 'images', 'Email.png');
+    const imageBuffer = fs.readFileSync(imagePath);
+    const imageBase64 = imageBuffer.toString('base64');
+
     // Email content with simplified, clean layout and background color #D4D5D0
     let htmlContent = `
 
@@ -56,11 +63,16 @@ export async function sendInviteEmailAction(formData: FormData) {
         .container { max-width: 600px; margin: 0 auto; padding: 32px 20px; }
         p { margin: 0 0 16px 0; font-size: 18px; text-align: left; }
         .footer { text-align: center; font-size: 14px; color: #666; margin-top: 32px; }
+        .header-image { text-align: center; margin-bottom: 24px; }
+        .header-image img { max-width: 400px; height: auto; }
         @media (max-width: 600px) { .container { padding: 24px 14px; } }
       </style>
     </head>
     <body style="margin:0; padding:0; background-color:#D4D5D0;" bgcolor="#D4D5D0">
       <div class="container">
+        <div class="header-image">
+          <img src="cid:email-logo" alt="Helium OS" style="max-width: 400px; height: auto;" />
+        </div>
         <h1 style="margin:0 0 16px; font-size: 28px; text-align: center;">
           Welcome to Helium OS
         </h1>
@@ -70,7 +82,7 @@ export async function sendInviteEmailAction(formData: FormData) {
 
         <p style="font-weight: bold;">Your Invite Code:</p>
         <div style="text-align: center; margin: 16px 0 8px;">
-          <div style="color: #333; padding: 12px 24px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; border: 2px solid #333;">
+          <div style="color: #333; padding: 12px 24px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; width: fit-content; margin: 0 auto;">
             ${inviteCode}
           </div>
         </div>
@@ -125,6 +137,14 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
       subject,
       text: textContent,
       html: htmlContent,
+      attachments: [
+        {
+          filename: 'Email.png',
+          content: imageBuffer,
+          cid: 'email-logo', // Content-ID for referencing in HTML
+          contentType: 'image/png'
+        }
+      ]
     });
 
     console.log('Email sent:', info.messageId);
@@ -202,6 +222,10 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
       },
     });
 
+    // Read the Email.png image file
+    const imagePath = path.join(process.cwd(), 'src', 'public', 'images', 'Email.png');
+    const imageBuffer = fs.readFileSync(imagePath);
+
     // Email content with simplified, clean layout and background color #D4D5D0
     const emailContent = `
     <!DOCTYPE html>
@@ -215,6 +239,8 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
     .container { max-width: 600px; margin: 20px auto; padding: 32px 20px; background-color: #D4D5D0; }
     p { margin: 0 0 16px 0; font-size: 18px; text-align: left; }
     .footer { text-align: center; font-size: 14px; color: #666; margin-top: 32px; }
+    .header-image { text-align: center; margin-bottom: 24px; }
+    .header-image img { max-width: 400px; height: auto; }
     @media (max-width: 600px) { .container { padding: 24px 14px; } }
   </style>
 </head>
@@ -223,6 +249,9 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
     <tr>
       <td align="center">
         <div class="container">
+          <div class="header-image">
+            <img src="cid:email-logo" alt="Helium OS" style="max-width: 400px; height: auto;" />
+          </div>
           <h1 style="margin:0 0 16px; font-size: 28px; text-align: center;">Welcome to Helium OS</h1>
           <p>Dear ${firstName},</p>
 
@@ -230,7 +259,7 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
 
           <p style="font-weight: bold;">Your Invite Code:</p>
           <div style="text-align: center; margin: 16px 0 8px;">
-            <div style="color: #333; padding: 12px 24px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; border: 2px solid #333; background-color: #fff;">
+            <div style="color: #333; padding: 12px 24px; font-size: 24px; font-weight: bold; font-family: monospace; display: inline-block; letter-spacing: 2px; white-space: nowrap; width: fit-content; margin: 0 auto;">
               ${inviteCode}
             </div>
           </div>
@@ -283,6 +312,14 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
       subject: 'Welcome to Helium OS - Your Invitation is Here!',
       text: textContent,
       html: emailContent,
+      attachments: [
+        {
+          filename: 'Email.png',
+          content: imageBuffer,
+          cid: 'email-logo', // Content-ID for referencing in HTML
+          contentType: 'image/png'
+        }
+      ]
     });
 
     console.log('Email sent:', info.messageId);
