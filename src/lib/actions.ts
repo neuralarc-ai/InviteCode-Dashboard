@@ -75,9 +75,32 @@ export async function sendInviteEmailAction(formData: FormData) {
     // Read the Email.png image file
     let imageBuffer;
     try {
-      const imagePath = path.join(process.cwd(), 'src', 'public', 'images', 'Email.png');
-      imageBuffer = fs.readFileSync(imagePath);
-      console.log('Email image loaded successfully');
+      // Try multiple possible paths for the image
+      const possiblePaths = [
+        path.join(process.cwd(), 'public', 'images', 'Email.png'),           // Production path
+        path.join(process.cwd(), 'src', 'public', 'images', 'Email.png'),    // Development path
+        path.join(__dirname, '..', '..', 'public', 'images', 'Email.png'),   // Relative from lib
+        path.join(__dirname, '..', '..', 'src', 'public', 'images', 'Email.png') // Relative from lib
+      ];
+      
+      let imagePath = null;
+      for (const testPath of possiblePaths) {
+        if (fs.existsSync(testPath)) {
+          imagePath = testPath;
+          break;
+        }
+      }
+      
+      if (imagePath) {
+        imageBuffer = fs.readFileSync(imagePath);
+        console.log('Email image loaded successfully from:', imagePath);
+        console.log('Image size:', imageBuffer.length, 'bytes');
+      } else {
+        console.log('Email image not found in any of the expected locations:', possiblePaths);
+        console.log('Current working directory:', process.cwd());
+        console.log('__dirname:', __dirname);
+        imageBuffer = null;
+      }
     } catch (imageError) {
       console.error('Failed to load email image:', imageError);
       // Continue without image attachment
@@ -106,7 +129,11 @@ export async function sendInviteEmailAction(formData: FormData) {
     <body style="margin:0; padding:0; background-color:#D4D5D0;" bgcolor="#D4D5D0">
       <div class="container">
         <div class="header-image">
-          <img src="cid:email-logo" alt="Helium OS" style="max-width: 400px; height: auto;" />
+          <img src="cid:email-logo" alt="Helium OS" style="max-width: 400px; height: auto;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+          <div style="display: none; text-align: center; padding: 20px; background-color: #f0f0f0; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="margin: 0; color: #333; font-size: 24px;">Helium OS</h2>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">The Operating System for Business Intelligence</p>
+          </div>
         </div>
         <h1 style="margin:0 0 16px; font-size: 28px; text-align: center;">
           Welcome to Helium OS
@@ -290,9 +317,32 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
     // Read the Email.png image file
     let imageBuffer;
     try {
-      const imagePath = path.join(process.cwd(), 'src', 'public', 'images', 'Email.png');
-      imageBuffer = fs.readFileSync(imagePath);
-      console.log('Email image loaded successfully');
+      // Try multiple possible paths for the image
+      const possiblePaths = [
+        path.join(process.cwd(), 'public', 'images', 'Email.png'),           // Production path
+        path.join(process.cwd(), 'src', 'public', 'images', 'Email.png'),    // Development path
+        path.join(__dirname, '..', '..', 'public', 'images', 'Email.png'),   // Relative from lib
+        path.join(__dirname, '..', '..', 'src', 'public', 'images', 'Email.png') // Relative from lib
+      ];
+      
+      let imagePath = null;
+      for (const testPath of possiblePaths) {
+        if (fs.existsSync(testPath)) {
+          imagePath = testPath;
+          break;
+        }
+      }
+      
+      if (imagePath) {
+        imageBuffer = fs.readFileSync(imagePath);
+        console.log('Email image loaded successfully from:', imagePath);
+        console.log('Image size:', imageBuffer.length, 'bytes');
+      } else {
+        console.log('Email image not found in any of the expected locations:', possiblePaths);
+        console.log('Current working directory:', process.cwd());
+        console.log('__dirname:', __dirname);
+        imageBuffer = null;
+      }
     } catch (imageError) {
       console.error('Failed to load email image:', imageError);
       // Continue without image attachment
