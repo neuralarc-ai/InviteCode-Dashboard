@@ -419,3 +419,54 @@ export async function deleteInviteCode(codeId: string): Promise<void> {
     throw error;
   }
 }
+
+// Helper function to get recipient names from email addresses
+export async function getRecipientNamesFromEmails(emails: string[]): Promise<Record<string, string>> {
+  if (emails.length === 0) return {};
+  
+  try {
+    // First try to get names from waitlist
+    const { data: waitlistData, error: waitlistError } = await supabase
+      .from('waitlist')
+      .select('email, full_name')
+      .in('email', emails);
+
+    if (waitlistError) {
+      console.error('Error fetching waitlist names:', waitlistError);
+    }
+
+    const nameMap: Record<string, string> = {};
+    
+    // Add waitlist names
+    if (waitlistData) {
+      waitlistData.forEach((user) => {
+        nameMap[user.email] = user.full_name;
+      });
+    }
+
+    // For emails not found in waitlist, try to get from auth.users
+    const emailsNotFound = emails.filter(email => !nameMap[email]);
+    if (emailsNotFound.length > 0) {
+      const { data: authData, error: authError } = await supabase
+        .from('auth.users')
+        .select('email, raw_user_meta_data')
+        .in('email', emailsNotFound);
+
+      if (authError) {
+        console.error('Error fetching auth user names:', authError);
+      } else if (authData) {
+        authData.forEach((user) => {
+          const fullName = user.raw_user_meta_data?.full_name || user.raw_user_meta_data?.name;
+          if (fullName) {
+            nameMap[user.email] = fullName;
+          }
+        });
+      }
+    }
+
+    return nameMap;
+  } catch (error) {
+    console.error('Error in getRecipientNamesFromEmails:', error);
+    return {};
+  }
+}

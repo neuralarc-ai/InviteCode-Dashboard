@@ -26,6 +26,7 @@ import { useRefresh } from '@/contexts/refresh-context';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 import { ViewInviteCodeDetailsDialog } from './view-invite-code-details-dialog';
+import { getRecipientNamesFromEmails } from '@/lib/data';
 
 function ActionMenuItem({
   children,
@@ -210,8 +211,64 @@ const getStatusColor = (code: InviteCode) => {
   return statusColors.false;
 };
 
+// Component to display recipient names
+function RecipientNames({ emails }: { emails: string[] }) {
+  const [recipientNames, setRecipientNames] = React.useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchNames = async () => {
+      if (emails.length === 0) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const names = await getRecipientNamesFromEmails(emails);
+        setRecipientNames(names);
+      } catch (error) {
+        console.error('Error fetching recipient names:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchNames();
+  }, [emails]);
+
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground">Loading...</div>;
+  }
+
+  if (emails.length === 0) {
+    return <span className="text-muted-foreground text-xs">No recipients</span>;
+  }
+
+  return (
+    <div className="space-y-1">
+      {emails.map((email, index) => {
+        const name = recipientNames[email];
+        return (
+          <div key={index} className="text-xs">
+            {name ? (
+              <div className="font-medium">{name}</div>
+            ) : (
+              <div className="text-muted-foreground truncate" title={email}>
+                {email}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <div className="text-xs text-muted-foreground">
+        {emails.length} recipient{emails.length > 1 ? 's' : ''}
+      </div>
+    </div>
+  );
+}
+
 interface ColumnDefinition {
-    accessorKey: keyof InviteCode | 'actions' | 'select' | 'status';
+    accessorKey: keyof InviteCode | 'actions' | 'select' | 'status' | 'recipients';
     header: string;
     width?: string;
     cell?: ({ row }: { row: InviteCode }) => React.ReactNode;
@@ -301,6 +358,16 @@ export const getInviteCodeColumns = ({ selectedCodes, onSelectionChange }: Invit
         ) : (
           <span className="text-muted-foreground text-xs">No emails sent</span>
         )}
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'recipients',
+    header: 'Recipients',
+    width: '200px',
+    cell: ({ row }) => (
+      <div className="text-sm">
+        <RecipientNames emails={row.emailSentTo} />
       </div>
     ),
   },
