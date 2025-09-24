@@ -306,7 +306,7 @@ export const getInviteCodeColumns = ({ selectedCodes, onSelectionChange }: Invit
       <div className="flex items-center gap-2">
         <span className="font-mono text-sm font-medium">{row.code}</span>
         {row.isPreview && (
-          <Badge variant="outline" className="text-xs bg-yellow-500/20 text-yellow-600 border-yellow-500/30">
+          <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">
             Preview
           </Badge>
         )}

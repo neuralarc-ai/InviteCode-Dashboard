@@ -15,14 +15,7 @@ export default {
         code: ['monospace'],
       },
       colors: {
-        // Custom color schema
-        neon: {
-          green: '#96FF45',
-          blue: '#455BFF',
-          yellow: '#FFFF45',
-          cyan: '#74EEF4',
-          orange: '#DC613D',
-        },
+        // Black and white color schema only
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

@@ -467,8 +467,8 @@ export function CreditBalanceTableRealtime() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4 text-green-500" />
-                      <span className="font-mono font-semibold text-green-500">
+                      <DollarSign className="h-4 w-4 text-primary" />
+                      <span className="font-mono font-semibold text-primary">
                         {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(balance.balanceDollars)}
                       </span>
                     </div>

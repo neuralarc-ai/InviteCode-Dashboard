@@ -107,7 +107,7 @@ export async function sendInviteEmailAction(formData: FormData) {
       imageBuffer = null;
     }
 
-    // Email content with simplified, clean layout and background color #D4D5D0
+    // Email content with simplified, clean layout and black/white theme
     let htmlContent = `
 
     <!DOCTYPE html>
@@ -117,22 +117,22 @@ export async function sendInviteEmailAction(formData: FormData) {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Welcome to Helium OS</title>
       <style>
-        body { margin: 0; padding: 0; background-color: #D4D5D0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #333; line-height: 1.6; }
+        body { margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #000000; line-height: 1.6; }
         .container { max-width: 600px; margin: 0 auto; padding: 32px 20px; }
         p { margin: 0 0 16px 0; font-size: 18px; text-align: left; }
-        .footer { text-align: center; font-size: 14px; color: #666; margin-top: 32px; }
+        .footer { text-align: center; font-size: 14px; color: #666666; margin-top: 32px; }
         .header-image { text-align: center; margin-bottom: 24px; }
         .header-image img { max-width: 400px; height: auto; }
         @media (max-width: 600px) { .container { padding: 24px 14px; } }
       </style>
     </head>
-    <body style="margin:0; padding:0; background-color:#D4D5D0;" bgcolor="#D4D5D0">
+    <body style="margin:0; padding:0; background-color:#ffffff;" bgcolor="#ffffff">
       <div class="container">
         <div class="header-image">
           <img src="cid:email-logo" alt="Helium OS" style="max-width: 400px; height: auto;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
           <div style="display: none; text-align: center; padding: 20px; background-color: #f0f0f0; border-radius: 8px; margin-bottom: 20px;">
-            <h2 style="margin: 0; color: #333; font-size: 24px;">Helium OS</h2>
-            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">The Operating System for Business Intelligence</p>
+            <h2 style="margin: 0; color: #000000; font-size: 24px;">Helium OS</h2>
+            <p style="margin: 5px 0 0 0; color: #666666; font-size: 14px;">The Operating System for Business Intelligence</p>
           </div>
         </div>
         <h1 style="margin:0 0 16px; font-size: 28px; text-align: center;">

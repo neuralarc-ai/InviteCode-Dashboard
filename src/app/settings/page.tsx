@@ -20,6 +20,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/page-header';
 import { Logo } from '@/components/logo';
+import { LogoutButton } from '@/components/logout-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,15 +97,8 @@ export default function SettingsPage() {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-           <div className="flex items-center gap-3 p-2 rounded-md transition-colors">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src="https://picsum.photos/seed/1/40/40" alt="Admin User" />
-              <AvatarFallback>AU</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col text-sm truncate">
-              <span className="font-semibold text-foreground">Admin User</span>
-              <span className="text-muted-foreground">admin@neonaccess.dev</span>
-            </div>
+          <div className="flex items-center justify-end gap-3 p-2 rounded-md transition-colors">
+            <LogoutButton />
           </div>
         </SidebarFooter>
       </Sidebar>
@@ -228,10 +222,10 @@ export default function SettingsPage() {
                       </SelectContent>
                     </Select>
                     <div className="flex gap-2 mt-2">
-                      <div className="w-6 h-6 rounded bg-[#DC613D] border-2 border-border"></div>
-                      <div className="w-6 h-6 rounded bg-[#FFFF45] border-2 border-border"></div>
-                      <div className="w-6 h-6 rounded bg-[#455BFF] border-2 border-border"></div>
-                      <div className="w-6 h-6 rounded bg-[#96FF45] border-2 border-border"></div>
+                      <div className="w-6 h-6 rounded bg-primary border-2 border-border"></div>
+                      <div className="w-6 h-6 rounded bg-secondary border-2 border-border"></div>
+                      <div className="w-6 h-6 rounded bg-muted border-2 border-border"></div>
+                      <div className="w-6 h-6 rounded bg-accent border-2 border-border"></div>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -304,12 +298,11 @@ export default function SettingsPage() {
               <CardContent className="space-y-6">
                 <div className="flex items-center gap-4 p-4 border rounded-lg">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage src="https://picsum.photos/seed/1/48/48" alt="Admin User" />
-                    <AvatarFallback>AU</AvatarFallback>
+                    <AvatarFallback>U</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <h3 className="font-semibold">Admin User</h3>
-                    <p className="text-sm text-muted-foreground">admin@neonaccess.dev</p>
+                    <h3 className="font-semibold">User Profile</h3>
+                    <p className="text-sm text-muted-foreground">user@example.com</p>
                     <Badge variant="secondary" className="mt-1">Administrator</Badge>
                   </div>
                   <Button variant="outline" size="sm">
@@ -325,8 +318,8 @@ export default function SettingsPage() {
                     <Label htmlFor="admin-name">Full Name</Label>
                     <Input 
                       id="admin-name" 
-                      placeholder="Admin User" 
-                      defaultValue="Admin User"
+                      placeholder="Full Name" 
+                      defaultValue=""
                     />
                   </div>
                   <div className="space-y-2">
@@ -334,8 +327,8 @@ export default function SettingsPage() {
                     <Input 
                       id="admin-email" 
                       type="email" 
-                      placeholder="admin@neonaccess.dev" 
-                      defaultValue="admin@neonaccess.dev"
+                      placeholder="email@example.com" 
+                      defaultValue=""
                     />
                   </div>
                 </div>
@@ -438,14 +431,14 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Database Status</span>
                     <Badge variant="secondary" className="gap-1">
-                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <div className="h-2 w-2 bg-primary rounded-full"></div>
                       Connected
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Real-time Updates</span>
                     <Badge variant="secondary" className="gap-1">
-                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <div className="h-2 w-2 bg-primary rounded-full"></div>
                       Active
                     </Badge>
                   </div>

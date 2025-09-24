@@ -277,7 +277,7 @@ export function GenerateCodesDialog({
                     className="h-8 w-8 p-0"
                   >
                     {copiedCode ? (
-                      <Check className="h-4 w-4 text-green-500" />
+                      <Check className="h-4 w-4 text-primary" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
@@ -333,35 +333,35 @@ export function GenerateCodesDialog({
                               className="bg-white/95 p-6 rounded-lg shadow-lg"
                               style={{ maxWidth: '500px', margin: '0 auto' }}
                             >
-                              <h3 className="text-lg text-center mb-4 text-gray-800">Welcome to Helium OS</h3>
-                              <p className="text-gray-600 mb-3">Dear {firstName},</p>
-                              <p className="text-gray-600 mb-3">
+                              <h3 className="text-lg text-center mb-4 text-foreground">Welcome to Helium OS</h3>
+                              <p className="text-muted-foreground mb-3">Dear {firstName},</p>
+                              <p className="text-muted-foreground mb-3">
                                 Congratulations! You have been selected to join Helium the OS for your business, our first-ever Public Beta experience for businesses. Your account has been credited with 1500 free Helium credits to explore and experience the power of Helium.
                               </p>
-                              <div className="text-center my-4 p-4 bg-gray-50 rounded-lg border-2 border-purple-600">
-                                <p className="text-gray-800 font-bold mb-2">Your Invite Code:</p>
-                                <div className="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold text-xl font-mono tracking-wider inline-block">
+                              <div className="text-center my-4 p-4 bg-muted rounded-lg border-2 border-border">
+                                <p className="text-foreground font-bold mb-2">Your Invite Code:</p>
+                                <div className="bg-primary text-primary-foreground px-6 py-3 rounded-lg font-bold text-xl font-mono tracking-wider inline-block">
                                   {generatedCode.code}
                                 </div>
-                                <p className="text-gray-600 text-sm mt-3">
-                                  Use this code to activate your account at <a href="https://he2.ai" className="text-purple-600">https://he2.ai</a>
+                                <p className="text-muted-foreground text-sm mt-3">
+                                  Use this code to activate your account at <a href="https://he2.ai" className="text-primary">https://he2.ai</a>
                                 </p>
                               </div>
-                              <p className="text-gray-600 mb-3">
+                              <p className="text-muted-foreground mb-3">
                                 Helium is designed to be the operating system for business intelligence, giving you a single, seamless layer to connect data, decisions, and workflows. As this is our first public beta, you may notice minor bugs or quirks. If you do, your feedback will help us make Helium even better.
                               </p>
-                              <p className="text-gray-600 mb-3">
+                              <p className="text-muted-foreground mb-3">
                                 You are not just testing a product. You are helping shape the future of business intelligence.
                               </p>
-                              <p className="text-gray-600 mb-3">
+                              <p className="text-muted-foreground mb-3">
                                 Welcome to Helium OS. The future of work is here.
                               </p>
-                              <p className="text-gray-600 mb-3">
+                              <p className="text-muted-foreground mb-3">
                                 Cheers,<br />
                                 Team Helium
                               </p>
                               <div className="text-center mt-4">
-                                <a href="https://he2.ai" className="text-purple-600">https://he2.ai</a>
+                                <a href="https://he2.ai" className="text-primary">https://he2.ai</a>
                               </div>
                             </div>
                           </div>

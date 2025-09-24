@@ -1,18 +1,17 @@
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <div className={cn("font-headline text-2xl font-bold tracking-tighter", className)}>
-      <span
-        className="bg-clip-text text-transparent"
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, hsl(var(--accent)), hsl(var(--primary)))',
-          filter: 'drop-shadow(0 0 0.5rem hsl(var(--primary) / 0.5))',
-        }}
-      >
-        CEO Insights
-      </span>
+    <div className={cn("flex items-center", className)}>
+      <Image
+        src="/images/Helium_logo.png"
+        alt="Helium Logo"
+        width={200}
+        height={60}
+        className=" my-4 mx-4 h-12 w-12"
+        priority
+      />
     </div>
   );
 }

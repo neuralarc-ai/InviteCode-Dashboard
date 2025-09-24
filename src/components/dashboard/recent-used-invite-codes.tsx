@@ -78,13 +78,13 @@ export function RecentUsedInviteCodes() {
           {recentUsedCodes.length > 0 ? (
             recentUsedCodes.map((code) => (
               <div key={code.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-green-500/20">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-500/20">
+                  <CheckCircle className="h-4 w-4 text-red-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-mono font-medium text-sm">{code.code}</p>
-                    <Badge variant="destructive" className="text-xs">
+                    <Badge variant="outline" className="text-xs bg-red-500/20 text-red-400 border-red-500/30">
                       Used
                     </Badge>
                   </div>

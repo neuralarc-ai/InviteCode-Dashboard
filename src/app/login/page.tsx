@@ -43,20 +43,20 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black p-4">
-      <Card className="w-full max-w-md bg-gray-900 border-neon-blue">
+      <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-neon-green">
-            <Lock className="h-6 w-6 text-black" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
+            <Lock className="h-6 w-6 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold text-white">Admin Login</CardTitle>
-          <CardDescription className="text-gray-300">
+          <CardTitle className="text-2xl font-bold text-card-foreground">Admin Login</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Enter your password to access the dashboard
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-white">Password</Label>
+              <Label htmlFor="password" className="text-card-foreground">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -64,7 +64,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter admin password"
-                  className="pr-10 bg-gray-800 border-neon-blue text-white placeholder-gray-400 focus:border-neon-green"
+                  className="pr-10 bg-input border-border text-foreground placeholder-muted-foreground focus:border-ring"
                   required
                 />
                 <Button
@@ -75,23 +75,23 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-neon-yellow" />
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
                   ) : (
-                    <Eye className="h-4 w-4 text-neon-yellow" />
+                    <Eye className="h-4 w-4 text-muted-foreground" />
                   )}
                 </Button>
               </div>
             </div>
 
             {error && (
-              <Alert variant="destructive" className="bg-neon-orange border-neon-orange">
-                <AlertDescription className="text-black font-semibold">{error}</AlertDescription>
+              <Alert variant="destructive" className="bg-destructive border-destructive">
+                <AlertDescription className="text-destructive-foreground font-semibold">{error}</AlertDescription>
               </Alert>
             )}
 
             <Button
               type="submit"
-              className="w-full bg-neon-blue hover:bg-neon-blue/80 text-white font-semibold"
+              className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold"
               disabled={isLoading}
             >
               {isLoading ? 'Signing in...' : 'Sign In'}

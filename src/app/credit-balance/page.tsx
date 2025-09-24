@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/page-header';
 import { Logo } from '@/components/logo';
 import { CreditBalanceTableRealtime } from '@/components/dashboard/credit-balance-table-realtime';
+import { LogoutButton } from '@/components/logout-button';
 import Link from 'next/link';
 
 export default function CreditBalancePage() {
@@ -75,15 +76,8 @@ export default function CreditBalancePage() {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-           <div className="flex items-center gap-3 p-2 rounded-md transition-colors">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src="https://picsum.photos/seed/1/40/40" alt="Admin User" />
-              <AvatarFallback>AU</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col text-sm truncate">
-              <span className="font-semibold text-foreground">Admin User</span>
-              <span className="text-muted-foreground">admin@neonaccess.dev</span>
-            </div>
+          <div className="flex items-center justify-end gap-3 p-2 rounded-md transition-colors">
+            <LogoutButton />
           </div>
         </SidebarFooter>
       </Sidebar>

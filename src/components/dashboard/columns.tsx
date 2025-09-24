@@ -96,7 +96,7 @@ function DeleteWaitlistAction({ user }: { user: WaitlistUser }) {
 
 const notificationColors = {
   true: 'bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30',
-  false: 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30',
+  false: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/30',
 };
 
 interface ColumnDefinition {

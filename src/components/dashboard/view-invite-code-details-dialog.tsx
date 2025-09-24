@@ -74,20 +74,20 @@ export function ViewInviteCodeDetailsDialog({
     if (code.isUsed) {
       return {
         status: 'Used',
-        color: 'bg-red-500/20 text-red-400 border-red-500/30',
+        color: 'bg-destructive text-destructive-foreground border-border',
         description: 'This invite code has been used and is no longer active.'
       };
     }
     if (code.expiresAt && new Date(code.expiresAt) < new Date()) {
       return {
         status: 'Expired',
-        color: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+        color: 'bg-muted text-muted-foreground border-border',
         description: 'This invite code has expired and is no longer valid.'
       };
     }
     return {
       status: 'Active',
-      color: 'bg-green-500/20 text-green-400 border-green-500/30',
+      color: 'bg-secondary text-secondary-foreground border-border',
       description: 'This invite code is active and available for use.'
     };
   };
@@ -122,7 +122,7 @@ export function ViewInviteCodeDetailsDialog({
                   {statusInfo.status}
                 </Badge>
                 {inviteCode.isPreview && (
-                  <Badge variant="outline" className="text-xs bg-yellow-500/20 text-yellow-600 border-yellow-500/30">
+                  <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">
                     Preview
                   </Badge>
                 )}
@@ -138,7 +138,7 @@ export function ViewInviteCodeDetailsDialog({
                 className="flex items-center gap-2"
               >
                 {copiedCode ? (
-                  <Check className="h-4 w-4 text-green-500" />
+                  <Check className="h-4 w-4 text-primary" />
                 ) : (
                   <Copy className="h-4 w-4" />
                 )}
@@ -209,7 +209,7 @@ export function ViewInviteCodeDetailsDialog({
                   className="flex items-center gap-2"
                 >
                   {copiedEmails ? (
-                    <Check className="h-4 w-4 text-green-500" />
+                    <Check className="h-4 w-4 text-primary" />
                   ) : (
                     <Copy className="h-4 w-4" />
                   )}
