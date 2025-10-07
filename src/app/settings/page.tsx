@@ -1,26 +1,10 @@
 import {
-  KeyRound,
-  LayoutDashboard,
-  Settings,
-  Users,
-  CreditCard,
-} from 'lucide-react';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
   SidebarInset,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
   SidebarProvider,
   SidebarTrigger,
-  SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/page-header';
-import { Logo } from '@/components/logo';
-import { LogoutButton } from '@/components/logout-button';
+import { SharedSidebar } from '@/components/shared-sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Palette, 
   Type, 
@@ -38,70 +23,19 @@ import {
   Clock, 
   Shield, 
   User,
+  Users,
   Mail,
   Lock,
   Save,
-  RefreshCw
+  RefreshCw,
+  KeyRound
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SettingsPage() {
   return (
     <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
-          <Logo />
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/">
-                  <LayoutDashboard />
-                  Dashboard
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/invite-codes">
-                  <KeyRound />
-                  Invite Codes
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/waitlist">
-                  <Users />
-                  Waitlist
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/credit-balance">
-                  <CreditCard />
-                  Credit Balance
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/settings">
-                  <Settings />
-                  Settings
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-          <div className="flex items-center justify-end gap-3 p-2 rounded-md transition-colors">
-            <LogoutButton />
-          </div>
-        </SidebarFooter>
-      </Sidebar>
+      <SharedSidebar />
       <SidebarInset className="flex flex-col">
         <PageHeader>
           <SidebarTrigger className="md:hidden" />

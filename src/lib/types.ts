@@ -1,16 +1,37 @@
-export type UserStatus = 'Used' | 'Not Used' | 'Expired';
-
-export type CreditBalance = {
+export type CreditUsageGrouped = {
   userId: string;
-  balanceDollars: number;
-  totalPurchased: number;
-  totalUsed: number;
-  lastUpdated: Date;
+  totalAmountDollars: number;
+  recordCount: number;
+  usageTypes: string[];
+  descriptions: string[];
+  threadIds: string[];
+  messageIds: string[];
+  subscriptionTier: string | null;
+  earliestCreatedAt: Date;
+  latestCreatedAt: Date;
   metadata: Record<string, any>;
   // Additional fields we'll fetch from auth.users
   userEmail?: string;
   userName?: string;
 };
+
+export type CreditPurchase = {
+  id: string;
+  userId: string;
+  amountDollars: number;
+  stripePaymentIntentId: string | null;
+  stripeChargeId: string | null;
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  description: string | null;
+  metadata: Record<string, any>;
+  createdAt: Date;
+  completedAt: Date | null;
+  expiresAt: Date | null;
+  // Additional fields we'll fetch from auth.users
+  userEmail?: string;
+  userName?: string;
+};
+
 
 export type WaitlistUser = {
   id: string;
@@ -27,6 +48,22 @@ export type WaitlistUser = {
   joinedAt: Date;
   notifiedAt: Date | null;
   isNotified: boolean;
+};
+
+export type UserProfile = {
+  id: string;
+  userId: string;
+  fullName: string;
+  preferredName: string;
+  workDescription: string;
+  personalReferences: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  avatarUrl: string | null;
+  referralSource: string | null;
+  consentGiven: boolean | null;
+  consentDate: Date | null;
+  email: string; // This will be fetched from auth.users
 };
 
 export type InviteCode = {
@@ -135,30 +172,127 @@ export interface Database {
           email_sent_to?: string[];
         };
       };
-      credit_balance: {
+      user_profiles: {
         Row: {
+          id: string;
           user_id: string;
-          balance_dollars: number;
-          total_purchased: number;
-          total_used: number;
-          last_updated: string;
+          full_name: string;
+          preferred_name: string;
+          work_description: string;
+          personal_references: string | null;
+          created_at: string;
+          updated_at: string;
+          avatar_url: string | null;
+          referral_source: string | null;
+          consent_given: boolean | null;
+          consent_date: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          full_name: string;
+          preferred_name: string;
+          work_description: string;
+          personal_references?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          avatar_url?: string | null;
+          referral_source?: string | null;
+          consent_given?: boolean | null;
+          consent_date?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          full_name?: string;
+          preferred_name?: string;
+          work_description?: string;
+          personal_references?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          avatar_url?: string | null;
+          referral_source?: string | null;
+          consent_given?: boolean | null;
+          consent_date?: string | null;
+        };
+      };
+      credit_usage: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount_dollars: number;
+          thread_id: string | null;
+          message_id: string | null;
+          description: string | null;
+          usage_type: 'token_overage' | 'manual_deduction' | 'adjustment';
+          created_at: string;
+          subscription_tier: string | null;
           metadata: Record<string, any>;
         };
         Insert: {
+          id?: string;
           user_id: string;
-          balance_dollars?: number;
-          total_purchased?: number;
-          total_used?: number;
-          last_updated?: string;
+          amount_dollars: number;
+          thread_id?: string | null;
+          message_id?: string | null;
+          description?: string | null;
+          usage_type?: 'token_overage' | 'manual_deduction' | 'adjustment';
+          created_at?: string;
+          subscription_tier?: string | null;
           metadata?: Record<string, any>;
         };
         Update: {
+          id?: string;
           user_id?: string;
-          balance_dollars?: number;
-          total_purchased?: number;
-          total_used?: number;
-          last_updated?: string;
+          amount_dollars?: number;
+          thread_id?: string | null;
+          message_id?: string | null;
+          description?: string | null;
+          usage_type?: 'token_overage' | 'manual_deduction' | 'adjustment';
+          created_at?: string;
+          subscription_tier?: string | null;
           metadata?: Record<string, any>;
+        };
+      };
+      credit_purchases: {
+        Row: {
+          id: string;
+          user_id: string;
+          amount_dollars: number;
+          stripe_payment_intent_id: string | null;
+          stripe_charge_id: string | null;
+          status: 'pending' | 'completed' | 'failed' | 'refunded';
+          description: string | null;
+          metadata: Record<string, any>;
+          created_at: string;
+          completed_at: string | null;
+          expires_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          amount_dollars: number;
+          stripe_payment_intent_id?: string | null;
+          stripe_charge_id?: string | null;
+          status?: 'pending' | 'completed' | 'failed' | 'refunded';
+          description?: string | null;
+          metadata?: Record<string, any>;
+          created_at?: string;
+          completed_at?: string | null;
+          expires_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          amount_dollars?: number;
+          stripe_payment_intent_id?: string | null;
+          stripe_charge_id?: string | null;
+          status?: 'pending' | 'completed' | 'failed' | 'refunded';
+          description?: string | null;
+          metadata?: Record<string, any>;
+          created_at?: string;
+          completed_at?: string | null;
+          expires_at?: string | null;
         };
       };
     };

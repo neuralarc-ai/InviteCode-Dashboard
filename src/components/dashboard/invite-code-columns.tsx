@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Copy, Trash2, Eye } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, Eye, ChevronUp, ChevronDown, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { InviteCode } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -26,7 +26,6 @@ import { useRefresh } from '@/contexts/refresh-context';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 import { ViewInviteCodeDetailsDialog } from './view-invite-code-details-dialog';
-import { getRecipientNamesFromEmails } from '@/lib/data';
 
 function ActionMenuItem({
   children,
@@ -101,6 +100,86 @@ function ViewDetailsAction({ code }: { code: InviteCode }) {
         inviteCode={code}
       />
     </>
+  );
+}
+
+function SendReminderAction({ code }: { code: InviteCode }) {
+  const { toast } = useToast();
+  const [isSending, setIsSending] = React.useState(false);
+
+  const handleSendReminder = async () => {
+    if (code.isPreview) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot send reminder',
+        description: 'Preview codes cannot have reminder emails sent',
+      });
+      return;
+    }
+
+    if (code.isUsed) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot send reminder',
+        description: 'This invite code has already been used',
+      });
+      return;
+    }
+
+    if (code.emailSentTo.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot send reminder',
+        description: 'No email addresses found for this invite code',
+      });
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const response = await fetch('/api/send-reminder-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          codeId: code.id,
+          code: code.code,
+          emails: code.emailSentTo,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: 'Reminder sent!',
+          description: `Reminder email sent to ${code.emailSentTo.length} recipient${code.emailSentTo.length > 1 ? 's' : ''}`,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: result.message || 'Failed to send reminder email',
+        });
+      }
+    } catch (error) {
+      console.error('Error sending reminder email:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to send reminder email',
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <ActionMenuItem onSelect={handleSendReminder}>
+      <Mail />
+      {isSending ? 'Sending...' : 'Send Reminder'}
+    </ActionMenuItem>
   );
 }
 
@@ -213,53 +292,19 @@ const getStatusColor = (code: InviteCode) => {
 
 // Component to display recipient names
 function RecipientNames({ emails }: { emails: string[] }) {
-  const [recipientNames, setRecipientNames] = React.useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const fetchNames = async () => {
-      if (emails.length === 0) {
-        setIsLoading(false);
-        return;
-      }
-      
-      try {
-        const names = await getRecipientNamesFromEmails(emails);
-        setRecipientNames(names);
-      } catch (error) {
-        console.error('Error fetching recipient names:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchNames();
-  }, [emails]);
-
-  if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading...</div>;
-  }
-
   if (emails.length === 0) {
     return <span className="text-muted-foreground text-xs">No recipients</span>;
   }
 
   return (
     <div className="space-y-1">
-      {emails.map((email, index) => {
-        const name = recipientNames[email];
-        return (
-          <div key={index} className="text-xs">
-            {name ? (
-              <div className="font-medium">{name}</div>
-            ) : (
-              <div className="text-muted-foreground truncate" title={email}>
-                {email}
-              </div>
-            )}
+      {emails.map((email, index) => (
+        <div key={index} className="text-xs">
+          <div className="text-muted-foreground truncate" title={email}>
+            {email}
           </div>
-        );
-      })}
+        </div>
+      ))}
       <div className="text-xs text-muted-foreground">
         {emails.length} recipient{emails.length > 1 ? 's' : ''}
       </div>
@@ -269,17 +314,57 @@ function RecipientNames({ emails }: { emails: string[] }) {
 
 interface ColumnDefinition {
     accessorKey: keyof InviteCode | 'actions' | 'select' | 'status' | 'recipients';
-    header: string;
+    header: string | React.ReactNode;
     width?: string;
     cell?: ({ row }: { row: InviteCode }) => React.ReactNode;
+    sortable?: boolean;
 }
+
+// Helper function to create sortable headers
+const createSortableHeader = (
+  label: string, 
+  field: keyof InviteCode, 
+  sortField?: keyof InviteCode, 
+  sortDirection?: 'asc' | 'desc', 
+  onSort?: (field: keyof InviteCode) => void
+) => {
+  if (!onSort) return label;
+  
+  const isActive = sortField === field;
+  
+  return (
+    <Button
+      variant="ghost"
+      className="h-auto p-0 font-medium hover:bg-transparent"
+      onClick={() => onSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive && (
+          sortDirection === 'asc' ? 
+            <ChevronUp className="h-4 w-4" /> : 
+            <ChevronDown className="h-4 w-4" />
+        )}
+      </div>
+    </Button>
+  );
+};
 
 interface InviteCodeColumnsProps {
   selectedCodes: string[];
   onSelectionChange: (selectedCodes: string[]) => void;
+  sortField?: keyof InviteCode;
+  sortDirection?: 'asc' | 'desc';
+  onSort?: (field: keyof InviteCode) => void;
 }
 
-export const getInviteCodeColumns = ({ selectedCodes, onSelectionChange }: InviteCodeColumnsProps): ColumnDefinition[] => [
+export const getInviteCodeColumns = ({ 
+  selectedCodes, 
+  onSelectionChange, 
+  sortField, 
+  sortDirection, 
+  onSort 
+}: InviteCodeColumnsProps): ColumnDefinition[] => [
   {
     accessorKey: 'select',
     header: '',
@@ -300,8 +385,9 @@ export const getInviteCodeColumns = ({ selectedCodes, onSelectionChange }: Invit
   },
   {
     accessorKey: 'code',
-    header: 'Code',
+    header: createSortableHeader('Code', 'code', sortField, sortDirection, onSort),
     width: '150px',
+    sortable: true,
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
         <span className="font-mono text-sm font-medium">{row.code}</span>
@@ -329,8 +415,9 @@ export const getInviteCodeColumns = ({ selectedCodes, onSelectionChange }: Invit
   },
   {
     accessorKey: 'currentUses',
-    header: 'Usage',
+    header: createSortableHeader('Usage', 'currentUses', sortField, sortDirection, onSort),
     width: '100px',
+    sortable: true,
     cell: ({ row }) => (
       <div className="text-sm">
         <span className="font-medium">{row.currentUses}</span>
@@ -373,8 +460,9 @@ export const getInviteCodeColumns = ({ selectedCodes, onSelectionChange }: Invit
   },
   {
     accessorKey: 'createdAt',
-    header: 'Created',
+    header: createSortableHeader('Created', 'createdAt', sortField, sortDirection, onSort),
     width: '150px',
+    sortable: true,
     cell: ({ row }) => (
       <div className="text-sm">
         {new Intl.DateTimeFormat('en-US', {
@@ -387,8 +475,9 @@ export const getInviteCodeColumns = ({ selectedCodes, onSelectionChange }: Invit
   },
   {
     accessorKey: 'expiresAt',
-    header: 'Expires',
+    header: createSortableHeader('Expires', 'expiresAt', sortField, sortDirection, onSort),
     width: '150px',
+    sortable: true,
     cell: ({ row }) => (
       <div className="text-sm">
         {row.expiresAt ? (
@@ -405,8 +494,9 @@ export const getInviteCodeColumns = ({ selectedCodes, onSelectionChange }: Invit
   },
   {
     accessorKey: 'usedAt',
-    header: 'Used At',
+    header: createSortableHeader('Used At', 'usedAt', sortField, sortDirection, onSort),
     width: '150px',
+    sortable: true,
     cell: ({ row }) => (
       <div className="text-sm">
         {row.usedAt ? (
@@ -436,6 +526,7 @@ export const getInviteCodeColumns = ({ selectedCodes, onSelectionChange }: Invit
         <DropdownMenuContent align="end">
           <CopyCodeAction code={row.code} />
           <ViewDetailsAction code={row} />
+          <SendReminderAction code={row} />
           <DeleteCodeAction code={row} />
         </DropdownMenuContent>
       </DropdownMenu>

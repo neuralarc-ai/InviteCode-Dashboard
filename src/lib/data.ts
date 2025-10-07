@@ -1,4 +1,4 @@
-import type { WaitlistUser, DashboardStats, InviteCode, CreditBalance } from '@/lib/types';
+import type { WaitlistUser, DashboardStats, InviteCode, CreditUsage, CreditPurchase } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 
 // Transform database row to WaitlistUser type
@@ -21,35 +21,43 @@ function transformWaitlistUser(row: any): WaitlistUser {
   };
 }
 
-// Transform database row to InviteCode type
-function transformInviteCode(row: any): InviteCode {
+// Transform database row to CreditUsage type
+function transformCreditUsage(row: any): CreditUsage {
   return {
     id: row.id,
-    code: row.code,
-    isUsed: row.is_used,
-    usedBy: row.used_by,
-    usedAt: row.used_at ? new Date(row.used_at) : null,
-    createdAt: new Date(row.created_at),
-    expiresAt: row.expires_at ? new Date(row.expires_at) : null,
-    maxUses: row.max_uses,
-    currentUses: row.current_uses,
-    emailSentTo: row.email_sent_to || [],
-  };
-}
-
-// Transform database row to CreditBalance type
-function transformCreditBalance(row: any): CreditBalance {
-  return {
     userId: row.user_id,
-    balanceDollars: parseFloat(row.balance_dollars),
-    totalPurchased: parseFloat(row.total_purchased),
-    totalUsed: parseFloat(row.total_used),
-    lastUpdated: new Date(row.last_updated),
+    amountDollars: parseFloat(row.amount_dollars),
+    threadId: row.thread_id,
+    messageId: row.message_id,
+    description: row.description,
+    usageType: row.usage_type,
+    createdAt: new Date(row.created_at),
+    subscriptionTier: row.subscription_tier,
     metadata: row.metadata || {},
     userEmail: row.user_email,
     userName: row.user_name,
   };
 }
+
+// Transform database row to CreditPurchase type
+function transformCreditPurchase(row: any): CreditPurchase {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    amountDollars: parseFloat(row.amount_dollars),
+    stripePaymentIntentId: row.stripe_payment_intent_id,
+    stripeChargeId: row.stripe_charge_id,
+    status: row.status,
+    description: row.description,
+    metadata: row.metadata || {},
+    createdAt: new Date(row.created_at),
+    completedAt: row.completed_at ? new Date(row.completed_at) : null,
+    expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+    userEmail: row.user_email,
+    userName: row.user_name,
+  };
+}
+
 
 export async function getWaitlistUsers(): Promise<WaitlistUser[]> {
   try {
@@ -235,7 +243,7 @@ export async function generateInviteCodes(count: number, maxUses: number = 1): P
     const codeData: any[] = [];
 
     for (let i = 0; i < count; i++) {
-      const code = `NA-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+      const code = `NA${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
       codes.push(code);
       codeData.push({
         code,
@@ -342,66 +350,6 @@ export async function addEmailToInviteCode(code: string, email: string): Promise
   }
 }
 
-// Credit Balance functions
-export async function getCreditBalances(): Promise<CreditBalance[]> {
-  try {
-    const { data, error } = await supabase
-      .from('credit_balance')
-      .select('*')
-      .order('last_updated', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching credit balances:', error);
-      throw new Error('Failed to fetch credit balances');
-    }
-
-    return data.map((row: any) => ({
-      userId: row.user_id,
-      balanceDollars: parseFloat(row.balance_dollars),
-      totalPurchased: parseFloat(row.total_purchased),
-      totalUsed: parseFloat(row.total_used),
-      lastUpdated: new Date(row.last_updated),
-      metadata: row.metadata || {},
-      userEmail: `user-${row.user_id.slice(0, 8)}@example.com`,
-      userName: `User ${row.user_id.slice(0, 8)}`,
-    }));
-  } catch (error) {
-    console.error('Error in getCreditBalances:', error);
-    throw error;
-  }
-}
-
-export async function updateCreditBalance(
-  userId: string,
-  updates: Partial<CreditBalance>
-): Promise<CreditBalance> {
-  try {
-    const updateData: any = {};
-    
-    if (updates.balanceDollars !== undefined) updateData.balance_dollars = updates.balanceDollars;
-    if (updates.totalPurchased !== undefined) updateData.total_purchased = updates.totalPurchased;
-    if (updates.totalUsed !== undefined) updateData.total_used = updates.totalUsed;
-    if (updates.metadata !== undefined) updateData.metadata = updates.metadata;
-    if (updates.lastUpdated !== undefined) updateData.last_updated = updates.lastUpdated.toISOString();
-
-    const { data, error } = await supabase
-      .from('credit_balance')
-      .update(updateData)
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating credit balance:', error);
-      throw new Error('Failed to update credit balance');
-    }
-
-    return transformCreditBalance(data);
-  } catch (error) {
-    console.error('Error in updateCreditBalance:', error);
-    throw error;
-  }
-}
 
 export async function deleteInviteCode(codeId: string): Promise<void> {
   try {
@@ -420,53 +368,279 @@ export async function deleteInviteCode(codeId: string): Promise<void> {
   }
 }
 
-// Helper function to get recipient names from email addresses
-export async function getRecipientNamesFromEmails(emails: string[]): Promise<Record<string, string>> {
-  if (emails.length === 0) return {};
-  
+// Credit Usage functions
+export async function getCreditUsage(): Promise<CreditUsage[]> {
   try {
-    // First try to get names from waitlist
-    const { data: waitlistData, error: waitlistError } = await supabase
-      .from('waitlist')
-      .select('email, full_name')
-      .in('email', emails);
+    const { data, error } = await supabase
+      .from('credit_usage')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-    if (waitlistError) {
-      console.error('Error fetching waitlist names:', waitlistError);
+    if (error) {
+      console.error('Error fetching credit usage:', error);
+      throw new Error('Failed to fetch credit usage');
     }
 
-    const nameMap: Record<string, string> = {};
+    return data ? data.map(transformCreditUsage) : [];
+  } catch (error) {
+    console.error('Error in getCreditUsage:', error);
+    throw error;
+  }
+}
+
+export async function getCreditUsageByUser(userId: string): Promise<CreditUsage[]> {
+  try {
+    const { data, error } = await supabase
+      .from('credit_usage')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching credit usage by user:', error);
+      throw new Error('Failed to fetch credit usage by user');
+    }
+
+    return data ? data.map(transformCreditUsage) : [];
+  } catch (error) {
+    console.error('Error in getCreditUsageByUser:', error);
+    throw error;
+  }
+}
+
+export async function createCreditUsage(usageData: {
+  userId: string;
+  amountDollars: number;
+  threadId?: string;
+  messageId?: string;
+  description?: string;
+  usageType?: 'token_overage' | 'manual_deduction' | 'adjustment';
+  subscriptionTier?: string;
+  metadata?: Record<string, any>;
+}): Promise<CreditUsage> {
+  try {
+    const { data, error } = await supabase
+      .from('credit_usage')
+      .insert({
+        user_id: usageData.userId,
+        amount_dollars: usageData.amountDollars,
+        thread_id: usageData.threadId,
+        message_id: usageData.messageId,
+        description: usageData.description,
+        usage_type: usageData.usageType || 'token_overage',
+        subscription_tier: usageData.subscriptionTier,
+        metadata: usageData.metadata || {},
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating credit usage:', error);
+      throw new Error('Failed to create credit usage');
+    }
+
+    return transformCreditUsage(data);
+  } catch (error) {
+    console.error('Error in createCreditUsage:', error);
+    throw error;
+  }
+}
+
+// Credit Purchases functions
+export async function getCreditPurchases(): Promise<CreditPurchase[]> {
+  try {
+    const { data, error } = await supabase
+      .from('credit_purchases')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching credit purchases:', error);
+      throw new Error('Failed to fetch credit purchases');
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Get user IDs to fetch emails and names
+    const userIds = data.map(purchase => purchase.user_id);
     
-    // Add waitlist names
-    if (waitlistData) {
-      waitlistData.forEach((user) => {
-        nameMap[user.email] = user.full_name;
+    // Create maps for user data
+    const userIdToEmail = new Map<string, string>();
+    const userIdToName = new Map<string, string>();
+    
+    // Try to fetch emails using a server-side API route
+    try {
+      const response = await fetch('/api/fetch-user-emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userIds }),
       });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('User data received from API in getCreditPurchases:', userData);
+        userData.forEach((user: any) => {
+          userIdToEmail.set(user.id, user.email);
+          userIdToName.set(user.id, user.full_name || user.email);
+        });
+        console.log('User email map in getCreditPurchases:', Object.fromEntries(userIdToEmail));
+        console.log('User name map in getCreditPurchases:', Object.fromEntries(userIdToName));
+      }
+    } catch (err) {
+      console.warn('Failed to fetch user emails for credit purchases:', err);
     }
 
-    // For emails not found in waitlist, try to get from auth.users
-    const emailsNotFound = emails.filter(email => !nameMap[email]);
-    if (emailsNotFound.length > 0) {
-      const { data: authData, error: authError } = await supabase
-        .from('auth.users')
-        .select('email, raw_user_meta_data')
-        .in('email', emailsNotFound);
+    return data.map((row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      amountDollars: parseFloat(row.amount_dollars),
+      stripePaymentIntentId: row.stripe_payment_intent_id,
+      stripeChargeId: row.stripe_charge_id,
+      status: row.status,
+      description: row.description,
+      metadata: row.metadata || {},
+      createdAt: new Date(row.created_at),
+      completedAt: row.completed_at ? new Date(row.completed_at) : null,
+      expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+      userEmail: userIdToEmail.get(row.user_id) || 'Email not available',
+      userName: userIdToName.get(row.user_id) || 'User not available',
+    }));
+  } catch (error) {
+    console.error('Error in getCreditPurchases:', error);
+    throw error;
+  }
+}
 
-      if (authError) {
-        console.error('Error fetching auth user names:', authError);
-      } else if (authData) {
-        authData.forEach((user) => {
-          const fullName = user.raw_user_meta_data?.full_name || user.raw_user_meta_data?.name;
-          if (fullName) {
-            nameMap[user.email] = fullName;
-          }
+export async function getCreditPurchasesByUser(userId: string): Promise<CreditPurchase[]> {
+  try {
+    const { data, error } = await supabase
+      .from('credit_purchases')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching credit purchases by user:', error);
+      throw new Error('Failed to fetch credit purchases by user');
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Get user data for this specific user
+    const userIdToEmail = new Map<string, string>();
+    const userIdToName = new Map<string, string>();
+    
+    try {
+      const response = await fetch('/api/fetch-user-emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userIds: [userId] }),
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        userData.forEach((user: any) => {
+          userIdToEmail.set(user.id, user.email);
+          userIdToName.set(user.id, user.full_name || user.email);
         });
       }
+    } catch (err) {
+      console.warn('Failed to fetch user email for credit purchases:', err);
     }
 
-    return nameMap;
+    return data.map((row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      amountDollars: parseFloat(row.amount_dollars),
+      stripePaymentIntentId: row.stripe_payment_intent_id,
+      stripeChargeId: row.stripe_charge_id,
+      status: row.status,
+      description: row.description,
+      metadata: row.metadata || {},
+      createdAt: new Date(row.created_at),
+      completedAt: row.completed_at ? new Date(row.completed_at) : null,
+      expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+      userEmail: userIdToEmail.get(row.user_id) || 'Email not available',
+      userName: userIdToName.get(row.user_id) || 'User not available',
+    }));
   } catch (error) {
-    console.error('Error in getRecipientNamesFromEmails:', error);
-    return {};
+    console.error('Error in getCreditPurchasesByUser:', error);
+    throw error;
+  }
+}
+
+export async function createCreditPurchase(purchaseData: {
+  userId: string;
+  amountDollars: number;
+  stripePaymentIntentId?: string;
+  stripeChargeId?: string;
+  status?: 'pending' | 'completed' | 'failed' | 'refunded';
+  description?: string;
+  metadata?: Record<string, any>;
+  expiresAt?: Date;
+}): Promise<CreditPurchase> {
+  try {
+    const { data, error } = await supabase
+      .from('credit_purchases')
+      .insert({
+        user_id: purchaseData.userId,
+        amount_dollars: purchaseData.amountDollars,
+        stripe_payment_intent_id: purchaseData.stripePaymentIntentId,
+        stripe_charge_id: purchaseData.stripeChargeId,
+        status: purchaseData.status || 'pending',
+        description: purchaseData.description,
+        metadata: purchaseData.metadata || {},
+        expires_at: purchaseData.expiresAt?.toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating credit purchase:', error);
+      throw new Error('Failed to create credit purchase');
+    }
+
+    return transformCreditPurchase(data);
+  } catch (error) {
+    console.error('Error in createCreditPurchase:', error);
+    throw error;
+  }
+}
+
+export async function updateCreditPurchaseStatus(
+  id: string,
+  status: 'pending' | 'completed' | 'failed' | 'refunded',
+  completedAt?: Date
+): Promise<CreditPurchase> {
+  try {
+    const updateData: any = { status };
+    if (completedAt) {
+      updateData.completed_at = completedAt.toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from('credit_purchases')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating credit purchase status:', error);
+      throw new Error('Failed to update credit purchase status');
+    }
+
+    return transformCreditPurchase(data);
+  } catch (error) {
+    console.error('Error in updateCreditPurchaseStatus:', error);
+    throw error;
   }
 }

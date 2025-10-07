@@ -72,5 +72,21 @@ CREATE POLICY "Allow public update access to credit_balance" ON credit_balance
 -- Enable real-time for credit_balance table
 ALTER PUBLICATION supabase_realtime ADD TABLE credit_balance;
 
+-- Enable RLS for user_profiles table (if not already enabled)
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for user_profiles table (if not already created)
+CREATE POLICY "Allow public read access to user_profiles" ON user_profiles
+    FOR SELECT USING (true);
+
+CREATE POLICY "Allow public insert access to user_profiles" ON user_profiles
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Allow public update access to user_profiles" ON user_profiles
+    FOR UPDATE USING (true);
+
+-- Enable real-time for user_profiles table
+ALTER PUBLICATION supabase_realtime ADD TABLE user_profiles;
+
 -- Note: If you get an error about the publication not existing, you may need to create it first:
 -- CREATE PUBLICATION supabase_realtime FOR ALL TABLES;

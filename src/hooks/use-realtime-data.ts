@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import type { WaitlistUser, DashboardStats, InviteCode, CreditBalance } from '@/lib/types';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
+import type { WaitlistUser, DashboardStats, InviteCode, UserProfile, CreditUsageGrouped, CreditPurchase } from '@/lib/types';
 
 export function useWaitlistUsers() {
   const [users, setUsers] = useState<WaitlistUser[]>([]);
@@ -82,8 +82,11 @@ export function useWaitlistUsers() {
 
 export function useInviteCodes() {
   const [codes, setCodes] = useState<InviteCode[]>([]);
+  const [sortedCodes, setSortedCodes] = useState<InviteCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<keyof InviteCode>('createdAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Initial fetch function
   const fetchCodes = async () => {
@@ -118,10 +121,56 @@ export function useInviteCodes() {
     }
   };
 
+  // Sort codes whenever codes or sort settings change
+  useEffect(() => {
+    const sorted = [...codes].sort((a, b) => {
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+      
+      // Handle null/undefined values
+      if (aVal === null || aVal === undefined) return 1;
+      if (bVal === null || bVal === undefined) return -1;
+      
+      // Handle different data types
+      if (aVal instanceof Date && bVal instanceof Date) {
+        return sortDirection === 'asc' ? aVal.getTime() - bVal.getTime() : bVal.getTime() - aVal.getTime();
+      }
+      
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      
+      if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
+        return sortDirection === 'asc' ? (aVal === bVal ? 0 : aVal ? 1 : -1) : (aVal === bVal ? 0 : aVal ? -1 : 1);
+      }
+      
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      // Fallback to string comparison
+      const aStr = String(aVal);
+      const bStr = String(bVal);
+      return sortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+    });
+    
+    setSortedCodes(sorted);
+  }, [codes, sortField, sortDirection]);
+
   // Manual refresh function
   const refreshCodes = async () => {
     setLoading(true);
     await fetchCodes();
+  };
+
+  // Handle sort
+  const handleSort = (field: keyof InviteCode) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
   };
 
   useEffect(() => {
@@ -149,7 +198,15 @@ export function useInviteCodes() {
     };
   }, []);
 
-  return { codes, loading, error, refreshCodes };
+  return { 
+    codes: sortedCodes, 
+    loading, 
+    error, 
+    refreshCodes,
+    sortField,
+    sortDirection,
+    handleSort
+  };
 }
 
 export function useDashboardStats() {
@@ -258,100 +315,554 @@ export function useDashboardStats() {
   return { stats, loading, error };
 }
 
-export function useCreditBalances() {
-  const [creditBalances, setCreditBalances] = useState<CreditBalance[]>([]);
+
+export function useUserProfiles() {
+  const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Initial fetch
-    const fetchCreditBalances = async () => {
-      try {
-        setLoading(true);
-        // Use server endpoint to bypass RLS/permissions issues
-        const res = await fetch('/api/credit-balance', { cache: 'no-store' });
-        const json = await res.json();
-        if (!json.success) {
-          throw new Error(json.message || 'Failed to fetch credit balances');
-        }
-
-        const transformedData = (json.data as any[]).map((row: any) => ({
-          userId: row.user_id,
-          balanceDollars: parseFloat(row.balance_dollars),
-          totalPurchased: parseFloat(row.total_purchased),
-          totalUsed: parseFloat(row.total_used),
-          lastUpdated: new Date(row.last_updated),
-          metadata: row.metadata || {},
-          userEmail: `user-${row.user_id.slice(0, 8)}@example.com`,
-          userName: row.user_name || `User ${row.user_id.slice(0, 8)}`,
-        }));
-
-        setCreditBalances(transformedData);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching credit balances:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch credit balances');
-      } finally {
-        setLoading(false);
+  // Initial fetch function
+  const fetchUserProfiles = async () => {
+    try {
+      console.log('Fetching user profiles...');
+      
+      // First, get user profiles - try both possible table names
+      let profilesData = null;
+      let profilesError = null;
+      
+      // Try user_profiles first
+      const result1 = await supabase
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (result1.error && result1.error.message.includes('relation "public.user_profiles" does not exist')) {
+        console.log('user_profiles table not found, trying user_profile...');
+        // Try user_profile (singular)
+        const result2 = await supabase
+          .from('user_profile')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        profilesData = result2.data;
+        profilesError = result2.error;
+      } else {
+        profilesData = result1.data;
+        profilesError = result1.error;
       }
-    };
 
-    fetchCreditBalances();
+      console.log('Profiles query result:', { profilesData, profilesError });
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      if (!profilesData || profilesData.length === 0) {
+        console.log('No user profiles found in database');
+        setUserProfiles([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      console.log(`Found ${profilesData.length} user profiles`);
+
+      // Get user IDs to fetch emails from auth.users
+      const userIds = profilesData.map(profile => profile.user_id);
+      
+      // Create a map of user_id to email
+      const userIdToEmail = new Map<string, string>();
+      
+      // Try to fetch emails using a server-side API route
+      try {
+        const response = await fetch('/api/fetch-user-emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userIds }),
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          userData.forEach((user: any) => {
+            userIdToEmail.set(user.id, user.email);
+          });
+          console.log(`Mapped ${userIdToEmail.size} emails via API`);
+        } else {
+          console.warn('Failed to fetch emails via API:', response.status);
+          
+          // Fallback: try admin client if available
+          if (supabaseAdmin) {
+            try {
+              const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+              
+              if (authError) {
+                console.warn('Could not fetch emails from auth.users:', authError);
+              } else if (authUsers?.users) {
+                authUsers.users.forEach(user => {
+                  if (user.email) {
+                    userIdToEmail.set(user.id, user.email);
+                  }
+                });
+                console.log(`Mapped ${userIdToEmail.size} emails from auth.users`);
+              }
+            } catch (authErr) {
+              console.warn('Failed to fetch auth users:', authErr);
+            }
+          } else {
+            console.warn('Supabase admin client not available');
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch emails:', err);
+      }
+
+      const transformedProfiles = profilesData.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        fullName: row.full_name,
+        preferredName: row.preferred_name,
+        workDescription: row.work_description,
+        personalReferences: row.personal_references,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+        avatarUrl: row.avatar_url,
+        referralSource: row.referral_source,
+        consentGiven: row.consent_given,
+        consentDate: row.consent_date ? new Date(row.consent_date) : null,
+        email: userIdToEmail.get(row.user_id) || 'Email not available',
+      }));
+
+      console.log('Transformed profiles:', transformedProfiles);
+      setUserProfiles(transformedProfiles);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching user profiles:', err);
+      setError(`Failed to fetch user profiles: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const refreshUserProfiles = async () => {
+    setLoading(true);
+    await fetchUserProfiles();
+  };
+
+  useEffect(() => {
+    fetchUserProfiles();
 
     // Set up real-time subscription
-    const creditBalanceSubscription = supabase
-      .channel('credit_balance_changes')
+    const subscription = supabase
+      .channel('user_profiles_changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'credit_balance',
+          table: 'user_profiles',
         },
         (payload) => {
-          console.log('Credit balance change received:', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            const newBalance = {
-              userId: payload.new.user_id,
-              balanceDollars: parseFloat(payload.new.balance_dollars),
-              totalPurchased: parseFloat(payload.new.total_purchased),
-              totalUsed: parseFloat(payload.new.total_used),
-              lastUpdated: new Date(payload.new.last_updated),
-              metadata: payload.new.metadata || {},
-              userEmail: `user-${payload.new.user_id.slice(0, 8)}@example.com`,
-              userName: `User ${payload.new.user_id.slice(0, 8)}`,
-            };
-            setCreditBalances(prev => [newBalance, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedBalance = {
-              userId: payload.new.user_id,
-              balanceDollars: parseFloat(payload.new.balance_dollars),
-              totalPurchased: parseFloat(payload.new.total_purchased),
-              totalUsed: parseFloat(payload.new.total_used),
-              lastUpdated: new Date(payload.new.last_updated),
-              metadata: payload.new.metadata || {},
-              userEmail: `user-${payload.new.user_id.slice(0, 8)}@example.com`,
-              userName: `User ${payload.new.user_id.slice(0, 8)}`,
-            };
-            setCreditBalances(prev => 
-              prev.map(balance => 
-                balance.userId === updatedBalance.userId ? updatedBalance : balance
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setCreditBalances(prev => 
-              prev.filter(balance => balance.userId !== payload.old.user_id)
-            );
-          }
+          console.log('Real-time user profiles update:', payload);
+          fetchUserProfiles(); // Refetch on any change
         }
       )
       .subscribe();
 
     return () => {
-      creditBalanceSubscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
-  return { creditBalances, loading, error };
+  return { userProfiles, loading, error, refreshUserProfiles };
+}
+
+export function useCreditUsage() {
+  const [creditUsage, setCreditUsage] = useState<CreditUsageGrouped[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Initial fetch function
+  const fetchCreditUsage = async () => {
+    try {
+      console.log('Fetching credit usage...');
+      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+      console.log('Supabase Key (first 10 chars):', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 10));
+      
+      const { data, error, count } = await supabase
+        .from('credit_usage')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false });
+
+      console.log('Raw query result:', { data, error, count });
+      console.log('Data length:', data?.length);
+      console.log('Error details:', error);
+
+      if (error) {
+        console.error('Error fetching credit usage:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.log('No credit usage found in database');
+        setCreditUsage([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      console.log(`Found ${data.length} credit usage records`);
+
+      // Get user IDs to fetch emails and names
+      const userIds = data.map(usage => usage.user_id);
+      
+      // Create maps for user data
+      const userIdToEmail = new Map<string, string>();
+      const userIdToName = new Map<string, string>();
+      
+      // Try to fetch emails using a server-side API route
+      try {
+        const response = await fetch('/api/fetch-user-emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userIds }),
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          userData.forEach((user: any) => {
+            userIdToEmail.set(user.id, user.email);
+          });
+          console.log(`Mapped ${userIdToEmail.size} emails via API`);
+        } else {
+          console.warn('Failed to fetch emails via API:', response.status);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch emails:', err);
+      }
+
+      // Fetch user names from user_profiles table
+      try {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('user_profiles')
+          .select('user_id, full_name, preferred_name')
+          .in('user_id', userIds);
+
+        if (profilesError) {
+          console.warn('Error fetching user profiles:', profilesError);
+        } else if (profilesData) {
+          profilesData.forEach((profile) => {
+            const displayName = profile.preferred_name || profile.full_name;
+            if (displayName) {
+              userIdToName.set(profile.user_id, displayName);
+            }
+          });
+          console.log(`Mapped ${userIdToName.size} user names from profiles`);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch user profiles:', err);
+      }
+
+      // Fallback: Try to get names from waitlist table using emails
+      if (userIdToName.size === 0 && userIdToEmail.size > 0) {
+        try {
+          const emails = Array.from(userIdToEmail.values());
+          const { data: waitlistData, error: waitlistError } = await supabase
+            .from('waitlist')
+            .select('email, full_name')
+            .in('email', emails);
+
+          if (waitlistError) {
+            console.warn('Error fetching waitlist names:', waitlistError);
+          } else if (waitlistData) {
+            // Create email to name mapping
+            const emailToName = new Map<string, string>();
+            waitlistData.forEach((user) => {
+              if (user.full_name) {
+                emailToName.set(user.email, user.full_name);
+              }
+            });
+
+            // Map names back to user IDs
+            userIdToEmail.forEach((email, userId) => {
+              const name = emailToName.get(email);
+              if (name) {
+                userIdToName.set(userId, name);
+              }
+            });
+            console.log(`Mapped ${userIdToName.size} user names from waitlist`);
+          }
+        } catch (err) {
+          console.warn('Failed to fetch waitlist names:', err);
+        }
+      }
+
+      // Final fallback: Try to get names from auth.users metadata if available
+      if (userIdToName.size === 0 && supabaseAdmin) {
+        try {
+          const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+          
+          if (authError) {
+            console.warn('Could not fetch auth users for names:', authError);
+          } else if (authUsers?.users) {
+            authUsers.users.forEach(user => {
+              if (user.user_metadata?.full_name || user.user_metadata?.name) {
+                const name = user.user_metadata.full_name || user.user_metadata.name;
+                userIdToName.set(user.id, name);
+              }
+            });
+            console.log(`Mapped ${userIdToName.size} user names from auth metadata`);
+          }
+        } catch (authErr) {
+          console.warn('Failed to fetch auth users for names:', authErr);
+        }
+      }
+
+      const transformedUsage = data.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        amountDollars: parseFloat(row.amount_dollars),
+        threadId: row.thread_id,
+        messageId: row.message_id,
+        description: row.description,
+        usageType: row.usage_type,
+        createdAt: new Date(row.created_at),
+        subscriptionTier: row.subscription_tier,
+        metadata: row.metadata || {},
+        userEmail: userIdToEmail.get(row.user_id) || 'Email not available',
+        userName: userIdToName.get(row.user_id) || `User ${row.user_id.slice(0, 8)}`,
+      }));
+
+      // Group by user ID and combine totals
+      const groupedUsage = transformedUsage.reduce((acc: Record<string, CreditUsageGrouped>, usage) => {
+        const userId = usage.userId;
+        
+        if (!acc[userId]) {
+          acc[userId] = {
+            userId: userId,
+            totalAmountDollars: 0,
+            recordCount: 0,
+            usageTypes: [],
+            descriptions: [],
+            threadIds: [],
+            messageIds: [],
+            subscriptionTier: usage.subscriptionTier,
+            earliestCreatedAt: usage.createdAt,
+            latestCreatedAt: usage.createdAt,
+            metadata: usage.metadata,
+            userEmail: usage.userEmail,
+            userName: usage.userName,
+          };
+        }
+        
+        // Add to totals
+        acc[userId].totalAmountDollars += usage.amountDollars;
+        acc[userId].recordCount += 1;
+        
+        // Add unique values to arrays
+        if (usage.usageType && !acc[userId].usageTypes.includes(usage.usageType)) {
+          acc[userId].usageTypes.push(usage.usageType);
+        }
+        if (usage.description && !acc[userId].descriptions.includes(usage.description)) {
+          acc[userId].descriptions.push(usage.description);
+        }
+        if (usage.threadId && !acc[userId].threadIds.includes(usage.threadId)) {
+          acc[userId].threadIds.push(usage.threadId);
+        }
+        if (usage.messageId && !acc[userId].messageIds.includes(usage.messageId)) {
+          acc[userId].messageIds.push(usage.messageId);
+        }
+        
+        // Update date ranges
+        if (usage.createdAt < acc[userId].earliestCreatedAt) {
+          acc[userId].earliestCreatedAt = usage.createdAt;
+        }
+        if (usage.createdAt > acc[userId].latestCreatedAt) {
+          acc[userId].latestCreatedAt = usage.createdAt;
+        }
+        
+        return acc;
+      }, {});
+
+      const groupedArray = Object.values(groupedUsage).sort((a, b) => b.totalAmountDollars - a.totalAmountDollars);
+
+      console.log('Grouped credit usage:', groupedArray);
+      setCreditUsage(groupedArray);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching credit usage:', err);
+      setError(`Failed to fetch credit usage: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const refreshCreditUsage = async () => {
+    setLoading(true);
+    await fetchCreditUsage();
+  };
+
+  useEffect(() => {
+    fetchCreditUsage();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('credit_usage_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'credit_usage',
+        },
+        (payload) => {
+          console.log('Real-time credit usage update:', payload);
+          fetchCreditUsage(); // Refetch on any change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return { creditUsage, loading, error, refreshCreditUsage };
+}
+
+export function useCreditPurchases() {
+  const [creditPurchases, setCreditPurchases] = useState<CreditPurchase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Initial fetch function
+  const fetchCreditPurchases = async () => {
+    try {
+      console.log('Fetching credit purchases...');
+      
+      const { data, error } = await supabase
+        .from('credit_purchases')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      console.log('Raw credit purchases query result:', { data, error });
+
+      if (error) {
+        console.error('Error fetching credit purchases:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.log('No credit purchases found in database');
+        setCreditPurchases([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      console.log(`Found ${data.length} credit purchase records`);
+
+      // Get user IDs to fetch emails and names
+      const userIds = data.map(purchase => purchase.user_id);
+      
+      // Create maps for user data
+      const userIdToEmail = new Map<string, string>();
+      const userIdToName = new Map<string, string>();
+      
+      // Try to fetch emails using a server-side API route
+      try {
+        console.log('Making API call to fetch user emails for userIds:', userIds);
+        const response = await fetch('/api/fetch-user-emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userIds }),
+        });
+
+        console.log('API response status:', response.status);
+        console.log('API response ok:', response.ok);
+
+        if (response.ok) {
+          const userData = await response.json();
+          console.log('User data received from API:', userData);
+          userData.forEach((user: any) => {
+            userIdToEmail.set(user.id, user.email);
+            userIdToName.set(user.id, user.full_name || user.email);
+          });
+          console.log('User email map:', Object.fromEntries(userIdToEmail));
+          console.log('User name map:', Object.fromEntries(userIdToName));
+        } else {
+          const errorText = await response.text();
+          console.error('API call failed with status:', response.status, 'Error:', errorText);
+        }
+      } catch (err) {
+        console.error('Failed to fetch user emails for credit purchases:', err);
+      }
+
+      const transformedPurchases = data.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        amountDollars: parseFloat(row.amount_dollars),
+        stripePaymentIntentId: row.stripe_payment_intent_id,
+        stripeChargeId: row.stripe_charge_id,
+        status: row.status,
+        description: row.description,
+        metadata: row.metadata || {},
+        createdAt: new Date(row.created_at),
+        completedAt: row.completed_at ? new Date(row.completed_at) : null,
+        expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+        userEmail: userIdToEmail.get(row.user_id) || 'Email not available',
+        userName: userIdToName.get(row.user_id) || 'User not available',
+      }));
+
+      console.log('Transformed credit purchases:', transformedPurchases);
+      setCreditPurchases(transformedPurchases);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching credit purchases:', err);
+      setError(`Failed to fetch credit purchases: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const refreshCreditPurchases = async () => {
+    setLoading(true);
+    await fetchCreditPurchases();
+  };
+
+  useEffect(() => {
+    fetchCreditPurchases();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('credit_purchases_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'credit_purchases',
+        },
+        (payload) => {
+          console.log('Real-time credit purchases update:', payload);
+          fetchCreditPurchases(); // Refetch on any change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return { creditPurchases, loading, error, refreshCreditPurchases };
 }

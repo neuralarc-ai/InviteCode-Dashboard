@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export function InviteCodesTableRealtime() {
-  const { codes, loading, error, refreshCodes } = useInviteCodes();
+  const { codes, loading, error, refreshCodes, sortField, sortDirection, handleSort } = useInviteCodes();
   const { previewCodes, clearPreviewCodes } = usePreviewCodes();
   const [filter, setFilter] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
@@ -106,13 +106,16 @@ export function InviteCodesTableRealtime() {
 
   const totalPages = Math.ceil(filteredCodes.length / rowsPerPage);
 
-  // Get columns with selection functionality
+  // Get columns with selection functionality and sorting
   const columns = React.useMemo(() => 
     getInviteCodeColumns({ 
       selectedCodes, 
-      onSelectionChange: setSelectedCodes 
+      onSelectionChange: setSelectedCodes,
+      sortField,
+      sortDirection,
+      onSort: handleSort
     }), 
-    [selectedCodes]
+    [selectedCodes, sortField, sortDirection, handleSort]
   );
 
   // Select all functionality
