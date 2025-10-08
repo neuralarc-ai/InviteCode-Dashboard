@@ -1,4 +1,4 @@
-import type { WaitlistUser, DashboardStats, InviteCode, CreditUsage, CreditPurchase } from '@/lib/types';
+import type { WaitlistUser, DashboardStats, InviteCode, CreditUsage, CreditPurchase, UsageLog } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 
 // Transform database row to WaitlistUser type
@@ -18,6 +18,7 @@ function transformWaitlistUser(row: any): WaitlistUser {
     joinedAt: new Date(row.joined_at),
     notifiedAt: row.notified_at ? new Date(row.notified_at) : null,
     isNotified: row.is_notified,
+    isArchived: row.is_archived || false,
   };
 }
 
@@ -58,6 +59,23 @@ function transformCreditPurchase(row: any): CreditPurchase {
   };
 }
 
+// Transform database row to UsageLog type
+function transformUsageLog(row: any): UsageLog {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    threadId: row.thread_id,
+    messageId: row.message_id,
+    totalPromptTokens: row.total_prompt_tokens,
+    totalCompletionTokens: row.total_completion_tokens,
+    totalTokens: row.total_tokens,
+    estimatedCost: row.estimated_cost ? parseFloat(row.estimated_cost) : null,
+    content: row.content || {},
+    createdAt: new Date(row.created_at),
+    userEmail: row.user_email,
+    userName: row.user_name,
+  };
+}
 
 export async function getWaitlistUsers(): Promise<WaitlistUser[]> {
   try {
@@ -641,6 +659,190 @@ export async function updateCreditPurchaseStatus(
     return transformCreditPurchase(data);
   } catch (error) {
     console.error('Error in updateCreditPurchaseStatus:', error);
+    throw error;
+  }
+}
+
+// Usage Logs functions
+export async function getUsageLogs(): Promise<UsageLog[]> {
+  try {
+    const { data, error } = await supabase
+      .from('usage_logs')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching usage logs:', error);
+      throw new Error('Failed to fetch usage logs');
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Get unique user IDs
+    const userIds = [...new Set(data.map(log => log.user_id))];
+    console.log('Fetching user data for usage logs, user IDs:', userIds);
+
+    // Fetch user emails and names via API
+    let userData: Array<{id: string, email: string, full_name: string}> = [];
+    try {
+      const response = await fetch('/api/fetch-user-emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userIds }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      userData = await response.json();
+      console.log('User data fetched for usage logs:', userData);
+    } catch (apiError) {
+      console.error('Error fetching user data for usage logs:', apiError);
+      // Continue without user data
+    }
+
+    // Transform the data and add user information
+    const transformedLogs = data.map(log => {
+      const user = userData.find(u => u.id === log.user_id);
+      return transformUsageLog({
+        ...log,
+        user_email: user?.email || 'Email not available',
+        user_name: user?.full_name || 'User not available',
+      });
+    });
+
+    console.log('Transformed usage logs:', transformedLogs.length, 'logs');
+    return transformedLogs;
+  } catch (error) {
+    console.error('Error in getUsageLogs:', error);
+    throw error;
+  }
+}
+
+export async function getUsageLogsByUser(userId: string): Promise<UsageLog[]> {
+  try {
+    const { data, error } = await supabase
+      .from('usage_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching usage logs for user:', error);
+      throw new Error('Failed to fetch usage logs for user');
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Fetch user data
+    let userData: Array<{id: string, email: string, full_name: string}> = [];
+    try {
+      const response = await fetch('/api/fetch-user-emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userIds: [userId] }),
+      });
+
+      if (response.ok) {
+        userData = await response.json();
+      }
+    } catch (apiError) {
+      console.error('Error fetching user data for usage logs:', apiError);
+    }
+
+    // Transform the data
+    const transformedLogs = data.map(log => {
+      const user = userData.find(u => u.id === log.user_id);
+      return transformUsageLog({
+        ...log,
+        user_email: user?.email || 'Email not available',
+        user_name: user?.full_name || 'User not available',
+      });
+    });
+
+    return transformedLogs;
+  } catch (error) {
+    console.error('Error in getUsageLogsByUser:', error);
+    throw error;
+  }
+}
+
+export async function createUsageLog(logData: {
+  userId: string;
+  threadId?: string | null;
+  messageId?: string | null;
+  totalPromptTokens?: number | null;
+  totalCompletionTokens?: number | null;
+  totalTokens?: number | null;
+  estimatedCost?: number | null;
+  content?: Record<string, any> | null;
+}): Promise<UsageLog> {
+  try {
+    const { data, error } = await supabase
+      .from('usage_logs')
+      .insert({
+        user_id: logData.userId,
+        thread_id: logData.threadId,
+        message_id: logData.messageId,
+        total_prompt_tokens: logData.totalPromptTokens,
+        total_completion_tokens: logData.totalCompletionTokens,
+        total_tokens: logData.totalTokens,
+        estimated_cost: logData.estimatedCost,
+        content: logData.content || {},
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating usage log:', error);
+      throw new Error('Failed to create usage log');
+    }
+
+    return transformUsageLog(data);
+  } catch (error) {
+    console.error('Error in createUsageLog:', error);
+    throw error;
+  }
+}
+
+// Archive waitlist users who have been notified
+export async function archiveNotifiedWaitlistUsers() {
+  try {
+    console.log('Starting to archive notified waitlist users...');
+    
+    // Update waitlist users who have been notified to archive them
+    const { data: updatedUsers, error: updateError } = await supabase
+      .from('waitlist')
+      .update({ is_archived: true })
+      .eq('is_notified', true)
+      .eq('is_archived', false)
+      .select('email, full_name');
+
+    if (updateError) {
+      console.error('Error archiving notified waitlist users:', updateError);
+      throw updateError;
+    }
+
+    const archivedCount = updatedUsers?.length || 0;
+    console.log(`Successfully archived ${archivedCount} notified waitlist users`);
+
+    return {
+      archived: archivedCount,
+      emails: updatedUsers?.map(user => user.email) || [],
+      names: updatedUsers?.map(user => user.full_name) || []
+    };
+
+  } catch (error) {
+    console.error('Error in archiveNotifiedWaitlistUsers:', error);
     throw error;
   }
 }

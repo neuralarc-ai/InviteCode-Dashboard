@@ -90,7 +90,7 @@ export default function UsersPage() {
                 {isSending ? "Sending..." : "Send EMAIL"}
               </Button>
             </div>
-            <UsersTableRealtime />
+            {/* <UsersTableRealtime /> */}
           </main>
         </SidebarInset>
       </SidebarProvider>

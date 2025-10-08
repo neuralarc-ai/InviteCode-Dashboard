@@ -9,6 +9,7 @@ import {
   UserCheck,
   CreditCard,
   ShoppingCart,
+  FileText,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -38,14 +39,14 @@ export function SharedSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
+          {/* <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/users">
                 <UserCheck />
                 Users
               </Link>
             </SidebarMenuButton>
-          </SidebarMenuItem>
+          </SidebarMenuItem> */}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/invite-codes">
@@ -75,6 +76,14 @@ export function SharedSidebar() {
               <Link href="/purchased-credits">
                 <ShoppingCart />
                 Purchased Credits
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link href="/usage-logs">
+                <FileText />
+                Usage Logs
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

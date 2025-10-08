@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Nodemailer transporter
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587'),
       secure: false, // true for 465, false for other ports
@@ -167,7 +167,12 @@ https://he2.ai
 Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
     // Prepare email attachments
-    const attachments = [];
+    const attachments: Array<{
+      filename: string;
+      content: Buffer;
+      cid: string;
+      contentType: string;
+    }> = [];
     if (imageBuffer) {
       attachments.push({
         filename: 'Email.png',

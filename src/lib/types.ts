@@ -32,6 +32,23 @@ export type CreditPurchase = {
   userName?: string;
 };
 
+export type UsageLog = {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalTokens: number;
+  totalEstimatedCost: number;
+  usageCount: number;
+  earliestActivity: Date;
+  latestActivity: Date;
+  hasCompletedPayment: boolean;
+  activityLevel: 'high' | 'medium' | 'low' | 'inactive';
+  daysSinceLastActivity: number;
+  activityScore: number;
+};
+
 
 export type WaitlistUser = {
   id: string;
@@ -48,6 +65,7 @@ export type WaitlistUser = {
   joinedAt: Date;
   notifiedAt: Date | null;
   isNotified: boolean;
+  isArchived: boolean;
 };
 
 export type UserProfile = {
@@ -100,6 +118,7 @@ export interface Database {
           is_notified: boolean;
           phone_number: string;
           country_code: string;
+          is_archived: boolean;
         };
         Insert: {
           id?: string;
@@ -116,6 +135,7 @@ export interface Database {
           is_notified?: boolean;
           phone_number: string;
           country_code: string;
+          is_archived?: boolean;
         };
         Update: {
           id?: string;
@@ -132,6 +152,7 @@ export interface Database {
           is_notified?: boolean;
           phone_number?: string;
           country_code?: string;
+          is_archived?: boolean;
         };
       };
       invite_codes: {
@@ -293,6 +314,44 @@ export interface Database {
           created_at?: string;
           completed_at?: string | null;
           expires_at?: string | null;
+        };
+      };
+      usage_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          thread_id: string | null;
+          message_id: string | null;
+          total_prompt_tokens: number | null;
+          total_completion_tokens: number | null;
+          total_tokens: number | null;
+          estimated_cost: number | null;
+          content: Record<string, any> | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          thread_id?: string | null;
+          message_id?: string | null;
+          total_prompt_tokens?: number | null;
+          total_completion_tokens?: number | null;
+          total_tokens?: number | null;
+          estimated_cost?: number | null;
+          content?: Record<string, any> | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          thread_id?: string | null;
+          message_id?: string | null;
+          total_prompt_tokens?: number | null;
+          total_completion_tokens?: number | null;
+          total_tokens?: number | null;
+          estimated_cost?: number | null;
+          content?: Record<string, any> | null;
+          created_at?: string;
         };
       };
     };

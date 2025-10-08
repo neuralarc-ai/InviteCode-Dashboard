@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Mail, Filter } from 'lucide-react';
+import { Search, Mail, Filter, Archive } from 'lucide-react';
 import type { WaitlistUser } from '@/lib/types';
 import { columns } from './columns';
 import { GenerateCodesDialog } from './generate-codes-dialog';
@@ -23,9 +23,10 @@ import { useToast } from '@/hooks/use-toast';
 export function WaitlistTableRealtime() {
   const { users, loading, error, refreshUsers } = useWaitlistUsers();
   const [filter, setFilter] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [statusFilter, setStatusFilter] = React.useState<string>('active');
   const [page, setPage] = React.useState(0);
   const [isTestingEmail, setIsTestingEmail] = React.useState(false);
+  const [isArchiving, setIsArchiving] = React.useState(false);
   const rowsPerPage = 10;
   const { toast } = useToast();
 
@@ -40,7 +41,9 @@ export function WaitlistTableRealtime() {
     // Status filter
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'notified' && user.isNotified) ||
-      (statusFilter === 'pending' && !user.isNotified);
+      (statusFilter === 'pending' && !user.isNotified) ||
+      (statusFilter === 'archived' && user.isArchived) ||
+      (statusFilter === 'active' && !user.isArchived);
     
     return matchesText && matchesStatus;
   });
@@ -99,6 +102,42 @@ export function WaitlistTableRealtime() {
     }
   };
 
+  const archiveUsersWithSentCodes = async () => {
+    setIsArchiving(true);
+    try {
+      const response = await fetch('/api/archive-waitlist-users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: 'Users Archived!',
+          description: result.message,
+        });
+        await refreshUsers();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Archive Failed',
+          description: result.message,
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to archive users',
+      });
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -136,8 +175,10 @@ export function WaitlistTableRealtime() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="notified">Notified</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -188,12 +229,23 @@ export function WaitlistTableRealtime() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="notified">Notified</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={archiveUsersWithSentCodes}
+              disabled={isArchiving}
+              className="flex items-center gap-2"
+            >
+              <Archive className="h-4 w-4" />
+              {isArchiving ? 'Archiving...' : 'Archive Notified'}
+            </Button>
             <Button
               variant="outline"
               onClick={testEmail}
@@ -267,7 +319,10 @@ export function WaitlistTableRealtime() {
           Total waitlist entries: <span className="font-semibold text-foreground">{users.length}</span>
           {statusFilter !== 'all' && (
             <span className="ml-2">
-              ({statusFilter === 'notified' ? 'Notified' : 'Pending'}: <span className="font-semibold text-foreground">{filteredUsers.length}</span>)
+              ({statusFilter === 'notified' ? 'Notified' : 
+                statusFilter === 'pending' ? 'Pending' :
+                statusFilter === 'archived' ? 'Archived' :
+                statusFilter === 'active' ? 'Active' : statusFilter}: <span className="font-semibold text-foreground">{filteredUsers.length}</span>)
             </span>
           )}
           {filter && (

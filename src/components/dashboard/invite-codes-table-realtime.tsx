@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Search, Filter, Trash2, CheckSquare, Square, Trash, Circle } from 'lucide-react';
 import { useInviteCodes } from '@/hooks/use-realtime-data';
 import { usePreviewCodes } from '@/contexts/preview-codes-context';
 import { RefreshProvider } from '@/contexts/refresh-context';
@@ -40,6 +40,7 @@ export function InviteCodesTableRealtime() {
   const [selectedCodes, setSelectedCodes] = React.useState<string[]>([]);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isCleaningUp, setIsCleaningUp] = React.useState(false);
   const rowsPerPage = 10;
   const { toast } = useToast();
 
@@ -48,6 +49,20 @@ export function InviteCodesTableRealtime() {
     if (code.isUsed) return 'used';
     if (code.expiresAt && new Date(code.expiresAt) < new Date()) return 'expired';
     return 'active';
+  };
+
+  // Helper function to check if invite code needs red dot (sent but not used after 3 days)
+  const needsRedDotIndicator = (code: InviteCode): boolean => {
+    // Only show red dot for unused codes that have been sent
+    if (code.isUsed || !code.emailSentTo || code.emailSentTo.length === 0) {
+      return false;
+    }
+
+    // Check if it's been 3+ days since creation and not used
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    
+    return new Date(code.createdAt) <= threeDaysAgo;
   };
 
   // Remove preview codes that now exist in the database
@@ -166,6 +181,43 @@ export function InviteCodesTableRealtime() {
     }
   };
 
+  // Cleanup expired codes functionality
+  const handleCleanupExpired = async () => {
+    setIsCleaningUp(true);
+    try {
+      const response = await fetch('/api/cleanup-expired-codes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          toast({
+            title: 'Cleanup Complete',
+            description: result.message,
+          });
+          await refreshCodes();
+        } else {
+          throw new Error(result.message || 'Cleanup failed');
+        }
+      } else {
+        throw new Error('Failed to cleanup expired codes');
+      }
+    } catch (error) {
+      console.error('Error cleaning up expired codes:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to cleanup expired codes',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
   // Clear selection when page changes
   React.useEffect(() => {
     setSelectedCodes([]);
@@ -220,7 +272,7 @@ export function InviteCodesTableRealtime() {
           <Table>
             <TableHeader>
               <TableRow>
-                {inviteCodeColumns.map((column) => (
+                {columns.map((column) => (
                   <TableHead key={column.accessorKey} style={{ width: column.width }}>
                     {column.header}
                   </TableHead>
@@ -229,7 +281,7 @@ export function InviteCodesTableRealtime() {
             </TableHeader>
             <TableBody>
               <TableRow>
-                <TableCell colSpan={inviteCodeColumns.length} className="h-24 text-center text-destructive">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-destructive">
                   Error loading data: {error}
                 </TableCell>
               </TableRow>
@@ -266,8 +318,21 @@ export function InviteCodesTableRealtime() {
                 <SelectItem value="expired">Expired</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Circle className="h-2 w-2 fill-red-500 text-red-500" />
+              <span>Sent 3+ days ago, unused</span>
+            </div>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCleanupExpired}
+              disabled={isCleaningUp}
+              className="flex items-center gap-2"
+            >
+              <Trash className="h-4 w-4" />
+              {isCleaningUp ? 'Cleaning...' : 'Cleanup Expired'}
+            </Button>
             {selectedCodes.length > 0 && (
               <Button
                 variant="destructive"
@@ -309,10 +374,17 @@ export function InviteCodesTableRealtime() {
             <TableBody>
               {paginatedCodes.length > 0 ? (
                 paginatedCodes.map((code) => (
-                  <TableRow key={code.id}>
-                    {columns.map((column) => (
+                  <TableRow key={code.id} className={needsRedDotIndicator(code) ? 'bg-red-50/50' : ''}>
+                    {columns.map((column, index) => (
                       <TableCell key={column.accessorKey}>
-                        {column.cell ? column.cell({ row: code }) : code[column.accessorKey as keyof InviteCode]?.toString()}
+                        {index === 1 && needsRedDotIndicator(code) ? (
+                          <div className="flex items-center gap-2">
+                            <Circle className="h-2 w-2 fill-red-500 text-red-500" />
+                            {column.cell ? column.cell({ row: code }) : code[column.accessorKey as keyof InviteCode]?.toString()}
+                          </div>
+                        ) : (
+                          column.cell ? column.cell({ row: code }) : code[column.accessorKey as keyof InviteCode]?.toString()
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>

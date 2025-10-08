@@ -45,7 +45,9 @@ export default function PurchasedCreditsPage() {
 
   // Calculate stats from all data (not just current page)
   const totalPurchases = creditPurchases.length;
-  const totalAmount = creditPurchases.reduce((sum, purchase) => sum + purchase.amountDollars, 0);
+  const totalAmount = creditPurchases
+    .filter(p => p.status === 'completed')
+    .reduce((sum, purchase) => sum + purchase.amountDollars, 0);
   const completedPurchases = creditPurchases.filter(p => p.status === 'completed').length;
   const pendingPurchases = creditPurchases.filter(p => p.status === 'pending').length;
   const failedPurchases = creditPurchases.filter(p => p.status === 'failed').length;
@@ -123,10 +125,11 @@ export default function PurchasedCreditsPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">${totalAmount.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Completed payments only</p>
               </CardContent>
             </Card>
             <Card>
