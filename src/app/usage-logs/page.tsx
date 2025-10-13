@@ -31,6 +31,8 @@ export default function UsageLogsPage() {
     currentPage,
     totalPages,
     totalCount,
+    grandTotalTokens,
+    grandTotalCost,
     hasNextPage,
     hasPreviousPage,
     itemsPerPage,
@@ -117,11 +119,11 @@ export default function UsageLogsPage() {
     }
   }, [usageLogs, totalCount, previousUserCount]);
 
-  // Calculate stats (only for current page data)
-  const totalLogs = totalCount; // Use totalCount from database
-  const totalTokens = usageLogs.reduce((sum, log) => sum + log.totalTokens, 0);
-  const totalCost = usageLogs.reduce((sum, log) => sum + log.totalEstimatedCost, 0);
-  const uniqueUsers = usageLogs.length; // Already aggregated by user
+  // Calculate stats using grand totals (for ALL users, not just current page)
+  const totalLogs = totalCount; // Total number of users
+  const totalTokens = grandTotalTokens; // Grand total tokens across ALL users
+  const totalCost = grandTotalCost; // Grand total cost across ALL users
+  const uniqueUsers = usageLogs.length; // Users on current page
 
   // Activity level helper functions
   const getActivityIcon = (level: string) => {

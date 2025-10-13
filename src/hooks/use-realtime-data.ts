@@ -899,151 +899,33 @@ export function useCreditPurchases() {
   return { creditPurchases, loading, error, refreshCreditPurchases };
 }
 
-// Activity level cache to avoid recalculation
-const activityCache = new Map<string, { 
-  level: string; 
-  score: number; 
-  daysSinceLastActivity: number; 
-  lastCalculated: Date;
-  userId: string;
-}>();
-
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
-const MAX_CACHE_SIZE = 1000; // Maximum cached users
-
-// Performance monitoring
-const performanceMetrics = {
-  cacheHits: 0,
-  cacheMisses: 0,
-  calculationTime: 0,
-  totalCalculations: 0
-};
-
+// Server-side aggregation for usage logs (no client-side caching needed)
 export function useUsageLogs() {
   const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [grandTotalTokens, setGrandTotalTokens] = useState(0);
+  const [grandTotalCost, setGrandTotalCost] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10); // Show 10 users per page
   const [searchQuery, setSearchQuery] = useState('');
   const [activityFilter, setActivityFilter] = useState<string>('all');
 
-  // Search function to filter users
-  const searchUsers = (users: any[], query: string) => {
-    if (!query.trim()) return users;
-    
-    const lowercaseQuery = query.toLowerCase();
-    return users.filter(user => 
-      user.userName?.toLowerCase().includes(lowercaseQuery) ||
-      user.userEmail?.toLowerCase().includes(lowercaseQuery) ||
-      user.userId?.toLowerCase().includes(lowercaseQuery)
-    );
-  };
-
-  // Activity filter function
-  const filterByActivity = (users: any[], filter: string) => {
-    if (filter === 'all') return users;
-    return users.filter(user => user.activityLevel === filter);
-  };
-
-  // Cached activity level calculation
-  const getCachedActivityLevel = (userId: string, userData: any) => {
-    const now = new Date();
-    
-    // Check cache first
-    const cached = activityCache.get(userId);
-    if (cached && (now.getTime() - cached.lastCalculated.getTime()) < CACHE_DURATION) {
-      performanceMetrics.cacheHits++;
-      console.log(`🎯 Cache HIT for user ${userId}: ${cached.level} (${cached.score})`);
-      return {
-        activityLevel: cached.level as 'high' | 'medium' | 'low' | 'inactive',
-        daysSinceLastActivity: cached.daysSinceLastActivity,
-        activityScore: cached.score
-      };
-    }
-    
-    // Cache miss - calculate new activity level
-    performanceMetrics.cacheMisses++;
-    const startTime = performance.now();
-    
-    const daysSinceLastActivity = Math.floor((now.getTime() - userData.latestActivity.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // Calculate activity score based on multiple factors
-    const recencyScore = Math.max(0, 100 - (daysSinceLastActivity * 2)); // Recent = higher score
-    const frequencyScore = Math.min(100, userData.usageCount * 5); // More sessions = higher score
-    const volumeScore = Math.min(100, userData.totalTokens / 1000000); // More tokens = higher score
-    
-    const activityScore = Math.round((recencyScore * 0.5) + (frequencyScore * 0.3) + (volumeScore * 0.2));
-    
-    // Determine activity level
-    let activityLevel: 'high' | 'medium' | 'low' | 'inactive';
-    if (daysSinceLastActivity <= 7 && activityScore >= 70) {
-      activityLevel = 'high';
-    } else if (daysSinceLastActivity <= 30 && activityScore >= 40) {
-      activityLevel = 'medium';
-    } else if (daysSinceLastActivity <= 90 && activityScore >= 20) {
-      activityLevel = 'low';
-    } else {
-      activityLevel = 'inactive';
-    }
-    
-    const endTime = performance.now();
-    performanceMetrics.calculationTime += (endTime - startTime);
-    performanceMetrics.totalCalculations++;
-    
-    // Cache the result
-    const cacheEntry = {
-      level: activityLevel,
-      score: activityScore,
-      daysSinceLastActivity,
-      lastCalculated: now,
-      userId
-    };
-    
-    // Manage cache size
-    if (activityCache.size >= MAX_CACHE_SIZE) {
-      // Remove oldest entries (simple LRU)
-      const oldestKey = activityCache.keys().next().value;
-      if (oldestKey) {
-        activityCache.delete(oldestKey);
-      }
-    }
-    
-    activityCache.set(userId, cacheEntry);
-    
-    console.log(`🔄 Cache MISS for user ${userId}: ${activityLevel} (${activityScore}) - Calculated in ${(endTime - startTime).toFixed(2)}ms`);
-    
-    return {
-      activityLevel,
-      daysSinceLastActivity,
-      activityScore
-    };
-  };
-
-  // Clear cache function (for testing/debugging)
+  // Cache clearing function (kept for backward compatibility but not used)
   const clearActivityCache = () => {
-    activityCache.clear();
-    performanceMetrics.cacheHits = 0;
-    performanceMetrics.cacheMisses = 0;
-    performanceMetrics.calculationTime = 0;
-    performanceMetrics.totalCalculations = 0;
-    console.log('🧹 Activity cache cleared');
+    console.log('🧹 Cache clear requested (using server-side aggregation now)');
   };
 
-  // Get cache statistics
+  // Get cache statistics (kept for backward compatibility)
   const getCacheStats = () => {
-    const hitRate = performanceMetrics.cacheHits / (performanceMetrics.cacheHits + performanceMetrics.cacheMisses) * 100;
-    const avgCalculationTime = performanceMetrics.totalCalculations > 0 ? 
-      performanceMetrics.calculationTime / performanceMetrics.totalCalculations : 0;
-    
     return {
-      cacheSize: activityCache.size,
-      hitRate: hitRate.toFixed(1) + '%',
-      avgCalculationTime: avgCalculationTime.toFixed(2) + 'ms',
-      totalCalculations: performanceMetrics.totalCalculations,
-      cacheHits: performanceMetrics.cacheHits,
-      cacheMisses: performanceMetrics.cacheMisses
+      cacheSize: 0,
+      hitRate: 'N/A (Server-side)',
+      avgCalculationTime: 'N/A',
+      totalCalculations: 0,
+      cacheHits: 0,
+      cacheMisses: 0
     };
   };
 
@@ -1081,321 +963,92 @@ export function useUsageLogs() {
     }
   };
 
-  // Fetch function that gets ALL data for proper aggregation
+  // Optimized fetch function using server-side aggregation
   const fetchUsageLogs = async (page: number = 1, limit: number = itemsPerPage, search: string = searchQuery) => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log(`Fetching usage logs - page ${page}, limit ${limit}...`);
-      console.log('Fetching ALL usage logs for proper aggregation...');
+      console.log(`⚡ Fetching usage logs (optimized) - page ${page}, limit ${limit}...`);
       console.log('Fetch started at:', new Date().toISOString());
       
-      // Fetch ALL usage logs using pagination to bypass Supabase's 1000 row limit
-      let allData: any[] = [];
-      let hasMore = true;
-      let currentPageLoop = 0;
-      const pageSize = 1000;
-      let totalCountFromDB = 0;
+      // Use server-side aggregation API for much faster performance
+      const response = await fetch('/api/usage-logs-aggregated', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          page,
+          limit,
+          searchQuery: search,
+          activityFilter,
+        }),
+      });
 
-      console.log('Fetching all usage logs using pagination...');
-      
-      while (hasMore) {
-        const offset = currentPageLoop * pageSize;
-        console.log(`Fetching page ${currentPageLoop + 1}, offset ${offset}...`);
-        
-        const { data: pageData, error: pageError, count } = await supabase
-          .from('usage_logs')
-          .select('*', { count: currentPageLoop === 0 ? 'exact' : undefined })
-          .order('created_at', { ascending: false })
-          .range(offset, offset + pageSize - 1);
-
-        if (pageError) {
-          console.error('Error fetching page:', pageError);
-          throw pageError;
-        }
-
-        if (currentPageLoop === 0) {
-          totalCountFromDB = count || 0;
-          console.log('Total count from database:', totalCountFromDB);
-        }
-
-        if (!pageData || pageData.length === 0) {
-          hasMore = false;
-          console.log('No more data, stopping pagination');
-        } else {
-          allData = [...allData, ...pageData];
-          console.log(`Fetched ${pageData.length} records, total so far: ${allData.length}`);
-          
-          if (pageData.length < pageSize) {
-            hasMore = false;
-            console.log('Reached end of data');
-          }
-        }
-        
-        currentPageLoop++;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = allData;
-      console.log('Raw usage logs query result:', { data, error: null, count: totalCountFromDB });
-      console.log('Data length:', data?.length);
-      console.log('Total count:', totalCountFromDB);
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch usage logs');
+      }
 
-      if (!data || data.length === 0) {
-        console.log('No usage logs found in database');
+      console.log('API response:', result);
+      console.log('Data length:', result.data?.length);
+      console.log('Total count:', result.totalCount);
+      console.log('Grand totals:', { tokens: result.grandTotalTokens, cost: result.grandTotalCost });
+
+      // Store grand totals even if no data
+      setGrandTotalTokens(result.grandTotalTokens || 0);
+      setGrandTotalCost(result.grandTotalCost || 0);
+
+      if (!result.data || result.data.length === 0) {
+        console.log('No usage logs found');
         setUsageLogs([]);
         setTotalCount(0);
         setLoading(false);
         return;
       }
 
-      console.log(`Found ${data.length} usage log records`);
+      // Transform the data from snake_case to camelCase
+      const transformedLogs = result.data.map((row: any) => ({
+        userId: row.user_id,
+        userName: row.user_name,
+        userEmail: row.user_email,
+        totalPromptTokens: parseInt(row.total_prompt_tokens),
+        totalCompletionTokens: parseInt(row.total_completion_tokens),
+        totalTokens: parseInt(row.total_tokens),
+        totalEstimatedCost: parseFloat(row.total_estimated_cost),
+        usageCount: parseInt(row.usage_count),
+        earliestActivity: new Date(row.earliest_activity),
+        latestActivity: new Date(row.latest_activity),
+        hasCompletedPayment: row.has_completed_payment,
+        activityLevel: row.activity_level,
+        daysSinceLastActivity: row.days_since_last_activity,
+        activityScore: row.activity_score,
+      }));
 
-      // Get unique user IDs from ALL data
-      const userIds = [...new Set(data.map(log => log.user_id))];
-      console.log('Fetching user data for usage logs, user IDs:', userIds);
-      console.log('Total unique user IDs found:', userIds.length);
-
-      // Fetch payment status for all users
-      let paymentStatusMap = new Map<string, boolean>();
-      try {
-        console.log('Fetching payment status for users...');
-        const { data: creditPurchases, error: paymentError } = await supabase
-          .from('credit_purchases')
-          .select('user_id, status')
-          .in('user_id', userIds);
-
-        if (paymentError) {
-          console.warn('Error fetching payment status:', paymentError);
-        } else if (creditPurchases) {
-          creditPurchases.forEach(purchase => {
-            // User has completed payment if they have any 'completed' status
-            if (purchase.status === 'completed') {
-              paymentStatusMap.set(purchase.user_id, true);
-            }
-          });
-          console.log('Payment status fetched for', paymentStatusMap.size, 'users with completed payments');
-        }
-      } catch (paymentErr) {
-        console.warn('Failed to fetch payment status:', paymentErr);
-      }
-
-      // Fetch user emails and names via API
-      let userData: Array<{id: string, email: string, full_name: string}> = [];
-      if (userIds.length > 0) {
-        try {
-          console.log('Making API call to fetch user emails for userIds:', userIds);
-          const response = await fetch('/api/fetch-user-emails-cached', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userIds }),
-          });
-
-          console.log('API response status:', response.status);
-          console.log('API response ok:', response.ok);
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API call failed with status:', response.status, 'Error:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          userData = await response.json();
-          console.log('User data fetched for usage logs:', userData);
-          console.log('User data length:', userData.length);
-          console.log('User data sample:', userData.slice(0, 3));
-          
-          // If we didn't get all users, try to fetch missing ones
-          const foundUserIds = userData.map(u => u.id);
-          const missingUserIds = userIds.filter(id => !foundUserIds.includes(id));
-          
-          if (missingUserIds.length > 0) {
-            console.log('Missing user IDs, trying fallback API:', missingUserIds);
-            try {
-              const fallbackResponse = await fetch('/api/fetch-user-emails', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userIds: missingUserIds }),
-              });
-
-              if (fallbackResponse.ok) {
-                const fallbackData = await fallbackResponse.json();
-                console.log('Fallback API succeeded for missing users:', fallbackData);
-                userData = [...userData, ...fallbackData];
-              }
-            } catch (fallbackError) {
-              console.error('Fallback API also failed:', fallbackError);
-            }
-          }
-        } catch (apiError) {
-          console.error('Error fetching user data for usage logs:', apiError);
-          // Try fallback to original API
-          try {
-            console.log('Trying fallback API...');
-            const fallbackResponse = await fetch('/api/fetch-user-emails', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ userIds }),
-            });
-
-            if (fallbackResponse.ok) {
-              userData = await fallbackResponse.json();
-              console.log('Fallback API succeeded:', userData);
-            }
-          } catch (fallbackError) {
-            console.error('Fallback API also failed:', fallbackError);
-            // Try final fallback API
-            try {
-              console.log('Trying final fallback API...');
-              const finalFallbackResponse = await fetch('/api/fetch-user-from-logs', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userIds }),
-              });
-
-              if (finalFallbackResponse.ok) {
-                userData = await finalFallbackResponse.json();
-                console.log('Final fallback API succeeded:', userData);
-              }
-            } catch (finalFallbackError) {
-              console.error('Final fallback API also failed:', finalFallbackError);
-            }
-          }
-        }
-      }
-
-      // Transform the data and add user information
-      const transformedLogs = data.map((row: any) => {
-        const user = userData.find(u => u.id === row.user_id);
-        console.log(`Processing log ${row.id}:`, {
-          userId: row.user_id,
-          foundUser: user,
-          userName: user?.full_name,
-          userEmail: user?.email
-        });
-        return {
-          id: row.id,
-          userId: row.user_id,
-          threadId: row.thread_id,
-          messageId: row.message_id,
-          totalPromptTokens: row.total_prompt_tokens,
-          totalCompletionTokens: row.total_completion_tokens,
-          totalTokens: row.total_tokens,
-          estimatedCost: row.estimated_cost ? parseFloat(row.estimated_cost) : null,
-          content: row.content || {},
-          createdAt: new Date(row.created_at),
-          userEmail: user?.email || `user-${row.user_id.slice(0, 8)}@unknown.com`,
-          userName: user?.full_name || `User ${row.user_id.slice(0, 8)}`,
-        };
-      });
-
-      // Aggregate usage logs by user
-      const aggregatedLogs = transformedLogs.reduce((acc: Record<string, any>, log) => {
-        const userId = log.userId;
-        
-        if (!acc[userId]) {
-          acc[userId] = {
-            userId: userId,
-            userName: log.userName,
-            userEmail: log.userEmail,
-            totalPromptTokens: 0,
-            totalCompletionTokens: 0,
-            totalTokens: 0,
-            totalEstimatedCost: 0,
-            usageCount: 0,
-            earliestActivity: log.createdAt,
-            latestActivity: log.createdAt,
-            hasCompletedPayment: paymentStatusMap.get(userId) || false,
-          };
-        }
-        
-        // Aggregate the stats
-        acc[userId].totalPromptTokens += log.totalPromptTokens || 0;
-        acc[userId].totalCompletionTokens += log.totalCompletionTokens || 0;
-        acc[userId].totalTokens += log.totalTokens || 0;
-        acc[userId].totalEstimatedCost += log.estimatedCost || 0;
-        acc[userId].usageCount += 1;
-        
-        // Update date ranges
-        if (log.createdAt < acc[userId].earliestActivity) {
-          acc[userId].earliestActivity = log.createdAt;
-        }
-        if (log.createdAt > acc[userId].latestActivity) {
-          acc[userId].latestActivity = log.createdAt;
-        }
-        
-        return acc;
-      }, {});
-
-      // Convert aggregated data back to array and calculate activity levels using cache
-      const allAggregatedUsers = Object.values(aggregatedLogs).map((user: any) => {
-        // Use cached activity level calculation
-        const activityData = getCachedActivityLevel(user.userId, user);
-        
-        return {
-          ...user,
-          ...activityData
-        };
-      }).sort((a: any, b: any) => b.totalTokens - a.totalTokens);
-
-      console.log('All aggregated usage logs:', allAggregatedUsers.length, 'users');
-      console.log('Aggregated users sample:', allAggregatedUsers.slice(0, 3).map(u => ({ 
-        userId: u.userId, 
-        userName: u.userName, 
-        totalTokens: u.totalTokens 
-      })));
-      console.log('All aggregated user names:', allAggregatedUsers.map(u => u.userName));
+      console.log('Transformed logs:', transformedLogs.length, 'users');
+      console.log('Sample data:', transformedLogs.slice(0, 2));
       
-      // Apply search and activity filtering
-      const searchFilteredUsers = searchUsers(allAggregatedUsers, search);
-      const filteredUsers = filterByActivity(searchFilteredUsers, activityFilter);
-      console.log('Search query:', search);
-      console.log('Activity filter:', activityFilter);
-      console.log('Filtered users after search and activity filter:', filteredUsers.length, 'out of', allAggregatedUsers.length);
-      
-      // Check for new users (compare with previous count if available)
-      const previousUserCount = totalCount;
-      if (allAggregatedUsers.length > previousUserCount) {
-        const newUsersCount = allAggregatedUsers.length - previousUserCount;
-        console.log(`🆕 NEW USERS DETECTED: ${newUsersCount} new users added to usage logs!`);
-        console.log('New users:', allAggregatedUsers.slice(previousUserCount).map(u => u.userName));
-      }
-      
-      // Apply pagination to the filtered data
-      const offset = (page - 1) * limit;
-      const paginatedUsers = filteredUsers.slice(offset, offset + limit);
-      
-      console.log('Paginated users:', paginatedUsers.length, 'out of', filteredUsers.length);
-      console.log('Pagination details:', { page, limit, offset, totalUsers: filteredUsers.length });
-      console.log('Paginated user names:', paginatedUsers.map(u => u.userName));
-      
-      setUsageLogs(paginatedUsers);
-      setTotalCount(filteredUsers.length); // Use filtered count for pagination
+      setUsageLogs(transformedLogs);
+      setTotalCount(result.totalCount);
       setCurrentPage(page);
       setLoading(false);
       
-      console.log('=== FETCH COMPLETED ===');
+      console.log('=== FETCH COMPLETED (OPTIMIZED) ===');
       console.log('Fetch completed at:', new Date().toISOString());
       console.log('Final result:', {
-        totalUsers: allAggregatedUsers.length,
-        filteredUsers: filteredUsers.length,
-        displayedUsers: paginatedUsers.length,
+        displayedUsers: transformedLogs.length,
+        totalCount: result.totalCount,
         currentPage: page,
-        totalPages: Math.ceil(filteredUsers.length / limit),
-        searchQuery: search
+        totalPages: Math.ceil(result.totalCount / limit),
+        searchQuery: search,
+        activityFilter,
       });
-      
-      // Log performance metrics
-      const stats = getCacheStats();
-      console.log('🚀 Performance Metrics:', stats);
     } catch (err) {
       console.error('Error fetching usage logs:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch usage logs');
@@ -1515,6 +1168,8 @@ export function useUsageLogs() {
     currentPage,
     totalPages,
     totalCount,
+    grandTotalTokens,
+    grandTotalCost,
     hasNextPage,
     hasPreviousPage,
     itemsPerPage,
