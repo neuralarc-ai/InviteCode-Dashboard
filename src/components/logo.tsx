@@ -7,7 +7,7 @@ export function Logo({ className }: { className?: string }) {
       <Image
         src="/images/Helium_logo.png"
         alt="Helium Logo"
-        width={200}
+        width={120}
         height={60}
         className=" my-4 mx-4 h-12 w-12"
         priority
