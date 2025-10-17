@@ -14,15 +14,18 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, RefreshCw, User, Mail, Calendar } from 'lucide-react';
+import { Search, RefreshCw, User, Mail, Calendar, CreditCard } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 import { useUserProfiles } from '@/hooks/use-realtime-data';
 import { useToast } from '@/hooks/use-toast';
+import { CreditAssignmentDialog } from './credit-assignment-dialog';
 
 export function UsersTableRealtime() {
   const { userProfiles, loading, error, refreshUserProfiles } = useUserProfiles();
   const [filter, setFilter] = React.useState('');
   const [page, setPage] = React.useState(0);
+  const [creditDialogOpen, setCreditDialogOpen] = React.useState(false);
+  const [selectedUser, setSelectedUser] = React.useState<UserProfile | null>(null);
   const rowsPerPage = 10;
   const { toast } = useToast();
 
@@ -63,6 +66,19 @@ export function UsersTableRealtime() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleAssignCredits = (user: UserProfile) => {
+    setSelectedUser(user);
+    setCreditDialogOpen(true);
+  };
+
+  const handleCreditAssignmentSuccess = () => {
+    // Optionally refresh user profiles or show success message
+    toast({
+      title: "Success",
+      description: "Credits assigned successfully!",
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -180,12 +196,13 @@ export function UsersTableRealtime() {
                 <TableHead>User ID</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedProfiles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
@@ -236,6 +253,17 @@ export function UsersTableRealtime() {
                         <span className="text-sm">{formatDate(profile.updatedAt)}</span>
                       </div>
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAssignCredits(profile)}
+                        className="flex items-center gap-2"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        Assign Credits
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -273,6 +301,14 @@ export function UsersTableRealtime() {
           </div>
         )}
       </CardContent>
+      
+      {/* Credit Assignment Dialog */}
+      <CreditAssignmentDialog
+        open={creditDialogOpen}
+        onOpenChange={setCreditDialogOpen}
+        user={selectedUser}
+        onSuccess={handleCreditAssignmentSuccess}
+      />
     </Card>
   );
 }

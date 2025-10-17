@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
-import type { WaitlistUser, DashboardStats, InviteCode, UserProfile, CreditUsageGrouped, CreditPurchase, UsageLog } from '@/lib/types';
+import type { WaitlistUser, DashboardStats, InviteCode, UserProfile, CreditUsageGrouped, CreditPurchase, UsageLog, CreditBalance } from '@/lib/types';
 
 export function useWaitlistUsers() {
   const [users, setUsers] = useState<WaitlistUser[]>([]);
@@ -1383,4 +1383,78 @@ The Helium Team 🌟`
     sendCustomReminder,
     enhanceCustomEmail
   };
+}
+
+export function useCreditBalances() {
+  const [creditBalances, setCreditBalances] = useState<CreditBalance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Initial fetch function
+  const fetchCreditBalances = async () => {
+    try {
+      console.log('Fetching credit balances...');
+      
+      const { data, error } = await supabase
+        .from('credit_balance')
+        .select('*')
+        .order('last_updated', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching credit balances:', error);
+        throw error;
+      }
+
+      const transformedBalances = data?.map((row: any) => ({
+        userId: row.user_id,
+        balanceDollars: row.balance_dollars,
+        totalPurchased: row.total_purchased,
+        totalUsed: row.total_used,
+        lastUpdated: new Date(row.last_updated),
+        metadata: row.metadata
+      })) || [];
+
+      console.log('Transformed credit balances:', transformedBalances);
+      setCreditBalances(transformedBalances);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching credit balances:', err);
+      setError(`Failed to fetch credit balances: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const refreshCreditBalances = async () => {
+    setLoading(true);
+    await fetchCreditBalances();
+  };
+
+  useEffect(() => {
+    fetchCreditBalances();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('credit_balance_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'credit_balance',
+        },
+        (payload) => {
+          console.log('Real-time credit balance update:', payload);
+          fetchCreditBalances(); // Refetch on any change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return { creditBalances, loading, error, refreshCreditBalances };
 }

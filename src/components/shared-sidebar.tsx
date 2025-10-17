@@ -39,14 +39,14 @@ export function SharedSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {/* <SidebarMenuItem>
+          <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/users">
                 <UserCheck />
                 Users
               </Link>
             </SidebarMenuButton>
-          </SidebarMenuItem> */}
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/invite-codes">

@@ -85,6 +85,15 @@ export type UserProfile = {
   email: string; // This will be fetched from auth.users
 };
 
+export type CreditBalance = {
+  userId: string;
+  balanceDollars: number;
+  totalPurchased: number;
+  totalUsed: number;
+  lastUpdated: Date;
+  metadata: Record<string, any>;
+};
+
 export type InviteCode = {
   id: string;
   code: string;
@@ -361,6 +370,32 @@ export interface Database {
           estimated_cost?: number | null;
           content?: Record<string, any> | null;
           created_at?: string;
+        };
+      };
+      credit_balance: {
+        Row: {
+          user_id: string;
+          balance_dollars: number;
+          total_purchased: number;
+          total_used: number;
+          last_updated: string;
+          metadata: Record<string, any>;
+        };
+        Insert: {
+          user_id: string;
+          balance_dollars?: number;
+          total_purchased?: number;
+          total_used?: number;
+          last_updated?: string;
+          metadata?: Record<string, any>;
+        };
+        Update: {
+          user_id?: string;
+          balance_dollars?: number;
+          total_purchased?: number;
+          total_used?: number;
+          last_updated?: string;
+          metadata?: Record<string, any>;
         };
       };
     };

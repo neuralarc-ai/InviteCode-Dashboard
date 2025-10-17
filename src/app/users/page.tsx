@@ -76,7 +76,7 @@ export default function UsersPage() {
           </PageHeader>
           <main className="flex-1 space-y-6 p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Profile</h2>
+              <h2 className="text-xl font-semibold">User Profiles</h2>
               <Button 
                 onClick={() => setShowConfirmDialog(true)}
                 disabled={isSending}
@@ -90,7 +90,7 @@ export default function UsersPage() {
                 {isSending ? "Sending..." : "Send EMAIL"}
               </Button>
             </div>
-            {/* <UsersTableRealtime /> */}
+            <UsersTableRealtime />
           </main>
         </SidebarInset>
       </SidebarProvider>
