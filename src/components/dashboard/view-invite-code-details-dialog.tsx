@@ -231,6 +231,25 @@ export function ViewInviteCodeDetailsDialog({
                     </div>
                   ))}
                 </div>
+                
+                {/* Reminder Status */}
+                {inviteCode.reminderSentAt && (
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-blue-900 dark:text-blue-100">Reminder Sent:</span>
+                      <span className="text-blue-700 dark:text-blue-300">
+                        {new Intl.DateTimeFormat('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }).format(inviteCode.reminderSentAt)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-sm text-muted-foreground">

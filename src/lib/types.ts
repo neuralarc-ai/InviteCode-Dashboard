@@ -47,6 +47,7 @@ export type UsageLog = {
   activityLevel: 'high' | 'medium' | 'low' | 'inactive';
   daysSinceLastActivity: number;
   activityScore: number;
+  userType: 'internal' | 'external';
 };
 
 
@@ -95,6 +96,8 @@ export type InviteCode = {
   maxUses: number;
   currentUses: number;
   emailSentTo: string[];
+  reminderSentAt: Date | null;
+  isArchived: boolean;
   isPreview?: boolean; // Flag to indicate if this is a preview code
 };
 
@@ -167,6 +170,8 @@ export interface Database {
           max_uses: number;
           current_uses: number;
           email_sent_to: string[];
+          reminder_sent_at: string | null;
+          is_archived: boolean;
         };
         Insert: {
           id?: string;
@@ -179,6 +184,8 @@ export interface Database {
           max_uses?: number;
           current_uses?: number;
           email_sent_to?: string[];
+          reminder_sent_at?: string | null;
+          is_archived?: boolean;
         };
         Update: {
           id?: string;
@@ -191,6 +198,8 @@ export interface Database {
           max_uses?: number;
           current_uses?: number;
           email_sent_to?: string[];
+          reminder_sent_at?: string | null;
+          is_archived?: boolean;
         };
       };
       user_profiles: {

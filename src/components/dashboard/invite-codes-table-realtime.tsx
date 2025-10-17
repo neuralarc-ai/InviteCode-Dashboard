@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, Trash2, CheckSquare, Square, Trash, Circle } from 'lucide-react';
+import { Search, Filter, Trash2, CheckSquare, Square, Trash, Circle, Archive } from 'lucide-react';
 import { useInviteCodes } from '@/hooks/use-realtime-data';
 import { usePreviewCodes } from '@/contexts/preview-codes-context';
 import { RefreshProvider } from '@/contexts/refresh-context';
@@ -41,6 +41,7 @@ export function InviteCodesTableRealtime() {
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isCleaningUp, setIsCleaningUp] = React.useState(false);
+  const [isArchivingUsed, setIsArchivingUsed] = React.useState(false);
   const rowsPerPage = 10;
   const { toast } = useToast();
 
@@ -93,6 +94,8 @@ export function InviteCodesTableRealtime() {
       maxUses: preview.maxUses,
       currentUses: 0,
       emailSentTo: preview.emailSentTo || [],
+      reminderSentAt: null,
+      isArchived: false,
       isPreview: true,
     }));
 
@@ -107,11 +110,19 @@ export function InviteCodesTableRealtime() {
         value.toLowerCase().includes(filter.toLowerCase())
     );
     
-    // Status filter
-    const codeStatus = getInviteCodeStatus(code);
-    const matchesStatus = statusFilter === 'all' || codeStatus === statusFilter;
-    
-    return matchesText && matchesStatus;
+    // Combined Status and Archive filter
+    if (statusFilter === 'archived') {
+      // Show only archived codes
+      return matchesText && code.isArchived;
+    } else if (statusFilter === 'all') {
+      // Show all NON-archived codes (default view)
+      return matchesText && !code.isArchived;
+    } else {
+      // For active, used, expired - show only non-archived codes with matching status
+      const codeStatus = getInviteCodeStatus(code);
+      const matchesStatus = codeStatus === statusFilter;
+      return matchesText && !code.isArchived && matchesStatus;
+    }
   });
 
   const paginatedCodes = filteredCodes.slice(
@@ -218,6 +229,43 @@ export function InviteCodesTableRealtime() {
     }
   };
 
+  // Bulk archive used codes functionality
+  const handleArchiveUsedCodes = async () => {
+    setIsArchivingUsed(true);
+    try {
+      const response = await fetch('/api/bulk-archive-used-codes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          toast({
+            title: 'Archive Complete',
+            description: result.message,
+          });
+          await refreshCodes();
+        } else {
+          throw new Error(result.message || 'Archive failed');
+        }
+      } else {
+        throw new Error('Failed to archive used codes');
+      }
+    } catch (error) {
+      console.error('Error archiving used codes:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to archive used codes',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsArchivingUsed(false);
+    }
+  };
+
   // Clear selection when page changes
   React.useEffect(() => {
     setSelectedCodes([]);
@@ -316,6 +364,7 @@ export function InviteCodesTableRealtime() {
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="used">Used</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -324,6 +373,17 @@ export function InviteCodesTableRealtime() {
             </div>
           </div>
           <div className="flex gap-2">
+            {statusFilter !== 'archived' && (
+              <Button
+                variant="outline"
+                onClick={handleArchiveUsedCodes}
+                disabled={isArchivingUsed}
+                className="flex items-center gap-2"
+              >
+                <Archive className="h-4 w-4" />
+                {isArchivingUsed ? 'Archiving...' : 'Archive Used'}
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={handleCleanupExpired}
@@ -374,7 +434,7 @@ export function InviteCodesTableRealtime() {
             <TableBody>
               {paginatedCodes.length > 0 ? (
                 paginatedCodes.map((code) => (
-                  <TableRow key={code.id} className={needsRedDotIndicator(code) ? 'bg-red-50/50' : ''}>
+                  <TableRow key={code.id}>
                     {columns.map((column, index) => (
                       <TableCell key={column.accessorKey}>
                         {index === 1 && needsRedDotIndicator(code) ? (
@@ -404,7 +464,7 @@ export function InviteCodesTableRealtime() {
             Showing {paginatedCodes.length} of {filteredCodes.length} codes
             {statusFilter !== 'all' && (
               <span className="ml-2">
-                ({statusFilter === 'active' ? 'Active' : statusFilter === 'used' ? 'Used' : 'Expired'}: {filteredCodes.length})
+                ({statusFilter === 'active' ? 'Active' : statusFilter === 'used' ? 'Used' : statusFilter === 'expired' ? 'Expired' : 'Archived'})
               </span>
             )}
           </div>

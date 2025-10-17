@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -18,7 +19,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Copy, Trash2, Eye, ChevronUp, ChevronDown, Mail } from 'lucide-react';
+import { MoreHorizontal, Copy, Trash2, Eye, ChevronUp, ChevronDown, Mail, Archive, ArchiveRestore } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { InviteCode } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -105,6 +106,7 @@ function ViewDetailsAction({ code }: { code: InviteCode }) {
 
 function SendReminderAction({ code }: { code: InviteCode }) {
   const { toast } = useToast();
+  const { refreshInviteCodes } = useRefresh();
   const [isSending, setIsSending] = React.useState(false);
 
   const handleSendReminder = async () => {
@@ -156,6 +158,8 @@ function SendReminderAction({ code }: { code: InviteCode }) {
           title: 'Reminder sent!',
           description: `Reminder email sent to ${code.emailSentTo.length} recipient${code.emailSentTo.length > 1 ? 's' : ''}`,
         });
+        // Refresh the invite codes list to show updated reminder status
+        await refreshInviteCodes();
       } else {
         toast({
           variant: 'destructive',
@@ -179,6 +183,126 @@ function SendReminderAction({ code }: { code: InviteCode }) {
     <ActionMenuItem onSelect={handleSendReminder}>
       <Mail />
       {isSending ? 'Sending...' : 'Send Reminder'}
+    </ActionMenuItem>
+  );
+}
+
+function ArchiveCodeAction({ code }: { code: InviteCode }) {
+  const { toast } = useToast();
+  const { refreshInviteCodes } = useRefresh();
+  const [isArchiving, setIsArchiving] = React.useState(false);
+
+  const handleArchiveCode = async () => {
+    if (code.isPreview) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot archive',
+        description: 'Preview codes cannot be archived',
+      });
+      return;
+    }
+
+    setIsArchiving(true);
+    try {
+      const response = await fetch('/api/archive-invite-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: code.id }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: 'Archived!',
+          description: 'Invite code has been archived successfully',
+        });
+        await refreshInviteCodes();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: result.message || 'Failed to archive invite code',
+        });
+      }
+    } catch (error) {
+      console.error('Error archiving invite code:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to archive invite code',
+      });
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  return (
+    <ActionMenuItem onSelect={handleArchiveCode}>
+      <Archive />
+      {isArchiving ? 'Archiving...' : 'Archive'}
+    </ActionMenuItem>
+  );
+}
+
+function UnarchiveCodeAction({ code }: { code: InviteCode }) {
+  const { toast } = useToast();
+  const { refreshInviteCodes } = useRefresh();
+  const [isUnarchiving, setIsUnarchiving] = React.useState(false);
+
+  const handleUnarchiveCode = async () => {
+    if (code.isPreview) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot unarchive',
+        description: 'Preview codes cannot be unarchived',
+      });
+      return;
+    }
+
+    setIsUnarchiving(true);
+    try {
+      const response = await fetch('/api/unarchive-invite-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: code.id }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: 'Unarchived!',
+          description: 'Invite code has been unarchived successfully',
+        });
+        await refreshInviteCodes();
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: result.message || 'Failed to unarchive invite code',
+        });
+      }
+    } catch (error) {
+      console.error('Error unarchiving invite code:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to unarchive invite code',
+      });
+    } finally {
+      setIsUnarchiving(false);
+    }
+  };
+
+  return (
+    <ActionMenuItem onSelect={handleUnarchiveCode}>
+      <ArchiveRestore />
+      {isUnarchiving ? 'Unarchiving...' : 'Unarchive'}
     </ActionMenuItem>
   );
 }
@@ -459,6 +583,31 @@ export const getInviteCodeColumns = ({
     ),
   },
   {
+    accessorKey: 'reminderSentAt',
+    header: createSortableHeader('Reminder Sent', 'reminderSentAt', sortField, sortDirection, onSort),
+    width: '150px',
+    sortable: true,
+    cell: ({ row }) => (
+      <div className="text-sm">
+        {row.reminderSentAt ? (
+          <div className="flex items-center gap-1">
+            <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-500 border-blue-500/30">
+              Sent
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {new Intl.DateTimeFormat('en-US', {
+                month: 'short',
+                day: 'numeric',
+              }).format(row.reminderSentAt)}
+            </span>
+          </div>
+        ) : (
+          <span className="text-muted-foreground text-xs">Not sent</span>
+        )}
+      </div>
+    ),
+  },
+  {
     accessorKey: 'createdAt',
     header: createSortableHeader('Created', 'createdAt', sortField, sortDirection, onSort),
     width: '150px',
@@ -526,7 +675,13 @@ export const getInviteCodeColumns = ({
         <DropdownMenuContent align="end">
           <CopyCodeAction code={row.code} />
           <ViewDetailsAction code={row} />
-          <SendReminderAction code={row} />
+          {!row.isArchived && <SendReminderAction code={row} />}
+          <DropdownMenuSeparator />
+          {row.isArchived ? (
+            <UnarchiveCodeAction code={row} />
+          ) : (
+            <ArchiveCodeAction code={row} />
+          )}
           <DeleteCodeAction code={row} />
         </DropdownMenuContent>
       </DropdownMenu>

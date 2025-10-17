@@ -218,6 +218,17 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
       }, { status: 500 });
     }
 
+    // Update the invite code to record when the reminder was sent
+    const { error: updateError } = await supabase
+      .from('invite_codes')
+      .update({ reminder_sent_at: new Date().toISOString() })
+      .eq('id', codeId);
+
+    if (updateError) {
+      console.error('Error updating reminder_sent_at:', updateError);
+      // Don't fail the request if the update fails, just log it
+    }
+
     return NextResponse.json({
       success: true,
       message: `Reminder email sent to ${successful.length} recipient${successful.length > 1 ? 's' : ''}`,

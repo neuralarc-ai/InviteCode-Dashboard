@@ -41,15 +41,20 @@ export async function POST(request: NextRequest) {
       switch (level) {
         case 'medium':
           return {
-            subject: "We miss you on Helium! 🌟",
+            subject: "We miss you on Helium! ",
             text: `Hi ${userName},\n\n${baseMessage}\n\nWe'd love to see you back and help you get the most out of our AI platform.\n\nBest regards,\nThe Helium Team`,
             html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2563eb;">We miss you on Helium! 🌟</h2>
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #D4EB9D; padding: 20px;">
+                <h2 style="color: #000000;">We miss you on Helium! </h2>
                 <p>Hi ${userName},</p>
                 <p>${baseMessage}</p>
                 <p>We'd love to see you back and help you get the most out of our AI platform.</p>
                 <p>Best regards,<br>The Helium Team</p>
+                <div style="text-align: center; margin-top: 20px;">
+                  <a href="http://he2.ai" style="background-color: #004116; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                    Go back to Using Helium OS
+                  </a>
+                </div>
               </div>
             `
           };

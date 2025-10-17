@@ -77,6 +77,24 @@ function transformUsageLog(row: any): UsageLog {
   };
 }
 
+// Transform database row to InviteCode type
+function transformInviteCode(row: any): InviteCode {
+  return {
+    id: row.id,
+    code: row.code,
+    isUsed: row.is_used,
+    usedBy: row.used_by,
+    usedAt: row.used_at ? new Date(row.used_at) : null,
+    createdAt: new Date(row.created_at),
+    expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+    maxUses: row.max_uses,
+    currentUses: row.current_uses,
+    emailSentTo: row.email_sent_to || [],
+    reminderSentAt: row.reminder_sent_at ? new Date(row.reminder_sent_at) : null,
+    isArchived: row.is_archived || false,
+  };
+}
+
 export async function getWaitlistUsers(): Promise<WaitlistUser[]> {
   try {
     const { data, error } = await supabase

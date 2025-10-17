@@ -9,8 +9,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useUsageLogs } from '@/hooks/use-realtime-data';
-import { ChevronLeft, ChevronRight, RefreshCw, Activity, DollarSign, Hash, Calendar, Search, X, Zap, Clock, AlertCircle, UserX, Mail } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, Activity, DollarSign, Hash, Calendar, Search, X, Zap, Clock, AlertCircle, UserX, Mail, Users, Building2, Edit3, Send, Wand2 } from 'lucide-react';
 import {
   SidebarInset,
   SidebarProvider,
@@ -40,9 +42,14 @@ export default function UsageLogsPage() {
     handleSearch,
     activityFilter,
     handleActivityFilter,
+    userTypeFilter,
+    handleUserTypeFilter,
+    isBackgroundRefreshing,
     clearActivityCache,
     getCacheStats,
-    sendActivityReminder
+    sendActivityReminder,
+    sendCustomReminder,
+    enhanceCustomEmail
   } = useUsageLogs();
 
   // Add a state to track real-time updates
@@ -51,7 +58,79 @@ export default function UsageLogsPage() {
   const [newUsersDetected, setNewUsersDetected] = useState(false);
   const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
-  const [emailResults, setEmailResults] = useState<Map<string, { success: boolean; message: string }>>(new Map());
+  const [emailResults, setEmailResults] = useState<Map<string, { success: boolean; message: string; timestamp: number }>>(new Map());
+  
+  // Custom email dialog state
+  const [customEmailDialog, setCustomEmailDialog] = useState<{
+    isOpen: boolean;
+    user: { email: string; name: string; activityLevel: string; userId: string } | null;
+  }>({ isOpen: false, user: null });
+  const [customSubject, setCustomSubject] = useState('');
+  const [customMessage, setCustomMessage] = useState('');
+  const [sendingCustomEmail, setSendingCustomEmail] = useState(false);
+  const [enhancingEmail, setEnhancingEmail] = useState(false);
+
+  // Load email results from localStorage on component mount
+  useEffect(() => {
+    const loadEmailResults = () => {
+      try {
+        const stored = localStorage.getItem('emailResults');
+        if (stored) {
+          const parsedResults = JSON.parse(stored);
+          const emailResultsMap = new Map<string, { success: boolean; message: string; timestamp: number }>();
+          
+          // Only keep results from the last 24 hours
+          const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+          
+          Object.entries(parsedResults).forEach(([userId, result]: [string, any]) => {
+            if (result.timestamp && result.timestamp > twentyFourHoursAgo) {
+              emailResultsMap.set(userId, result);
+            }
+          });
+          
+          setEmailResults(emailResultsMap);
+        }
+      } catch (error) {
+        console.error('Error loading email results from localStorage:', error);
+      }
+    };
+
+    loadEmailResults();
+  }, []);
+
+  // Clean up old email results every hour
+  useEffect(() => {
+    const cleanupInterval = setInterval(cleanupOldEmailResults, 60 * 60 * 1000); // 1 hour
+    
+    return () => {
+      clearInterval(cleanupInterval);
+    };
+  }, []);
+
+  // Save email results to localStorage whenever they change
+  const saveEmailResults = (results: Map<string, { success: boolean; message: string; timestamp: number }>) => {
+    try {
+      const resultsObj = Object.fromEntries(results);
+      localStorage.setItem('emailResults', JSON.stringify(resultsObj));
+    } catch (error) {
+      console.error('Error saving email results to localStorage:', error);
+    }
+  };
+
+  // Clean up old email results (older than 24 hours)
+  const cleanupOldEmailResults = () => {
+    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+    setEmailResults(prev => {
+      const newMap = new Map();
+      prev.forEach((result, userId) => {
+        if (result.timestamp && result.timestamp > twentyFourHoursAgo) {
+          newMap.set(userId, result);
+        }
+      });
+      saveEmailResults(newMap);
+      return newMap;
+    });
+  };
 
   // Handle search input changes with debouncing
   useEffect(() => {
@@ -70,32 +149,145 @@ export default function UsageLogsPage() {
     handleSearch('');
   };
 
-  // Handle sending activity reminder email
+  // Handle sending preset activity reminder email
   const handleSendReminder = async (userEmail: string, userName: string, activityLevel: string, userId: string) => {
     setSendingEmails(prev => new Set(prev).add(userId));
     setEmailResults(prev => {
       const newMap = new Map(prev);
       newMap.delete(userId); // Clear previous result
+      saveEmailResults(newMap); // Save to localStorage
       return newMap;
     });
 
     try {
       const result = await sendActivityReminder(userEmail, userName, activityLevel);
-      setEmailResults(prev => new Map(prev).set(userId, {
+      const emailResult = {
         success: result.success,
-        message: result.success ? result.message : result.error || 'Failed to send email'
-      }));
+        message: result.success ? result.message : result.error || 'Failed to send email',
+        timestamp: Date.now()
+      };
+      
+      setEmailResults(prev => {
+        const newMap = new Map(prev).set(userId, emailResult);
+        saveEmailResults(newMap); // Save to localStorage
+        return newMap;
+      });
     } catch (error) {
-      setEmailResults(prev => new Map(prev).set(userId, {
+      const emailResult = {
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to send email'
-      }));
+        message: error instanceof Error ? error.message : 'Failed to send email',
+        timestamp: Date.now()
+      };
+      
+      setEmailResults(prev => {
+        const newMap = new Map(prev).set(userId, emailResult);
+        saveEmailResults(newMap); // Save to localStorage
+        return newMap;
+      });
     } finally {
       setSendingEmails(prev => {
         const newSet = new Set(prev);
         newSet.delete(userId);
         return newSet;
       });
+    }
+  };
+
+  // Handle opening custom email dialog
+  const handleOpenCustomEmail = (userEmail: string, userName: string, activityLevel: string, userId: string) => {
+    setCustomEmailDialog({
+      isOpen: true,
+      user: { email: userEmail, name: userName, activityLevel, userId }
+    });
+    // Set default subject and message
+    setCustomSubject(`We miss you, ${userName}! Come back to our AI platform`);
+    setCustomMessage(`Hi ${userName},
+
+We noticed you haven't been as active on our platform recently. We'd love to have you back!
+
+Your current activity level is ${activityLevel}, and we think you might enjoy exploring some of our new features.
+
+Feel free to reach out if you have any questions or need assistance getting started again.
+
+Best regards,
+The AI Team`);
+  };
+
+  // Handle sending custom email
+  const handleSendCustomEmail = async () => {
+    if (!customEmailDialog.user || !customSubject.trim() || !customMessage.trim()) {
+      return;
+    }
+
+    setSendingCustomEmail(true);
+    try {
+      const result = await sendCustomReminder(
+        customEmailDialog.user.email,
+        customEmailDialog.user.name,
+        customEmailDialog.user.activityLevel,
+        customSubject.trim(),
+        customMessage.trim()
+      );
+
+      if (result.success) {
+        // Close dialog and show success
+        setCustomEmailDialog({ isOpen: false, user: null });
+        setCustomSubject('');
+        setCustomMessage('');
+        
+        // Show success message in the table
+        const emailResult = {
+          success: true,
+          message: 'Custom email sent successfully!',
+          timestamp: Date.now()
+        };
+        
+        setEmailResults(prev => {
+          const newMap = new Map(prev).set(customEmailDialog.user!.userId, emailResult);
+          saveEmailResults(newMap); // Save to localStorage
+          return newMap;
+        });
+      } else {
+        // Show error in dialog
+        alert(`Failed to send custom email: ${result.error}`);
+      }
+    } catch (error) {
+      alert(`Error sending custom email: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setSendingCustomEmail(false);
+    }
+  };
+
+  // Handle closing custom email dialog
+  const handleCloseCustomEmail = () => {
+    setCustomEmailDialog({ isOpen: false, user: null });
+    setCustomSubject('');
+    setCustomMessage('');
+  };
+
+  // Handle enhancing custom email
+  const handleEnhanceEmail = async () => {
+    if (!customEmailDialog.user) return;
+
+    setEnhancingEmail(true);
+    try {
+      const result = await enhanceCustomEmail(
+        customEmailDialog.user.name,
+        customEmailDialog.user.activityLevel,
+        customSubject,
+        customMessage
+      );
+
+      if (result.success && result.enhancedSubject && result.enhancedMessage) {
+        setCustomSubject(result.enhancedSubject);
+        setCustomMessage(result.enhancedMessage);
+      } else {
+        alert(`Failed to enhance email: ${result.error}`);
+      }
+    } catch (error) {
+      alert(`Error enhancing email: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setEnhancingEmail(false);
     }
   };
 
@@ -283,11 +475,19 @@ export default function UsageLogsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground">Monitor AI usage and token consumption</p>
-                {lastUpdateTime && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Last updated: {lastUpdateTime.toLocaleTimeString()} (Real-time)
-                  </p>
-                )}
+                <div className="flex items-center gap-2 mt-1">
+                  {lastUpdateTime && (
+                    <p className="text-xs text-muted-foreground">
+                      Last updated: {lastUpdateTime.toLocaleTimeString()} (Real-time)
+                    </p>
+                  )}
+                  {isBackgroundRefreshing && (
+                    <div className="flex items-center gap-1 text-xs text-blue-600">
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                      <span>Syncing...</span>
+                    </div>
+                  )}
+                </div>
                 {newUsersDetected && (
                   <p className="text-xs text-green-600 mt-1 font-medium">
                     🆕 New users detected! Data updated automatically.
@@ -301,6 +501,28 @@ export default function UsageLogsPage() {
                 </Button>
               </div>
             </div>
+
+                   {/* User Type Toggle */}
+                   <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-fit">
+                     <Button
+                       variant={userTypeFilter === 'external' ? 'default' : 'ghost'}
+                       size="sm"
+                       onClick={() => handleUserTypeFilter('external')}
+                       className="flex items-center gap-2"
+                     >
+                       <Users className="h-4 w-4" />
+                       External Users
+                     </Button>
+                     <Button
+                       variant={userTypeFilter === 'internal' ? 'default' : 'ghost'}
+                       size="sm"
+                       onClick={() => handleUserTypeFilter('internal')}
+                       className="flex items-center gap-2"
+                     >
+                       <Building2 className="h-4 w-4" />
+                       Internal Users
+                     </Button>
+                   </div>
 
                    {/* Search Bar and Activity Filter */}
                    <div className="flex items-center gap-4">
@@ -428,9 +650,9 @@ export default function UsageLogsPage() {
                        <CardTitle>Usage Logs</CardTitle>
                        <CardDescription>
                          {searchQuery || activityFilter !== 'all' ? (
-                           <>Filtered results ({totalCount} user{totalCount !== 1 ? 's' : ''} found)</>
+                           <>Filtered results ({totalCount} {userTypeFilter === 'internal' ? 'internal' : 'external'} user{totalCount !== 1 ? 's' : ''} found)</>
                          ) : (
-                           <>Aggregated AI usage by user ({totalCount} unique users)</>
+                           <>Aggregated AI usage by {userTypeFilter === 'internal' ? 'internal' : 'external'} users ({totalCount} unique users)</>
                          )}
                        </CardDescription>
                      </CardHeader>
@@ -554,11 +776,28 @@ export default function UsageLogsPage() {
                                              ) : (
                                                <Mail className="h-3 w-3 mr-1" />
                                              )}
-                                             {sendingEmails.has(log.userId) ? 'Sending...' : 'Send Reminder'}
+                                             {sendingEmails.has(log.userId) ? 'Sending...' : 'Quick Reminder'}
+                                           </Button>
+                                           <Button
+                                             size="sm"
+                                             variant="outline"
+                                             onClick={() => handleOpenCustomEmail(log.userEmail, log.userName, log.activityLevel, log.userId)}
+                                             disabled={sendingEmails.has(log.userId)}
+                                             className="text-xs h-6 px-2"
+                                           >
+                                             <Edit3 className="h-3 w-3 mr-1" />
+                                             Custom Email
                                            </Button>
                                            {emailResults.has(log.userId) && (
-                                             <div className={`text-xs ${emailResults.get(log.userId)?.success ? 'text-green-600' : 'text-red-600'}`}>
-                                               {emailResults.get(log.userId)?.success ? '✓ Sent' : '✗ Failed'}
+                                             <div className="flex flex-col gap-1">
+                                               <div className={`text-xs ${emailResults.get(log.userId)?.success ? 'text-green-600' : 'text-red-600'}`}>
+                                                 {emailResults.get(log.userId)?.success ? '✓ Sent' : '✗ Failed'}
+                                               </div>
+                                               {emailResults.get(log.userId)?.timestamp && (
+                                                 <div className="text-xs text-muted-foreground">
+                                                   {new Date(emailResults.get(log.userId)!.timestamp).toLocaleTimeString()}
+                                                 </div>
+                                               )}
                                              </div>
                                            )}
                                          </div>
@@ -649,6 +888,107 @@ export default function UsageLogsPage() {
           </div>
         </main>
       </SidebarInset>
+
+      {/* Custom Email Dialog */}
+      <Dialog open={customEmailDialog.isOpen} onOpenChange={handleCloseCustomEmail}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="h-5 w-5" />
+              Send Custom Reminder Email
+            </DialogTitle>
+            <DialogDescription>
+              Send a personalized reminder email to {customEmailDialog.user?.name} ({customEmailDialog.user?.email})
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Email Subject</label>
+              <Input
+                value={customSubject}
+                onChange={(e) => setCustomSubject(e.target.value)}
+                placeholder="Enter email subject..."
+                className="w-full"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">Email Message</label>
+              <Textarea
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="Enter your custom message..."
+                className="w-full min-h-[200px]"
+                rows={8}
+              />
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs text-muted-foreground">
+                  {customMessage.length} characters
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEnhanceEmail}
+                  disabled={enhancingEmail || !customMessage.trim()}
+                  className="flex items-center gap-2 text-xs h-7"
+                >
+                  {enhancingEmail ? (
+                    <>
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                      Enhancing...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-3 w-3" />
+                      Enhance with AI
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+              <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                Email Preview
+              </h4>
+              <div className="text-xs text-blue-700 dark:text-blue-300">
+                <p><strong>To:</strong> {customEmailDialog.user?.email}</p>
+                <p><strong>Subject:</strong> {customSubject || 'No subject'}</p>
+                <p><strong>Activity Level:</strong> {customEmailDialog.user?.activityLevel}</p>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCloseCustomEmail}
+              disabled={sendingCustomEmail}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendCustomEmail}
+              disabled={!customSubject.trim() || !customMessage.trim() || sendingCustomEmail}
+              className="flex items-center gap-2"
+            >
+              {sendingCustomEmail ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Send Custom Email
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

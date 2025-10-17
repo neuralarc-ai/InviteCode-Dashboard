@@ -110,6 +110,8 @@ export function useInviteCodes() {
         maxUses: row.max_uses,
         currentUses: row.current_uses,
         emailSentTo: row.email_sent_to || [],
+        reminderSentAt: row.reminder_sent_at ? new Date(row.reminder_sent_at) : null,
+        isArchived: row.is_archived || false,
       })) || [];
 
       setCodes(transformedCodes);
@@ -781,6 +783,7 @@ export function useCreditPurchases() {
       const { data, error } = await supabase
         .from('credit_purchases')
         .select('*')
+        .eq('status', 'completed')  // Only fetch completed purchases
         .order('created_at', { ascending: false });
 
       console.log('Raw credit purchases query result:', { data, error });
@@ -911,6 +914,8 @@ export function useUsageLogs() {
   const [itemsPerPage] = useState(10); // Show 10 users per page
   const [searchQuery, setSearchQuery] = useState('');
   const [activityFilter, setActivityFilter] = useState<string>('all');
+  const [userTypeFilter, setUserTypeFilter] = useState<'internal' | 'external'>('external'); // Default to external users
+  const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false); // Track background updates
 
   // Cache clearing function (kept for backward compatibility but not used)
   const clearActivityCache = () => {
@@ -929,10 +934,10 @@ export function useUsageLogs() {
     };
   };
 
-  // Send activity reminder email
+  // Send activity reminder email (preset template)
   const sendActivityReminder = async (userEmail: string, userName: string, activityLevel: string) => {
     try {
-      console.log(`Sending activity reminder to ${userName} (${userEmail}) - Activity Level: ${activityLevel}`);
+      console.log(`Sending preset activity reminder to ${userName} (${userEmail}) - Activity Level: ${activityLevel}`);
       
       const response = await fetch('/api/send-activity-reminder', {
         method: 'POST',
@@ -952,10 +957,10 @@ export function useUsageLogs() {
       }
 
       const result = await response.json();
-      console.log('Activity reminder sent successfully:', result);
+      console.log('Preset activity reminder sent successfully:', result);
       return { success: true, message: result.message };
     } catch (error) {
-      console.error('Error sending activity reminder:', error);
+      console.error('Error sending preset activity reminder:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to send email' 
@@ -963,13 +968,166 @@ export function useUsageLogs() {
     }
   };
 
-  // Optimized fetch function using server-side aggregation
-  const fetchUsageLogs = async (page: number = 1, limit: number = itemsPerPage, search: string = searchQuery) => {
+  // Send custom reminder email
+  const sendCustomReminder = async (userEmail: string, userName: string, activityLevel: string, customSubject: string, customMessage: string) => {
     try {
-      setLoading(true);
+      console.log(`Sending custom reminder to ${userName} (${userEmail}) - Activity Level: ${activityLevel}`);
+      console.log(`Custom subject: ${customSubject}`);
+      console.log(`Custom message: ${customMessage.substring(0, 100)}...`);
+      
+      const response = await fetch('/api/send-custom-reminder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userEmail,
+          userName,
+          activityLevel,
+          customSubject,
+          customMessage,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send custom email');
+      }
+
+      const result = await response.json();
+      console.log('Custom reminder sent successfully:', result);
+      return { success: true, message: result.message };
+    } catch (error) {
+      console.error('Error sending custom reminder:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to send custom email' 
+      };
+    }
+  };
+
+  // Enhance custom email content
+  const enhanceCustomEmail = async (userName: string, activityLevel: string, currentSubject: string, currentMessage: string) => {
+    try {
+      console.log(`Enhancing email for ${userName} - Activity Level: ${activityLevel}`);
+      
+      // Create enhanced content based on activity level and user context
+      const enhancedContent = generateEnhancedEmailContent(userName, activityLevel, currentSubject, currentMessage);
+      
+      return { 
+        success: true, 
+        enhancedSubject: enhancedContent.subject,
+        enhancedMessage: enhancedContent.message
+      };
+    } catch (error) {
+      console.error('Error enhancing email:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to enhance email' 
+      };
+    }
+  };
+
+  // Generate enhanced email content
+  const generateEnhancedEmailContent = (userName: string, activityLevel: string, currentSubject: string, currentMessage: string) => {
+    const activityContext = {
+      medium: {
+        urgency: "moderate",
+        tone: "encouraging",
+        suggestions: ["explore new features", "check out recent updates", "reconnect with the community"]
+      },
+      low: {
+        urgency: "gentle",
+        tone: "supportive", 
+        suggestions: ["take your time", "we're here when you're ready", "no pressure to return"]
+      }
+    };
+
+    const context = activityContext[activityLevel as keyof typeof activityContext] || activityContext.medium;
+    
+    // Enhanced subject lines
+    const enhancedSubjects = {
+      medium: [
+        `🌟 ${userName}, your AI journey awaits!`,
+        `✨ Ready to rediscover Helium, ${userName}?`,
+        `🚀 ${userName}, let's reignite your creativity!`,
+        `💡 ${userName}, new possibilities are waiting!`
+      ],
+      low: [
+        `💙 ${userName}, we're thinking of you`,
+        `🤗 ${userName}, no rush - we'll be here`,
+        `🌱 ${userName}, your growth matters to us`,
+        `☕ ${userName}, take your time, we understand`
+      ]
+    };
+
+    // Enhanced message templates
+    const enhancedMessages = {
+      medium: `Hi ${userName}! 👋
+
+We've been thinking about you and noticed you haven't been as active on Helium recently. We completely understand that life gets busy, but we wanted to reach out because we genuinely miss having you as part of our community! 
+
+Your current activity level is ${activityLevel}, and we think you might love exploring some of the exciting new features we've added since you last visited. 
+
+Here's what's new that might interest you:
+✨ Enhanced AI capabilities with better responses
+🎨 New creative tools for your projects  
+📊 Improved analytics to track your progress
+🤝 A more vibrant community of creators
+
+We believe in your potential and would love to see you back in action. Whether you're looking to ${context.suggestions[0]}, ${context.suggestions[1]}, or just want to ${context.suggestions[2]}, we're here to support you every step of the way.
+
+Remember, every great journey has its pauses - and that's perfectly okay! When you're ready to continue, we'll be here with open arms and exciting new possibilities.
+
+Take care, and we hope to see you back soon! 🌟
+
+With warm regards,
+The Helium Team 💙`,
+
+      low: `Hello ${userName}, 💙
+
+We hope this message finds you well. We've noticed you haven't been active on Helium lately, and we wanted to reach out - not to pressure you, but simply to let you know that you're missed and valued.
+
+Your current activity level is ${activityLevel}, and we want you to know that there's absolutely no rush to return. Life has its seasons, and we understand that sometimes you need to step back and focus on other things.
+
+When you're ready (and only when you're ready), we'll be here with:
+🌱 A welcoming community that understands
+☕ A platform that adapts to your pace
+💡 Tools that grow with your needs
+🤗 Support without any pressure
+
+We believe in the power of taking breaks and coming back when the time feels right. Your journey with AI and creativity is uniquely yours, and we respect that completely.
+
+Whether you return tomorrow, next month, or next year, know that you'll always have a place here at Helium. We're not going anywhere, and we'll be excited to welcome you back whenever you're ready.
+
+Take all the time you need. We're here when you are. 💙
+
+With understanding and care,
+The Helium Team 🌟`
+    };
+
+    const subjects = enhancedSubjects[activityLevel as keyof typeof enhancedSubjects] || enhancedSubjects.medium;
+    const messages = enhancedMessages[activityLevel as keyof typeof enhancedMessages] || enhancedMessages.medium;
+    
+    return {
+      subject: subjects[Math.floor(Math.random() * subjects.length)],
+      message: messages
+    };
+  };
+
+  // Optimized fetch function using server-side aggregation
+  const fetchUsageLogs = async (page: number = 1, limit: number = itemsPerPage, search: string = searchQuery, silent: boolean = false, userType: 'internal' | 'external' = userTypeFilter) => {
+    try {
+      // Silent loading: don't show loading spinner for background updates
+      if (!silent) {
+        setLoading(true);
+        setIsBackgroundRefreshing(false);
+      } else {
+        setIsBackgroundRefreshing(true); // Show subtle indicator for background updates
+      }
       setError(null);
       
-      console.log(`⚡ Fetching usage logs (optimized) - page ${page}, limit ${limit}...`);
+      console.log(`⚡ Fetching usage logs (${silent ? 'silent' : 'normal'}) - page ${page}, limit ${limit}...`);
       console.log('Fetch started at:', new Date().toISOString());
       
       // Use server-side aggregation API for much faster performance
@@ -983,6 +1141,7 @@ export function useUsageLogs() {
           limit,
           searchQuery: search,
           activityFilter,
+          userTypeFilter: userType,
         }),
       });
 
@@ -1029,15 +1188,18 @@ export function useUsageLogs() {
         activityLevel: row.activity_level,
         daysSinceLastActivity: row.days_since_last_activity,
         activityScore: row.activity_score,
+        userType: row.user_type as 'internal' | 'external',
       }));
 
       console.log('Transformed logs:', transformedLogs.length, 'users');
+      console.log('User type filter:', userType);
       console.log('Sample data:', transformedLogs.slice(0, 2));
       
       setUsageLogs(transformedLogs);
       setTotalCount(result.totalCount);
       setCurrentPage(page);
       setLoading(false);
+      setIsBackgroundRefreshing(false); // Clear background refresh indicator
       
       console.log('=== FETCH COMPLETED (OPTIMIZED) ===');
       console.log('Fetch completed at:', new Date().toISOString());
@@ -1048,11 +1210,14 @@ export function useUsageLogs() {
         totalPages: Math.ceil(result.totalCount / limit),
         searchQuery: search,
         activityFilter,
+        userTypeFilter: userType,
+        silent,
       });
     } catch (err) {
       console.error('Error fetching usage logs:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch usage logs');
       setLoading(false);
+      setIsBackgroundRefreshing(false); // Clear background refresh indicator
     }
   };
 
@@ -1060,14 +1225,22 @@ export function useUsageLogs() {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setCurrentPage(1); // Reset to first page when searching
-    fetchUsageLogs(1, itemsPerPage, query);
+    fetchUsageLogs(1, itemsPerPage, query, false, userTypeFilter);
   };
 
   // Activity filter function
   const handleActivityFilter = (filter: string) => {
     setActivityFilter(filter);
     setCurrentPage(1); // Reset to first page when filtering
-    fetchUsageLogs(1, itemsPerPage, searchQuery);
+    fetchUsageLogs(1, itemsPerPage, searchQuery, false, userTypeFilter);
+  };
+
+  // User type filter function
+  const handleUserTypeFilter = (filter: 'internal' | 'external') => {
+    setUserTypeFilter(filter);
+    setCurrentPage(1); // Reset to first page when filtering
+    // Pass the new filter value directly to ensure immediate update
+    fetchUsageLogs(1, itemsPerPage, searchQuery, false, filter);
   };
 
   // Refresh function
@@ -1076,25 +1249,25 @@ export function useUsageLogs() {
     console.log('Current page:', currentPage);
     console.log('Items per page:', itemsPerPage);
     console.log('Search query:', searchQuery);
-    fetchUsageLogs(currentPage, itemsPerPage, searchQuery);
+    fetchUsageLogs(currentPage, itemsPerPage, searchQuery, false, userTypeFilter);
   };
 
   // Load specific page
   const loadPage = (page: number) => {
-    fetchUsageLogs(page, itemsPerPage, searchQuery);
+    fetchUsageLogs(page, itemsPerPage, searchQuery, false, userTypeFilter);
   };
 
   // Load next page
   const loadNextPage = () => {
     if (currentPage < Math.ceil(totalCount / itemsPerPage)) {
-      fetchUsageLogs(currentPage + 1, itemsPerPage, searchQuery);
+      fetchUsageLogs(currentPage + 1, itemsPerPage, searchQuery, false, userTypeFilter);
     }
   };
 
   // Load previous page
   const loadPreviousPage = () => {
     if (currentPage > 1) {
-      fetchUsageLogs(currentPage - 1, itemsPerPage, searchQuery);
+      fetchUsageLogs(currentPage - 1, itemsPerPage, searchQuery, false, userTypeFilter);
     }
   };
 
@@ -1105,6 +1278,21 @@ export function useUsageLogs() {
 
   // Set up real-time subscription for usage_logs and credit_purchases changes
   useEffect(() => {
+    let updateTimeout: NodeJS.Timeout | null = null;
+
+    // Debounced update function for smooth real-time updates
+    const debouncedUpdate = () => {
+      if (updateTimeout) {
+        clearTimeout(updateTimeout);
+      }
+      
+      updateTimeout = setTimeout(() => {
+        console.log('🔄 Silent background refresh triggered by real-time event');
+        // Use silent mode to avoid loading spinner on real-time updates
+        fetchUsageLogs(currentPage, itemsPerPage, searchQuery, true, userTypeFilter);
+      }, 500); // 500ms debounce to batch rapid changes
+    };
+
     const usageLogsSubscription = supabase
       .channel('usage_logs_changes')
       .on(
@@ -1116,12 +1304,15 @@ export function useUsageLogs() {
         },
         (payload) => {
           console.log('=== REAL-TIME UPDATE (USAGE LOGS) ===');
-          console.log('Usage log change detected:', payload);
           console.log('Event type:', payload.eventType);
-          console.log('Current page:', currentPage);
-          console.log('Search query:', searchQuery);
-          console.log('Refreshing data...');
-          fetchUsageLogs(currentPage, itemsPerPage, searchQuery);
+          console.log('Affected record:', payload.new || payload.old);
+          
+          // Only refresh if the change affects current filter
+          const record = payload.new || payload.old;
+          if (record) {
+            // Silent background update without loading spinner
+            debouncedUpdate();
+          }
         }
       )
       .subscribe();
@@ -1137,21 +1328,27 @@ export function useUsageLogs() {
         },
         (payload) => {
           console.log('=== REAL-TIME UPDATE (CREDIT PURCHASES) ===');
-          console.log('Credit purchase change detected:', payload);
           console.log('Event type:', payload.eventType);
-          console.log('Current page:', currentPage);
-          console.log('Search query:', searchQuery);
-          console.log('Refreshing data...');
-          fetchUsageLogs(currentPage, itemsPerPage, searchQuery);
+          
+          // Only refresh if it's a completed payment (affects has_completed_payment)
+          const newRecord = payload.new as any;
+          if (newRecord?.status === 'completed' || payload.eventType === 'DELETE') {
+            console.log('Status:', newRecord?.status);
+            // Silent background update without loading spinner
+            debouncedUpdate();
+          }
         }
       )
       .subscribe();
 
     return () => {
+      if (updateTimeout) {
+        clearTimeout(updateTimeout);
+      }
       usageLogsSubscription.unsubscribe();
       creditPurchasesSubscription.unsubscribe();
     };
-  }, [currentPage, searchQuery]);
+  }, [currentPage, searchQuery, userTypeFilter, activityFilter]);
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   const hasNextPage = currentPage < totalPages;
@@ -1177,8 +1374,13 @@ export function useUsageLogs() {
     handleSearch,
     activityFilter,
     handleActivityFilter,
+    userTypeFilter,
+    handleUserTypeFilter,
+    isBackgroundRefreshing,
     clearActivityCache,
     getCacheStats,
-    sendActivityReminder
+    sendActivityReminder,
+    sendCustomReminder,
+    enhanceCustomEmail
   };
 }

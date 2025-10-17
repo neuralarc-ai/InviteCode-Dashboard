@@ -3,9 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
-    const { page = 1, limit = 10, searchQuery = '', activityFilter = 'all' } = await request.json();
+    const { page = 1, limit = 10, searchQuery = '', activityFilter = 'all', userTypeFilter = 'external' } = await request.json();
     
-    console.log('API: Fetching aggregated usage logs', { page, limit, searchQuery, activityFilter });
+    console.log('API: Fetching aggregated usage logs', { page, limit, searchQuery, activityFilter, userTypeFilter });
     
     // Check if supabaseAdmin is available
     if (!supabaseAdmin) {
@@ -20,7 +20,8 @@ export async function POST(request: Request) {
         search_query: searchQuery || '',
         activity_level_filter: activityFilter === 'all' ? '' : activityFilter,
         page_number: page,
-        page_size: limit
+        page_size: limit,
+        user_type_filter: userTypeFilter
       });
 
     if (rpcError) {
