@@ -1386,33 +1386,54 @@ The Helium Team 🌟`
 }
 
 export function useCreditBalances() {
-  const [creditBalances, setCreditBalances] = useState<CreditBalance[]>([]);
+  const [creditBalances, setCreditBalances] = useState<(CreditBalance & { userEmail?: string; userName?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Initial fetch function
+  // Initial fetch function - using API route with admin client to bypass RLS
   const fetchCreditBalances = async () => {
     try {
-      console.log('Fetching credit balances...');
+      console.log('Fetching credit balances via API...');
       
-      const { data, error } = await supabase
-        .from('credit_balance')
-        .select('*')
-        .order('last_updated', { ascending: false });
+      const response = await fetch('/api/credit-balances', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (error) {
-        console.error('Error fetching credit balances:', error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 
-      const transformedBalances = data?.map((row: any) => ({
-        userId: row.user_id,
-        balanceDollars: row.balance_dollars,
-        totalPurchased: row.total_purchased,
-        totalUsed: row.total_used,
-        lastUpdated: new Date(row.last_updated),
-        metadata: row.metadata
-      })) || [];
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to fetch credit balances');
+      }
+
+      console.log(`API: Fetched ${result.data?.length || 0} credit balances`);
+
+      if (!result.data || result.data.length === 0) {
+        console.log('No credit balances found in database');
+        setCreditBalances([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      // Transform the data to ensure proper Date objects
+      const transformedBalances = result.data.map((balance: any) => ({
+        userId: balance.userId,
+        balanceDollars: parseFloat(balance.balanceDollars) || 0,
+        totalPurchased: parseFloat(balance.totalPurchased) || 0,
+        totalUsed: parseFloat(balance.totalUsed) || 0,
+        lastUpdated: balance.lastUpdated ? new Date(balance.lastUpdated) : new Date(),
+        metadata: balance.metadata || {},
+        userEmail: balance.userEmail || 'Email not available',
+        userName: balance.userName || `User ${balance.userId.slice(0, 8)}`,
+      }));
 
       console.log('Transformed credit balances:', transformedBalances);
       setCreditBalances(transformedBalances);

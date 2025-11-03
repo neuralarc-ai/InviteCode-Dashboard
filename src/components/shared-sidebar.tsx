@@ -47,7 +47,7 @@ export function SharedSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
+          {/* <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/invite-codes">
                 <KeyRound />
@@ -62,7 +62,7 @@ export function SharedSidebar() {
                 Waitlist
               </Link>
             </SidebarMenuButton>
-          </SidebarMenuItem>
+          </SidebarMenuItem> */}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/credits">

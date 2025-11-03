@@ -4,6 +4,28 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
+    // Parse request body for custom email content and selected users
+    let customEmailData = null;
+    let selectedUserIds: string[] | null = null;
+    try {
+      const body = await request.json();
+      if (body.subject || body.textContent || body.htmlContent) {
+        customEmailData = {
+          subject: body.subject,
+          textContent: body.textContent,
+          htmlContent: body.htmlContent
+        };
+      }
+      // Check if specific users are selected
+      if (body.selectedUserIds && Array.isArray(body.selectedUserIds) && body.selectedUserIds.length > 0) {
+        selectedUserIds = body.selectedUserIds;
+        console.log(`Sending to ${selectedUserIds.length} selected users`);
+      }
+    } catch (parseError) {
+      // If no JSON body or parsing fails, continue with default content
+      console.log('No custom email data provided, using defaults');
+    }
+
     // Validate required environment variables
     const requiredEnvVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SENDER_EMAIL', 'SMTP_FROM'];
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -24,11 +46,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch all users from user_profiles table
-    const { data: userProfiles, error: dbError } = await supabaseAdmin
+    // Fetch users from user_profiles table
+    // If selectedUserIds is provided, only fetch those users; otherwise fetch all
+    let query = supabaseAdmin
       .from('user_profiles')
       .select('user_id, full_name')
       .not('user_id', 'is', null);
+    
+    if (selectedUserIds && selectedUserIds.length > 0) {
+      // Only fetch selected users
+      query = query.in('user_id', selectedUserIds);
+    }
+    
+    const { data: userProfiles, error: dbError } = await query;
 
     if (dbError) {
       console.error('Database error:', dbError);
@@ -39,8 +69,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!userProfiles || userProfiles.length === 0) {
+      const message = selectedUserIds 
+        ? 'No users found matching the selected user IDs' 
+        : 'No users found to send emails to';
       return NextResponse.json(
-        { success: false, message: 'No users found to send emails to' },
+        { success: false, message },
         { status: 400 }
       );
     }
@@ -112,12 +145,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Email template
-    const emailSubject = 'Scheduled Downtime: Helium will be unavailable for 1 hour';
+    // Email template - use custom content if provided, otherwise use defaults
+    const emailSubject = customEmailData?.subject || 'Scheduled Downtime: Helium will be unavailable for 1 hour';
     
-    const emailContent = `
+    const emailContent = customEmailData?.htmlContent || `
     <html>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #CFEBD5;">
         <h2 style="color: #2563eb;">Scheduled Downtime: Helium will be unavailable for 1 hour</h2>
         
         <p>Greetings from Helium,</p>
@@ -134,7 +167,7 @@ export async function POST(request: NextRequest) {
     `;
 
     // Plain text version
-    const textContent = `Scheduled Downtime: Helium will be unavailable for 1 hour
+    const textContent = customEmailData?.textContent || `Scheduled Downtime: Helium will be unavailable for 1 hour
 
 Greetings from Helium,
 

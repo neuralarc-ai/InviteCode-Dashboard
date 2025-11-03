@@ -69,6 +69,62 @@ export default function UsageLogsPage() {
   const [customMessage, setCustomMessage] = useState('');
   const [sendingCustomEmail, setSendingCustomEmail] = useState(false);
   const [enhancingEmail, setEnhancingEmail] = useState(false);
+  const [overallTotalCost, setOverallTotalCost] = useState<number>(0);
+
+  // Fetch overall total cost for both external and internal users
+  useEffect(() => {
+    const fetchOverallTotalCost = async () => {
+      try {
+        // Fetch both external and internal user totals in parallel
+        const [externalResponse, internalResponse] = await Promise.all([
+          fetch('/api/usage-logs-aggregated', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              page: 1,
+              limit: 1,
+              searchQuery: '',
+              activityFilter: 'all',
+              userTypeFilter: 'external',
+            }),
+          }),
+          fetch('/api/usage-logs-aggregated', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              page: 1,
+              limit: 1,
+              searchQuery: '',
+              activityFilter: 'all',
+              userTypeFilter: 'internal',
+            }),
+          }),
+        ]);
+
+        const externalData = await externalResponse.json();
+        const internalData = await internalResponse.json();
+
+        const externalCost = externalData.success ? (externalData.grandTotalCost || 0) : 0;
+        const internalCost = internalData.success ? (internalData.grandTotalCost || 0) : 0;
+
+        setOverallTotalCost(externalCost + internalCost);
+      } catch (error) {
+        console.error('Error fetching overall total cost:', error);
+        setOverallTotalCost(0);
+      }
+    };
+
+    fetchOverallTotalCost();
+    
+    // Refresh every 30 seconds to keep it updated
+    const interval = setInterval(fetchOverallTotalCost, 30000);
+    
+    return () => clearInterval(interval);
+  }, [grandTotalCost]); // Re-fetch when grandTotalCost changes (indicates data refresh)
 
   // Load email results from localStorage on component mount
   useEffect(() => {
@@ -313,9 +369,10 @@ The AI Team`);
 
   // Calculate stats using grand totals (for ALL users, not just current page)
   const totalLogs = totalCount; // Total number of users
-  const totalTokens = grandTotalTokens; // Grand total tokens across ALL users
   const totalCost = grandTotalCost; // Grand total cost across ALL users
+  const totalTokens = totalCost * 100; // Calculated as Total Cost × 100
   const uniqueUsers = usageLogs.length; // Users on current page
+  const overallTotalCredits = overallTotalCost * 100; // Overall total credits (external + internal users) × 100
 
   // Activity level helper functions
   const getActivityIcon = (level: string) => {
@@ -384,7 +441,12 @@ The AI Team`);
         <SidebarInset className="flex flex-col">
           <PageHeader>
             <SidebarTrigger className="md:hidden" />
-            <h1 className="text-2xl font-bold">Usage Logs</h1>
+            <div>
+              <h1 className="text-2xl font-bold">Usage Logs</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Overall Total Credits: <span className="font-semibold text-foreground">{formatNumber(overallTotalCredits)}</span>
+              </p>
+            </div>
           </PageHeader>
           <main className="flex-1 space-y-6 p-4 md:p-6">
             <div className="space-y-6">
@@ -436,7 +498,12 @@ The AI Team`);
         <SidebarInset className="flex flex-col">
           <PageHeader>
             <SidebarTrigger className="md:hidden" />
-            <h1 className="text-2xl font-bold">Usage Logs</h1>
+            <div>
+              <h1 className="text-2xl font-bold">Usage Logs</h1>
+              <p className="text-xl text-muted-foreground mt-1">
+                Overall Total Credits: <span className="font-semibold text-foreground text-2xl">{formatNumber(overallTotalCredits)}</span>
+              </p>
+            </div>
           </PageHeader>
           <main className="flex-1 space-y-6 p-4 md:p-6">
             <div className="space-y-6">
@@ -468,7 +535,12 @@ The AI Team`);
       <SidebarInset className="flex flex-col">
         <PageHeader>
           <SidebarTrigger className="md:hidden" />
-          <h1 className="text-2xl font-bold">Usage Logs</h1>
+          <div>
+            <h1 className="text-2xl font-bold">Usage Logs</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Overall Total Credits: <span className="font-semibold text-foreground">{formatNumber(overallTotalCredits)}</span>
+            </p>
+          </div>
         </PageHeader>
         <main className="flex-1 space-y-6 p-4 md:p-6">
           <div className="space-y-6">
@@ -583,13 +655,13 @@ The AI Team`);
 
                      <Card>
                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                         <CardTitle className="text-sm font-medium">Total Tokens</CardTitle>
+                         <CardTitle className="text-sm font-medium">Total Credits</CardTitle>
                          <Hash className="h-4 w-4 text-muted-foreground" />
                        </CardHeader>
                        <CardContent>
                          <div className="text-2xl font-bold">{formatNumber(totalTokens)}</div>
                          <p className="text-xs text-muted-foreground">
-                           Prompt + completion tokens
+                           Calculated (Total Cost × 100)
                          </p>
                        </CardContent>
                      </Card>

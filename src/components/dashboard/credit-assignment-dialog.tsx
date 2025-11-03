@@ -153,6 +153,19 @@ export function CreditAssignmentDialog({
             <p className="text-sm text-muted-foreground">
               Enter the dollar amount to add to this user's credit balance.
             </p>
+            {creditsToAdd && !isNaN(parseFloat(creditsToAdd)) && parseFloat(creditsToAdd) > 0 && (
+              <div className="mt-2 p-3 bg-muted/50 rounded-md border">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Credits:</span>
+                  <span className="text-lg font-bold text-primary">
+                    {(parseFloat(creditsToAdd) * 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ${parseFloat(creditsToAdd).toFixed(2)} × 100 = {(parseFloat(creditsToAdd) * 100).toLocaleString('en-US', { maximumFractionDigits: 0 })} credits
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

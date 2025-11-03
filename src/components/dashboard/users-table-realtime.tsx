@@ -14,20 +14,35 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Search, RefreshCw, User, Mail, Calendar, CreditCard } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 import { useUserProfiles } from '@/hooks/use-realtime-data';
 import { useToast } from '@/hooks/use-toast';
-import { CreditAssignmentDialog } from './credit-assignment-dialog';
 
-export function UsersTableRealtime() {
+interface UsersTableRealtimeProps {
+  userTypeFilter?: 'internal' | 'external';
+  selectedUserIds?: Set<string>;
+  onSelectionChange?: (selectedUserIds: Set<string>) => void;
+  onAssignCredits?: (user: UserProfile) => void;
+}
+
+export function UsersTableRealtime({ 
+  userTypeFilter = 'external',
+  selectedUserIds: externalSelectedUserIds,
+  onSelectionChange,
+  onAssignCredits
+}: UsersTableRealtimeProps) {
   const { userProfiles, loading, error, refreshUserProfiles } = useUserProfiles();
   const [filter, setFilter] = React.useState('');
   const [page, setPage] = React.useState(0);
-  const [creditDialogOpen, setCreditDialogOpen] = React.useState(false);
-  const [selectedUser, setSelectedUser] = React.useState<UserProfile | null>(null);
   const rowsPerPage = 10;
   const { toast } = useToast();
+  const [internalSelectedUserIds, setInternalSelectedUserIds] = React.useState<Set<string>>(new Set());
+  
+  // Use external selection state if provided, otherwise use internal state
+  const selectedUserIds = externalSelectedUserIds ?? internalSelectedUserIds;
+  const setSelectedUserIds = onSelectionChange ?? setInternalSelectedUserIds;
 
   // Debug logging
   React.useEffect(() => {
@@ -36,13 +51,55 @@ export function UsersTableRealtime() {
     console.log('UsersTableRealtime - error:', error);
   }, [userProfiles, loading, error]);
 
+  // Reset to first page when user type filter changes
+  React.useEffect(() => {
+    setPage(0);
+  }, [userTypeFilter]);
+
+  // Reset selection when user type filter changes
+  React.useEffect(() => {
+    if (onSelectionChange) {
+      // Only clear if using external state management
+      onSelectionChange(new Set());
+    } else {
+      setInternalSelectedUserIds(new Set());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userTypeFilter]);
+
+  // Helper function to determine user type based on email domain
+  const getUserType = (email: string | undefined): 'internal' | 'external' => {
+    if (!email || typeof email !== 'string') {
+      return 'external'; // Default to external if email is missing
+    }
+    const emailLower = email.toLowerCase();
+    if (emailLower.endsWith('@he2.ai') || emailLower.endsWith('@neuralarc.ai')) {
+      return 'internal';
+    }
+    return 'external';
+  };
+
   const filteredProfiles = userProfiles.filter((profile) => {
-    const matchesText = Object.values(profile).some(
-      (value) =>
-        typeof value === 'string' &&
-        value.toLowerCase().includes(filter.toLowerCase())
-    );
-    return matchesText;
+    // Filter by user type (internal/external)
+    const profileUserType = getUserType(profile.email);
+    if (profileUserType !== userTypeFilter) {
+      return false;
+    }
+
+    // Filter by text search (only if filter is provided)
+    if (filter.trim()) {
+      const matchesText = Object.values(profile).some(
+        (value) =>
+          value !== null &&
+          value !== undefined &&
+          typeof value === 'string' &&
+          value.toLowerCase().includes(filter.toLowerCase())
+      );
+      if (!matchesText) {
+        return false;
+      }
+    }
+    return true;
   });
 
   const paginatedProfiles = filteredProfiles.slice(
@@ -51,6 +108,33 @@ export function UsersTableRealtime() {
   );
 
   const totalPages = Math.ceil(filteredProfiles.length / rowsPerPage);
+
+  // Selection handlers (moved after filteredProfiles is defined)
+  const handleToggleSelect = (userId: string) => {
+    const newSelection = new Set(selectedUserIds);
+    if (newSelection.has(userId)) {
+      newSelection.delete(userId);
+    } else {
+      newSelection.add(userId);
+    }
+    setSelectedUserIds(newSelection);
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredUserIds = new Set(filteredProfiles.map(profile => profile.userId));
+    if (selectedUserIds.size === filteredProfiles.length && 
+        filteredProfiles.every(profile => selectedUserIds.has(profile.userId))) {
+      // All are selected, deselect all
+      setSelectedUserIds(new Set());
+    } else {
+      // Select all filtered users
+      setSelectedUserIds(allFilteredUserIds);
+    }
+  };
+
+  const isAllSelected = filteredProfiles.length > 0 && 
+    filteredProfiles.every(profile => selectedUserIds.has(profile.userId));
+  const isSomeSelected = filteredProfiles.some(profile => selectedUserIds.has(profile.userId));
 
   const handleRefresh = async () => {
     try {
@@ -68,18 +152,6 @@ export function UsersTableRealtime() {
     }
   };
 
-  const handleAssignCredits = (user: UserProfile) => {
-    setSelectedUser(user);
-    setCreditDialogOpen(true);
-  };
-
-  const handleCreditAssignmentSuccess = () => {
-    // Optionally refresh user profiles or show success message
-    toast({
-      title: "Success",
-      description: "Credits assigned successfully!",
-    });
-  };
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -148,12 +220,17 @@ export function UsersTableRealtime() {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            User Profiles ({filteredProfiles.length})
-          </CardTitle>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              User Profiles ({filteredProfiles.length} {userTypeFilter === 'internal' ? 'internal' : 'external'} user{filteredProfiles.length !== 1 ? 's' : ''})
+              {selectedUserIds.size > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {selectedUserIds.size} selected
+                </Badge>
+              )}
+            </CardTitle>
           <div className="flex gap-2">
             <Button onClick={handleRefresh} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -191,6 +268,13 @@ export function UsersTableRealtime() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={isAllSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Select all users"
+                  />
+                </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>User ID</TableHead>
@@ -202,18 +286,32 @@ export function UsersTableRealtime() {
             <TableBody>
               {paginatedProfiles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
-                        {filter ? 'No users found matching your search' : 'No user profiles found'}
+                        {filter 
+                          ? `No ${userTypeFilter} users found matching your search` 
+                          : `No ${userTypeFilter} user profiles found`}
                       </p>
+                      {userProfiles.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Showing {userTypeFilter} users only. {userProfiles.length - filteredProfiles.length} {userTypeFilter === 'internal' ? 'external' : 'internal'} user{userProfiles.length - filteredProfiles.length !== 1 ? 's' : ''} hidden.
+                        </p>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedProfiles.map((profile) => (
                   <TableRow key={profile.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedUserIds.has(profile.userId)}
+                        onCheckedChange={() => handleToggleSelect(profile.userId)}
+                        aria-label={`Select ${profile.fullName}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
@@ -254,15 +352,17 @@ export function UsersTableRealtime() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAssignCredits(profile)}
-                        className="flex items-center gap-2"
-                      >
-                        <CreditCard className="h-4 w-4" />
-                        Assign Credits
-                      </Button>
+                      {onAssignCredits && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onAssignCredits(profile)}
+                          className="flex items-center gap-2"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          Assign Credits
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -301,14 +401,6 @@ export function UsersTableRealtime() {
           </div>
         )}
       </CardContent>
-      
-      {/* Credit Assignment Dialog */}
-      <CreditAssignmentDialog
-        open={creditDialogOpen}
-        onOpenChange={setCreditDialogOpen}
-        user={selectedUser}
-        onSuccess={handleCreditAssignmentSuccess}
-      />
     </Card>
   );
 }
