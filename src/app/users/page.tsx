@@ -8,19 +8,13 @@ import { PageHeader } from '@/components/page-header';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SharedSidebar } from '@/components/shared-sidebar';
 import { UsersTableRealtime } from '@/components/dashboard/users-table-realtime';
-import { EmailCustomizationDialog } from '@/components/dashboard/email-customization-dialog';
+import { EmailCustomizationDialog, type EmailData } from '@/components/dashboard/email-customization-dialog';
 import { CreditAssignmentDialog } from '@/components/dashboard/credit-assignment-dialog';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { Mail, Loader2, Users, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/types';
-
-interface EmailData {
-  subject: string;
-  textContent: string;
-  htmlContent: string;
-}
 
 export default function UsersPage() {
   const [showCustomizationDialog, setShowCustomizationDialog] = useState(false);
@@ -34,7 +28,12 @@ export default function UsersPage() {
   const handleSendEmail = async (emailData: EmailData, selectedOnly: boolean = false) => {
     setIsSending(true);
     try {
-      const requestBody: any = { ...emailData };
+      // Extract only the fields needed for the API (subject, textContent, htmlContent)
+      const requestBody: any = {
+        subject: emailData.subject,
+        textContent: emailData.textContent || '',
+        htmlContent: emailData.htmlContent || '',
+      };
       
       // If sending to selected users only, include their user IDs
       if (selectedOnly && selectedUserIds.size > 0) {
@@ -84,15 +83,19 @@ export default function UsersPage() {
   const handleSendToIndividual = async (emailData: EmailData, emailAddress: string) => {
     setIsSending(true);
     try {
+      // Extract only the fields needed for the API (subject, textContent, htmlContent)
+      const requestBody = {
+        subject: emailData.subject,
+        textContent: emailData.textContent || '',
+        htmlContent: emailData.htmlContent || '',
+        individualEmail: emailAddress
+      };
       const response = await fetch('/api/send-individual-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...emailData,
-          individualEmail: emailAddress
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();

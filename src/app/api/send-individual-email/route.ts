@@ -10,27 +10,34 @@ export async function POST(request: NextRequest) {
     
     try {
       const body = await request.json();
-      if (body.subject || body.textContent || body.htmlContent) {
-        customEmailData = {
-          subject: body.subject,
-          textContent: body.textContent,
-          htmlContent: body.htmlContent
-        };
+      
+      // Check for required fields
+      if (!body.subject || !body.textContent || !body.htmlContent || !body.individualEmail) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: 'Missing required fields: subject, textContent, htmlContent, and individualEmail are required',
+            details: {
+              hasSubject: !!body.subject,
+              hasTextContent: !!body.textContent,
+              hasHtmlContent: !!body.htmlContent,
+              hasIndividualEmail: !!body.individualEmail
+            }
+          },
+          { status: 400 }
+        );
       }
-      if (body.individualEmail) {
-        individualEmail = body.individualEmail;
-      }
-    } catch (parseError) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid request data' },
-        { status: 400 }
-      );
-    }
 
-    // Validate required fields
-    if (!customEmailData || !individualEmail) {
+      customEmailData = {
+        subject: body.subject,
+        textContent: body.textContent,
+        htmlContent: body.htmlContent
+      };
+      individualEmail = body.individualEmail;
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
       return NextResponse.json(
-        { success: false, message: 'Missing required fields: subject, textContent, and individualEmail' },
+        { success: false, message: 'Invalid request data: ' + (parseError instanceof Error ? parseError.message : 'Unknown error') },
         { status: 400 }
       );
     }

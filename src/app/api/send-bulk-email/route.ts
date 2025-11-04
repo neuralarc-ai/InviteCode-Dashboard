@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { supabaseAdmin } from '@/lib/supabase';
+import { createDowntimeHtmlTemplate } from '@/lib/email-templates';
+import fs from 'fs';
+import path from 'path';
+
+// Helper function to find and convert image to base64
+const getImageBase64 = (imageName: string): string | null => {
+  const possiblePaths = [
+    path.join(process.cwd(), 'public', 'images', imageName),
+    path.join(process.cwd(), 'src', 'public', 'images', imageName),
+    path.join(__dirname, '..', '..', '..', '..', 'public', 'images', imageName),
+  ];
+
+  for (const imagePath of possiblePaths) {
+    if (fs.existsSync(imagePath)) {
+      try {
+        const imageBuffer = fs.readFileSync(imagePath);
+        const base64 = imageBuffer.toString('base64');
+        const mimeType = imageName.endsWith('.png') ? 'image/png' : 'image/jpeg';
+        return `data:${mimeType};base64,${base64}`;
+      } catch (error) {
+        console.error(`Failed to read image ${imageName}:`, error);
+        continue;
+      }
+    }
+  }
+  return null;
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +46,7 @@ export async function POST(request: NextRequest) {
       // Check if specific users are selected
       if (body.selectedUserIds && Array.isArray(body.selectedUserIds) && body.selectedUserIds.length > 0) {
         selectedUserIds = body.selectedUserIds;
-        console.log(`Sending to ${selectedUserIds.length} selected users`);
+        console.log(`Sending to ${body.selectedUserIds.length} selected users`);
       }
     } catch (parseError) {
       // If no JSON body or parsing fails, continue with default content
@@ -145,26 +172,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fetch base64 images
+    const logoBase64 = getImageBase64('email-logo.png');
+    const downtimeBodyBase64 = getImageBase64('downtime-body.png') || getImageBase64('uptime-body.png'); // Fallback to uptime image if downtime image doesn't exist
+    
     // Email template - use custom content if provided, otherwise use defaults
     const emailSubject = customEmailData?.subject || 'Scheduled Downtime: Helium will be unavailable for 1 hour';
     
-    const emailContent = customEmailData?.htmlContent || `
-    <html>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #CFEBD5;">
-        <h2 style="color: #2563eb;">Scheduled Downtime: Helium will be unavailable for 1 hour</h2>
-        
-        <p>Greetings from Helium,</p>
-        
-        <p>We wanted to let you know that Helium will be temporarily unavailable for 1 hour as we perform scheduled maintenance and upgrades.</p>
-        
-        <p>During this window, you won't be able to access Helium. Once the maintenance is complete, you'll be able to log back in and experience the platform as usual.</p>
-        
-        <p>We appreciate your patience and understanding as we work to make Helium even better for you.</p>
-        
-        <p>Thanks,<br>The Helium Team</p>
-      </body>
-    </html>
-    `;
+    const emailContent = customEmailData?.htmlContent || createDowntimeHtmlTemplate({
+      logoBase64: logoBase64,
+      downtimeBodyBase64: downtimeBodyBase64,
+      textContent: `Scheduled Downtime: Helium will be unavailable for 1 hour
+
+Greetings from Helium,
+
+We wanted to let you know that Helium will be temporarily unavailable for 1 hour as we perform scheduled maintenance and upgrades.
+
+During this window, you won't be able to access Helium. Once the maintenance is complete, you'll be able to log back in and experience the platform as usual.
+
+We appreciate your patience and understanding as we work to make Helium even better for you.
+
+Thanks,
+The Helium Team`
+    });
 
     // Plain text version
     const textContent = customEmailData?.textContent || `Scheduled Downtime: Helium will be unavailable for 1 hour
