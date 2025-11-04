@@ -113,11 +113,11 @@ export async function POST(request: NextRequest) {
     if (emailContent.includes('cid:email-logo')) {
       attachments.push(...createEmailAttachments([EMAIL_IMAGES.logo]));
     }
-    if (emailContent.includes('cid:downtime-body')) {
-      attachments.push(...createEmailAttachments([EMAIL_IMAGES.downtimeBody]));
-    }
     if (emailContent.includes('cid:uptime-body')) {
       attachments.push(...createEmailAttachments([EMAIL_IMAGES.uptimeBody]));
+    }
+    if (emailContent.includes('cid:downtime-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.downtimeBody]));
     }
     if (emailContent.includes('cid:credits-body')) {
       attachments.push(...createEmailAttachments([EMAIL_IMAGES.creditsBody]));

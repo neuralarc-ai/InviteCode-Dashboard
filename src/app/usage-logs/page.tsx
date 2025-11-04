@@ -410,7 +410,8 @@ The AI Team`);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 6,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -430,6 +431,14 @@ The AI Team`);
     return new Intl.NumberFormat('en-US').format(num);
   };
 
+  // Format number with 2 decimal places
+  const formatNumberWithDecimals = (num: number) => {
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  };
+
   const handlePageChange = (page: number) => {
     loadPage(page);
   };
@@ -444,7 +453,7 @@ The AI Team`);
             <div>
               <h1 className="text-2xl font-bold">Usage Logs</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Overall Total Credits: <span className="font-semibold text-foreground">{formatNumber(overallTotalCredits)}</span>
+                Overall Total Credits: <span className="font-semibold text-foreground">{formatNumberWithDecimals(overallTotalCredits)}</span>
               </p>
             </div>
           </PageHeader>
@@ -501,7 +510,7 @@ The AI Team`);
             <div>
               <h1 className="text-2xl font-bold">Usage Logs</h1>
               <p className="text-xl text-muted-foreground mt-1">
-                Overall Total Credits: <span className="font-semibold text-foreground text-2xl">{formatNumber(overallTotalCredits)}</span>
+                Overall Total Credits: <span className="font-semibold text-foreground text-2xl">{formatNumberWithDecimals(overallTotalCredits)}</span>
               </p>
             </div>
           </PageHeader>
@@ -538,7 +547,7 @@ The AI Team`);
           <div>
             <h1 className="text-2xl font-bold">Usage Logs</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Overall Total Credits: <span className="font-semibold text-foreground">{formatNumber(overallTotalCredits)}</span>
+              Overall Total Credits: <span className="font-semibold text-foreground">{formatNumberWithDecimals(overallTotalCredits)}</span>
             </p>
           </div>
         </PageHeader>
@@ -659,7 +668,7 @@ The AI Team`);
                          <Hash className="h-4 w-4 text-muted-foreground" />
                        </CardHeader>
                        <CardContent>
-                         <div className="text-2xl font-bold">{formatNumber(totalTokens)}</div>
+                         <div className="text-2xl font-bold">{formatNumberWithDecimals(totalTokens)}</div>
                          <p className="text-xs text-muted-foreground">
                            Calculated (Total Cost × 100)
                          </p>

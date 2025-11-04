@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { supabaseAdmin } from '@/lib/supabase';
-import { createDowntimeHtmlTemplate } from '@/lib/email-templates';
-import { getDowntimeAttachments } from '@/lib/email-utils';
+import { createDowntimeHtmlTemplate, createUptimeHtmlTemplate } from '@/lib/email-templates';
+import { createEmailAttachments, EMAIL_IMAGES } from '@/lib/email-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -147,9 +147,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get email attachments with CID references
-    const attachments = getDowntimeAttachments();
-    
     // Email template - use custom content if provided, otherwise use defaults
     const emailSubject = customEmailData?.subject || 'Scheduled Downtime: Helium will be unavailable for 1 hour';
     
@@ -169,6 +166,33 @@ We appreciate your patience and understanding as we work to make Helium even bet
 Thanks,
 The Helium Team`
     });
+
+    // Get email attachments dynamically based on CID references in final HTML content
+    const attachments: Array<{
+      filename: string;
+      content: Buffer;
+      cid: string;
+      contentType: string;
+      contentDisposition?: string;
+    }> = [];
+
+    // Detect which attachments are needed based on CID references in the final email content
+    if (emailContent.includes('cid:email-logo')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.logo]));
+    }
+    
+    // Attach uptime or downtime body image based on what's referenced
+    if (emailContent.includes('cid:uptime-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.uptimeBody]));
+    }
+    if (emailContent.includes('cid:downtime-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.downtimeBody]));
+    }
+    
+    // Attach credits body if present
+    if (emailContent.includes('cid:credits-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.creditsBody]));
+    }
 
     // Plain text version
     const textContent = customEmailData?.textContent || `Scheduled Downtime: Helium will be unavailable for 1 hour
@@ -197,7 +221,7 @@ The Helium Team`;
           subject: emailSubject,
           text: textContent,
           html: emailContent,
-          attachments: attachments, // Attach images as MIME parts with CID references
+          attachments: attachments.length > 0 ? attachments : undefined, // Attach images as MIME parts with CID references
         });
 
         console.log(`Email sent to ${profile.email}:`, info.messageId);

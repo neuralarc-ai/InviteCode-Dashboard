@@ -15,10 +15,20 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, RefreshCw, User, Mail, Calendar, CreditCard } from 'lucide-react';
+import { Search, RefreshCw, User, Mail, Calendar, CreditCard, Trash2, Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 import { useUserProfiles } from '@/hooks/use-realtime-data';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface UsersTableRealtimeProps {
   userTypeFilter?: 'internal' | 'external';
@@ -33,12 +43,16 @@ export function UsersTableRealtime({
   onSelectionChange,
   onAssignCredits
 }: UsersTableRealtimeProps) {
-  const { userProfiles, loading, error, refreshUserProfiles } = useUserProfiles();
+  const { userProfiles, loading, error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles } = useUserProfiles();
   const [filter, setFilter] = React.useState('');
   const [page, setPage] = React.useState(0);
   const rowsPerPage = 10;
   const { toast } = useToast();
   const [internalSelectedUserIds, setInternalSelectedUserIds] = React.useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = React.useState(false);
+  const [userToDelete, setUserToDelete] = React.useState<UserProfile | null>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   
   // Use external selection state if provided, otherwise use internal state
   const selectedUserIds = externalSelectedUserIds ?? internalSelectedUserIds;
@@ -152,6 +166,93 @@ export function UsersTableRealtime({
     }
   };
 
+  const handleDeleteClick = (profile: UserProfile) => {
+    setUserToDelete(profile);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const result = await deleteUserProfile(userToDelete.id);
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message || "User profile deleted successfully",
+        });
+        setDeleteDialogOpen(false);
+        setUserToDelete(null);
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to delete user profile",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting the user profile",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (selectedUserIds.size === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select users to delete",
+        variant: "destructive",
+      });
+      return;
+    }
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedUserIds.size === 0) return;
+
+    setIsDeleting(true);
+    try {
+      // Get profile IDs from selected user IDs
+      const selectedProfiles = filteredProfiles.filter(profile => 
+        selectedUserIds.has(profile.userId)
+      );
+      const profileIds = selectedProfiles.map(profile => profile.id);
+
+      const result = await bulkDeleteUserProfiles(profileIds);
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message || `Successfully deleted ${result.deletedCount || profileIds.length} user profile(s)`,
+        });
+        setSelectedUserIds(new Set());
+        setBulkDeleteDialogOpen(false);
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to delete user profiles",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting user profiles",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -232,6 +333,26 @@ export function UsersTableRealtime({
               )}
             </CardTitle>
           <div className="flex gap-2">
+            {selectedUserIds.size > 0 && (
+              <Button 
+                onClick={handleBulkDeleteClick}
+                variant="destructive" 
+                size="sm"
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Selected ({selectedUserIds.size})
+                  </>
+                )}
+              </Button>
+            )}
             <Button onClick={handleRefresh} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
@@ -352,6 +473,7 @@ export function UsersTableRealtime({
                       </div>
                     </TableCell>
                     <TableCell>
+                      <div className="flex items-center gap-2">
                       {onAssignCredits && (
                         <Button
                           variant="outline"
@@ -363,6 +485,17 @@ export function UsersTableRealtime({
                           Assign Credits
                         </Button>
                       )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteClick(profile)}
+                          className="flex items-center gap-2 text-destructive hover:text-destructive"
+                          disabled={isDeleting}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -401,6 +534,66 @@ export function UsersTableRealtime({
           </div>
         )}
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user profile for{' '}
+              <strong>{userToDelete?.fullName}</strong> ({userToDelete?.email}).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete{' '}
+              <strong>{selectedUserIds.size} user profile{selectedUserIds.size !== 1 ? 's' : ''}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                `Delete ${selectedUserIds.size} user${selectedUserIds.size !== 1 ? 's' : ''}`
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

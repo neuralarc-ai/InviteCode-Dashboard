@@ -39,6 +39,17 @@ export function CreditBalanceTable() {
     }).format(amount);
   };
 
+  // Format credits (Balance × 100)
+  const formatCredits = (balanceDollars: number | null | undefined): string => {
+    if (balanceDollars === null || balanceDollars === undefined || isNaN(balanceDollars)) {
+      return '0';
+    }
+    const credits = Math.round(balanceDollars * 100);
+    return new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: 0,
+    }).format(credits);
+  };
+
   // Format date
   const formatDate = (date: Date | null | undefined): string => {
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
@@ -189,8 +200,11 @@ export function CreditBalanceTable() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Balance</TableHead>
+                <TableHead>Credits</TableHead>
                 <TableHead>Total Purchased</TableHead>
+                <TableHead>Purchased Credits</TableHead>
                 <TableHead>Total Used</TableHead>
+                <TableHead>Used Credits</TableHead>
                 <TableHead>Last Updated</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -198,7 +212,7 @@ export function CreditBalanceTable() {
             <TableBody>
               {paginatedBalances.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={9} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
@@ -225,18 +239,33 @@ export function CreditBalanceTable() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono font-semibold text-green-600">
+                      <span className="font-mono font-semibold text-white">
                         {formatCurrency(balance.balanceDollars)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono">
+                      <span className="font-mono font-semibold text-white">
+                        {formatCredits(balance.balanceDollars)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-white">
                         {formatCurrency(balance.totalPurchased)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono">
+                      <span className="font-mono font-semibold text-white">
+                        {formatCredits(balance.totalPurchased)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-white">
                         {formatCurrency(balance.totalUsed)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono font-semibold text-white">
+                        {formatCredits(balance.totalUsed)}
                       </span>
                     </TableCell>
                     <TableCell>

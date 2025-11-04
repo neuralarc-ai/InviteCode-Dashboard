@@ -5,8 +5,8 @@ import {
 } from '@/components/ui/sidebar';
 import { PageHeader } from '@/components/page-header';
 import { StatCardsRealtime } from '@/components/dashboard/stat-cards-realtime';
-import { RecentWaitlistEntries } from '@/components/dashboard/recent-waitlist-entries';
-import { RecentUsedInviteCodes } from '@/components/dashboard/recent-used-invite-codes';
+import { RecentUsers } from '@/components/dashboard/recent-users';
+import { RecentCreditTransactions } from '@/components/dashboard/recent-credit-transactions';
 import { AnalyticsCharts } from '@/components/dashboard/analytics-charts';
 import { SharedSidebar } from '@/components/shared-sidebar';
 
@@ -24,8 +24,8 @@ export default function Dashboard() {
           
           {/* Recent Activity Grid */}
           <div className="grid gap-6 md:grid-cols-2">
-            <RecentWaitlistEntries />
-            <RecentUsedInviteCodes />
+            <RecentUsers />
+            <RecentCreditTransactions />
           </div>
           
           {/* Analytics Charts */}

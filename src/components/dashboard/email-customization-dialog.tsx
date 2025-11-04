@@ -221,13 +221,23 @@ function EmailSection({
           />
         </TabsContent>
 
-        <TabsContent value="preview" className="space-y-2 min-w-0">
-          <Label>Email Preview</Label>
-          <div className="border rounded-lg min-h-[250px] overflow-hidden overflow-x-auto">
-            <div 
-              className="prose max-w-none break-words"
-              dangerouslySetInnerHTML={{ __html: sectionData.htmlContent }}
-            />
+        <TabsContent value="preview" className="space-y-4 min-w-0">
+          <div className="space-y-2">
+            <Label>Email Preview (HTML Template)</Label>
+            <div className="border rounded-lg min-h-[250px] overflow-hidden overflow-x-auto">
+              <div 
+                className="prose max-w-none break-words"
+                dangerouslySetInnerHTML={{ __html: sectionData.htmlContent }}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Plain Text Content (as it will appear in the email)</Label>
+            <div className="border rounded-lg p-4 min-h-[150px] bg-muted/50 overflow-auto">
+              <pre className="whitespace-pre-wrap font-mono text-sm break-words">
+                {sectionData.textContent || '(No content)'}
+              </pre>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
@@ -493,16 +503,67 @@ export function EmailCustomizationDialog({
       const currentContent = emailData.sections[sectionKey].textContent;
       const enhancedContent = enhanceTextContent(currentContent);
       
-      setEmailData(prev => ({
-        ...prev,
-        sections: {
-          ...prev.sections,
-          [sectionKey]: {
-            textContent: enhancedContent,
-            htmlContent: convertTextToHtml(enhancedContent),
+      // Update HTML content based on section type
+      if (sectionKey === 'uptime') {
+        setEmailData(prev => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent: enhancedContent,
+              htmlContent: createUptimeHtmlTemplate({
+                logoBase64: emailImages.logo,
+                uptimeBodyBase64: emailImages.uptimeBody,
+                textContent: enhancedContent,
+                useCid: false, // Use base64 for preview
+              }),
+            },
           },
-        },
-      }));
+        }));
+      } else if (sectionKey === 'downtime') {
+        setEmailData(prev => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent: enhancedContent,
+              htmlContent: createDowntimeHtmlTemplate({
+                logoBase64: emailImages.logo,
+                downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody,
+                textContent: enhancedContent,
+                useCid: false, // Use base64 for preview
+              }),
+            },
+          },
+        }));
+      } else if (sectionKey === 'creditsAdded') {
+        setEmailData(prev => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent: enhancedContent,
+              htmlContent: createCreditsHtmlTemplate({
+                logoBase64: emailImages.logo,
+                creditsBodyBase64: emailImages.creditsBody,
+                textContent: enhancedContent,
+                useCid: false, // Use base64 for preview
+              }),
+            },
+          },
+        }));
+      } else {
+        setEmailData(prev => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent: enhancedContent,
+              htmlContent: convertTextToHtml(enhancedContent),
+            },
+          },
+        }));
+      }
     } catch (error) {
       console.error('Error enhancing email content:', error);
     } finally {

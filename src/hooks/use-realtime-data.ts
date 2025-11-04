@@ -354,6 +354,7 @@ export function useUserProfiles() {
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tableName, setTableName] = useState<string | null>(null);
 
   // Initial fetch function
   const fetchUserProfiles = async () => {
@@ -363,6 +364,7 @@ export function useUserProfiles() {
       // First, get user profiles - try both possible table names
       let profilesData = null;
       let profilesError = null;
+      let detectedTableName = 'user_profiles';
       
       // Try user_profiles first
       const result1 = await supabase
@@ -380,17 +382,30 @@ export function useUserProfiles() {
         
         profilesData = result2.data;
         profilesError = result2.error;
+        detectedTableName = 'user_profile';
       } else {
         profilesData = result1.data;
         profilesError = result1.error;
       }
 
-      console.log('Profiles query result:', { profilesData, profilesError });
+      console.log('Profiles query result:', { profilesData, profilesError, detectedTableName });
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
+        // Don't throw if table doesn't exist - just set empty array
+        if (profilesError.message.includes('does not exist')) {
+          console.log('User profiles table does not exist, returning empty array');
+          setUserProfiles([]);
+          setError(null);
+          setLoading(false);
+          setTableName(null);
+          return;
+        }
         throw profilesError;
       }
+
+      // Store the detected table name for use in subscriptions
+      setTableName(detectedTableName);
 
       if (!profilesData || profilesData.length === 0) {
         console.log('No user profiles found in database');
@@ -486,18 +501,89 @@ export function useUserProfiles() {
     await fetchUserProfiles();
   };
 
+  // Delete a single user profile
+  const deleteUserProfile = async (profileId: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch(`/api/delete-user-profile?profileId=${profileId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to delete user profile');
+      }
+
+      // Refresh the list after deletion
+      await fetchUserProfiles();
+
+      return { success: true, message: result.message || 'User profile deleted successfully' };
+    } catch (err) {
+      console.error('Error deleting user profile:', err);
+      return { 
+        success: false, 
+        message: err instanceof Error ? err.message : 'Failed to delete user profile' 
+      };
+    }
+  };
+
+  // Bulk delete user profiles
+  const bulkDeleteUserProfiles = async (profileIds: string[]): Promise<{ success: boolean; message: string; deletedCount?: number }> => {
+    try {
+      if (!profileIds || profileIds.length === 0) {
+        return { success: false, message: 'No profiles selected for deletion' };
+      }
+
+      const response = await fetch('/api/bulk-delete-user-profiles', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ profileIds }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to delete user profiles');
+      }
+
+      // Refresh the list after deletion
+      await fetchUserProfiles();
+
+      return { 
+        success: true, 
+        message: result.message || 'User profiles deleted successfully',
+        deletedCount: result.deletedCount 
+      };
+    } catch (err) {
+      console.error('Error bulk deleting user profiles:', err);
+      return { 
+        success: false, 
+        message: err instanceof Error ? err.message : 'Failed to delete user profiles' 
+      };
+    }
+  };
+
+  // Initial fetch
   useEffect(() => {
     fetchUserProfiles();
+  }, []);
 
-    // Set up real-time subscription
+  // Set up real-time subscription when table name is detected
+  useEffect(() => {
+    if (!tableName) {
+      return;
+    }
+
     const subscription = supabase
-      .channel('user_profiles_changes')
+      .channel(`user_profiles_changes_${tableName}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'user_profiles',
+          table: tableName,
         },
         (payload) => {
           console.log('Real-time user profiles update:', payload);
@@ -509,9 +595,9 @@ export function useUserProfiles() {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [tableName]);
 
-  return { userProfiles, loading, error, refreshUserProfiles };
+  return { userProfiles, loading, error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles };
 }
 
 export function useCreditUsage() {

@@ -4,30 +4,62 @@ import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { useWaitlistUsers, useInviteCodes } from '@/hooks/use-realtime-data';
-import { TrendingUp, KeyRound } from 'lucide-react';
+import { useCreditUsage, useUserProfiles, useCreditPurchases } from '@/hooks/use-realtime-data';
+import { TrendingUp, Users } from 'lucide-react';
 
-// Sample data for demonstration - replace with real data processing
-const generateWaitlistData = (users: any[]) => {
+// Generate user registration data for the last 7 days
+const generateUserRegistrationData = (users: any[]) => {
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
+    date.setHours(0, 0, 0, 0);
+    
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    const count = users.filter(user => {
+      const userDate = new Date(user.createdAt);
+      return userDate >= date && userDate <= dayEnd;
+    }).length;
+    
     return {
       date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      count: Math.floor(Math.random() * 10) + 1, // Replace with actual data
+      count,
     };
   });
   return last7Days;
 };
 
-const generateInviteCodeData = (codes: any[]) => {
+// Generate credit usage data for the last 7 days
+const generateCreditUsageData = (creditUsage: any[], creditPurchases: any[]) => {
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
+    date.setHours(0, 0, 0, 0);
+    
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    // Get usage transactions for this day
+    const dayUsage = creditUsage.filter(transaction => {
+      const transactionDate = new Date(transaction.latestCreatedAt);
+      return transactionDate >= date && transactionDate <= dayEnd;
+    });
+    
+    const used = dayUsage.reduce((sum, t) => sum + Math.round(t.totalAmountDollars * 100), 0);
+    
+    // Get purchase transactions for this day
+    const dayPurchases = creditPurchases.filter(purchase => {
+      const purchaseDate = purchase.completedAt ? new Date(purchase.completedAt) : new Date(purchase.createdAt);
+      return purchaseDate >= date && purchaseDate <= dayEnd;
+    });
+    
+    const purchased = dayPurchases.reduce((sum, p) => sum + Math.round(p.amountDollars * 100), 0);
+    
     return {
       date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      used: Math.floor(Math.random() * 5), // Replace with actual data
-      generated: Math.floor(Math.random() * 8) + 2,
+      used,
+      purchased,
     };
   });
   return last7Days;
@@ -35,22 +67,23 @@ const generateInviteCodeData = (codes: any[]) => {
 
 
 export function AnalyticsCharts() {
-  const { users, loading: usersLoading, error: usersError } = useWaitlistUsers();
-  const { codes, loading: codesLoading, error: codesError } = useInviteCodes();
+  const { userProfiles, loading: usersLoading, error: usersError } = useUserProfiles();
+  const { creditUsage, loading: creditLoading, error: creditError } = useCreditUsage();
+  const { creditPurchases, loading: purchasesLoading, error: purchasesError } = useCreditPurchases();
 
-  const waitlistData = React.useMemo(() => generateWaitlistData(users), [users]);
-  const inviteCodeData = React.useMemo(() => generateInviteCodeData(codes), [codes]);
+  const userData = React.useMemo(() => generateUserRegistrationData(userProfiles), [userProfiles]);
+  const creditData = React.useMemo(() => generateCreditUsageData(creditUsage, creditPurchases), [creditUsage, creditPurchases]);
 
-  if (usersLoading || codesLoading) {
+  if (usersLoading || creditLoading || purchasesLoading) {
     return (
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Waitlist Trends
+              <Users className="h-5 w-5" />
+              User Registration Trends
             </CardTitle>
-            <CardDescription>Daily waitlist signups over the last 7 days</CardDescription>
+            <CardDescription>Daily user registrations over the last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] bg-muted animate-pulse rounded" />
@@ -59,10 +92,10 @@ export function AnalyticsCharts() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <KeyRound className="h-5 w-5" />
-              Invite Code Usage
+              <TrendingUp className="h-5 w-5" />
+              Credit Usage Trends
             </CardTitle>
-            <CardDescription>Daily invite code usage over the last 7 days</CardDescription>
+            <CardDescription>Daily credit usage over the last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] bg-muted animate-pulse rounded" />
@@ -72,16 +105,16 @@ export function AnalyticsCharts() {
     );
   }
 
-  if (usersError || codesError) {
+  if (usersError || creditError || purchasesError) {
     return (
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Waitlist Trends
+              <Users className="h-5 w-5" />
+              User Registration Trends
             </CardTitle>
-            <CardDescription>Daily waitlist signups over the last 7 days</CardDescription>
+            <CardDescription>Daily user registrations over the last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-8 text-destructive">
@@ -92,10 +125,10 @@ export function AnalyticsCharts() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <KeyRound className="h-5 w-5" />
-              Invite Code Usage
+              <TrendingUp className="h-5 w-5" />
+              Credit Usage Trends
             </CardTitle>
-            <CardDescription>Daily invite code usage over the last 7 days</CardDescription>
+            <CardDescription>Daily credit usage over the last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-center py-8 text-destructive">
@@ -111,26 +144,26 @@ export function AnalyticsCharts() {
     <div className="space-y-6">
       {/* Charts Grid */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Waitlist Trends Chart */}
+        {/* User Registration Trends Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Waitlist Trends
+              <Users className="h-5 w-5" />
+              User Registration Trends
             </CardTitle>
-            <CardDescription>Daily waitlist signups over the last 7 days</CardDescription>
+            <CardDescription>Daily user registrations over the last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer
               config={{
-                waitlist: {
-                  label: 'Waitlist Signups',
+                registrations: {
+                  label: 'User Registrations',
                 },
               }}
               className="h-[300px]"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={waitlistData}>
+                <BarChart data={userData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="date" 
@@ -147,7 +180,7 @@ export function AnalyticsCharts() {
                     content={
                       <ChartTooltipContent
                         labelFormatter={(value) => `Date: ${value}`}
-                        formatter={(value) => [value, 'Signups']}
+                        formatter={(value) => [value, 'Registrations']}
                       />
                     }
                   />
@@ -163,29 +196,29 @@ export function AnalyticsCharts() {
           </CardContent>
         </Card>
 
-        {/* Invite Code Usage Chart */}
+        {/* Credit Usage Trends Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <KeyRound className="h-5 w-5" />
-              Invite Code Usage
+              <TrendingUp className="h-5 w-5" />
+              Credit Usage Trends
             </CardTitle>
-            <CardDescription>Daily invite code usage over the last 7 days</CardDescription>
+            <CardDescription>Daily credit usage over the last 7 days</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer
               config={{
                 used: {
-                  label: 'Used Codes',
+                  label: 'Credits Used',
                 },
-                generated: {
-                  label: 'Generated Codes',
+                purchased: {
+                  label: 'Credits Purchased',
                 },
               }}
               className="h-[300px]"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={inviteCodeData}>
+                <LineChart data={creditData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="date" 
@@ -211,13 +244,15 @@ export function AnalyticsCharts() {
                     stroke="hsl(var(--chart-3))" 
                     strokeWidth={2}
                     dot={{ fill: 'hsl(var(--chart-3))', strokeWidth: 2, r: 4 }}
+                    name="Credits Used"
                   />
                   <Line 
                     type="monotone" 
-                    dataKey="generated" 
+                    dataKey="purchased" 
                     stroke="hsl(var(--chart-4))" 
                     strokeWidth={2}
                     dot={{ fill: 'hsl(var(--chart-4))', strokeWidth: 2, r: 4 }}
+                    name="Credits Purchased"
                   />
                 </LineChart>
               </ResponsiveContainer>
