@@ -1,8 +1,9 @@
 import { parseEmailText } from "./text-parser";
 
 interface UptimeTemplateOptions {
-  logoBase64: string | null;
-  uptimeBodyBase64: string | null;
+  logoBase64?: string | null; // Optional: for base64 data URIs (Resend API)
+  uptimeBodyBase64?: string | null; // Optional: for base64 data URIs (Resend API)
+  useCid?: boolean; // If true, use CID references (for SMTP). Default: true
   textContent?: string;
   defaultGreeting?: string;
   defaultParagraphs?: string[];
@@ -15,6 +16,7 @@ export function createUptimeHtmlTemplate(
   const {
     logoBase64,
     uptimeBodyBase64,
+    useCid = true, // Default to CID for SMTP compatibility
     textContent,
     defaultGreeting = "Greetings from Helium,",
     defaultParagraphs = [
@@ -25,11 +27,17 @@ export function createUptimeHtmlTemplate(
     defaultSignoff = "Thanks,<br>The Helium Team",
   } = options;
 
-  const logoImg = logoBase64
-    ? `<img src="${logoBase64}" width="56" height="57" style="display:block;width:100%;height:auto;max-width:100%">`
+  // Use CID references for SMTP (default), or base64 data URIs for Resend API
+  const logoImg = useCid
+    ? `<img src="cid:email-logo" width="56" height="57" style="display:block;width:100%;height:auto;max-width:100%" alt="Helium Logo">`
+    : logoBase64
+    ? `<img src="${logoBase64}" width="56" height="57" style="display:block;width:100%;height:auto;max-width:100%" alt="Helium Logo">`
     : "";
-  const uptimeBodyImg = uptimeBodyBase64
-    ? `<img src="${uptimeBodyBase64}" width="560" height="420" style="display:block;width:100%;height:auto;max-width:100%">`
+  
+  const uptimeBodyImg = useCid
+    ? `<img src="cid:uptime-body" width="560" height="420" style="display:block;width:100%;height:auto;max-width:100%" alt="System Back Online">`
+    : uptimeBodyBase64
+    ? `<img src="${uptimeBodyBase64}" width="560" height="420" style="display:block;width:100%;height:auto;max-width:100%" alt="System Back Online">`
     : "";
 
   // Parse text content

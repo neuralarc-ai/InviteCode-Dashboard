@@ -7,8 +7,7 @@ import { z } from 'zod';
 import { updateWaitlistUser, generateInviteCodes, markInviteCodeAsUsed, addEmailToInviteCode } from '@/lib/data';
 import { supabaseAdmin } from '@/lib/supabase';
 import { generateInvitationEmail } from '@/ai/flows/automated-invitation-emails';
-import fs from 'fs';
-import path from 'path';
+import { getInviteEmailAttachments } from '@/lib/email-utils';
 
 const sendInviteSchema = z.object({
   userId: z.string().optional(),
@@ -72,40 +71,8 @@ export async function sendInviteEmailAction(formData: FormData) {
     // If you want AI-generated content, enable below; by default we use the hand-crafted template.
     // const emailContent = await generateInvitationEmail({ userName, inviteCode, companyName: companyName || '' });
 
-    // Read the Email.png image file
-    let imageBuffer;
-    try {
-      // Try multiple possible paths for the image
-      const possiblePaths = [
-        path.join(process.cwd(), 'public', 'images', 'Email.png'),           // Production path
-        path.join(process.cwd(), 'src', 'public', 'images', 'Email.png'),    // Development path
-        path.join(__dirname, '..', '..', 'public', 'images', 'Email.png'),   // Relative from lib
-        path.join(__dirname, '..', '..', 'src', 'public', 'images', 'Email.png') // Relative from lib
-      ];
-      
-      let imagePath = null;
-      for (const testPath of possiblePaths) {
-        if (fs.existsSync(testPath)) {
-          imagePath = testPath;
-          break;
-        }
-      }
-      
-      if (imagePath) {
-        imageBuffer = fs.readFileSync(imagePath);
-        console.log('Email image loaded successfully from:', imagePath);
-        console.log('Image size:', imageBuffer.length, 'bytes');
-      } else {
-        console.log('Email image not found in any of the expected locations:', possiblePaths);
-        console.log('Current working directory:', process.cwd());
-        console.log('__dirname:', __dirname);
-        imageBuffer = null;
-      }
-    } catch (imageError) {
-      console.error('Failed to load email image:', imageError);
-      // Continue without image attachment
-      imageBuffer = null;
-    }
+    // Get email attachments with CID references
+    const attachments = getInviteEmailAttachments();
 
     // Email content with simplified, clean layout and black/white theme
     let htmlContent = `
@@ -192,16 +159,7 @@ Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
     // Keep the custom template by default. To switch to AI content, uncomment the block above.
 
-    // Prepare email attachments
-    const attachments = [];
-    if (imageBuffer) {
-      attachments.push({
-        filename: 'Email.png',
-        content: imageBuffer,
-        cid: 'email-logo', // Content-ID for referencing in HTML
-        contentType: 'image/png'
-      });
-    }
+    // Attachments are already prepared above using getInviteEmailAttachments()
 
     // Send email
     console.log('Sending email to:', email);
@@ -314,40 +272,8 @@ export async function sendHeliumInviteEmailAction(formData: FormData) {
       return { success: false, message: 'SMTP configuration error. Please check email settings.' };
     }
 
-    // Read the Email.png image file
-    let imageBuffer;
-    try {
-      // Try multiple possible paths for the image
-      const possiblePaths = [
-        path.join(process.cwd(), 'public', 'images', 'Email.png'),           // Production path
-        path.join(process.cwd(), 'src', 'public', 'images', 'Email.png'),    // Development path
-        path.join(__dirname, '..', '..', 'public', 'images', 'Email.png'),   // Relative from lib
-        path.join(__dirname, '..', '..', 'src', 'public', 'images', 'Email.png') // Relative from lib
-      ];
-      
-      let imagePath = null;
-      for (const testPath of possiblePaths) {
-        if (fs.existsSync(testPath)) {
-          imagePath = testPath;
-          break;
-        }
-      }
-      
-      if (imagePath) {
-        imageBuffer = fs.readFileSync(imagePath);
-        console.log('Email image loaded successfully from:', imagePath);
-        console.log('Image size:', imageBuffer.length, 'bytes');
-      } else {
-        console.log('Email image not found in any of the expected locations:', possiblePaths);
-        console.log('Current working directory:', process.cwd());
-        console.log('__dirname:', __dirname);
-        imageBuffer = null;
-      }
-    } catch (imageError) {
-      console.error('Failed to load email image:', imageError);
-      // Continue without image attachment
-      imageBuffer = null;
-    }
+    // Get email attachments with CID references
+    const attachments = getInviteEmailAttachments();
 
     // Email content with simplified, clean layout and background color #D4D5D0
     const emailContent = `
@@ -428,16 +354,7 @@ https://he2.ai
 
 Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
-    // Prepare email attachments
-    const attachments = [];
-    if (imageBuffer) {
-      attachments.push({
-        filename: 'Email.png',
-        content: imageBuffer,
-        cid: 'email-logo', // Content-ID for referencing in HTML
-        contentType: 'image/png'
-      });
-    }
+    // Attachments are already prepared above using getInviteEmailAttachments()
 
     // Send email
     console.log('Sending email to:', email);

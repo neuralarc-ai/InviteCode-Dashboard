@@ -2,32 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { supabaseAdmin } from '@/lib/supabase';
 import { createDowntimeHtmlTemplate } from '@/lib/email-templates';
-import fs from 'fs';
-import path from 'path';
-
-// Helper function to find and convert image to base64
-const getImageBase64 = (imageName: string): string | null => {
-  const possiblePaths = [
-    path.join(process.cwd(), 'public', 'images', imageName),
-    path.join(process.cwd(), 'src', 'public', 'images', imageName),
-    path.join(__dirname, '..', '..', '..', '..', 'public', 'images', imageName),
-  ];
-
-  for (const imagePath of possiblePaths) {
-    if (fs.existsSync(imagePath)) {
-      try {
-        const imageBuffer = fs.readFileSync(imagePath);
-        const base64 = imageBuffer.toString('base64');
-        const mimeType = imageName.endsWith('.png') ? 'image/png' : 'image/jpeg';
-        return `data:${mimeType};base64,${base64}`;
-      } catch (error) {
-        console.error(`Failed to read image ${imageName}:`, error);
-        continue;
-      }
-    }
-  }
-  return null;
-};
+import { getDowntimeAttachments } from '@/lib/email-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -172,16 +147,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch base64 images
-    const logoBase64 = getImageBase64('email-logo.png');
-    const downtimeBodyBase64 = getImageBase64('downtime-body.png') || getImageBase64('uptime-body.png'); // Fallback to uptime image if downtime image doesn't exist
+    // Get email attachments with CID references
+    const attachments = getDowntimeAttachments();
     
     // Email template - use custom content if provided, otherwise use defaults
     const emailSubject = customEmailData?.subject || 'Scheduled Downtime: Helium will be unavailable for 1 hour';
     
+    // Use CID references for images (useCid defaults to true)
     const emailContent = customEmailData?.htmlContent || createDowntimeHtmlTemplate({
-      logoBase64: logoBase64,
-      downtimeBodyBase64: downtimeBodyBase64,
+      useCid: true, // Use CID references for SMTP MIME attachments
       textContent: `Scheduled Downtime: Helium will be unavailable for 1 hour
 
 Greetings from Helium,
@@ -223,6 +197,7 @@ The Helium Team`;
           subject: emailSubject,
           text: textContent,
           html: emailContent,
+          attachments: attachments, // Attach images as MIME parts with CID references
         });
 
         console.log(`Email sent to ${profile.email}:`, info.messageId);

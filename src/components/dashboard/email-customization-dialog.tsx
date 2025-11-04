@@ -112,6 +112,7 @@ const createDefaultEmailData = (logoBase64?: string | null, uptimeBodyBase64?: s
         logoBase64: logoBase64 || null,
         uptimeBodyBase64: uptimeBodyBase64 || null,
         textContent: defaultSectionContent.uptime,
+        useCid: false, // Use base64 for preview
       }),
     },
     downtime: {
@@ -120,6 +121,7 @@ const createDefaultEmailData = (logoBase64?: string | null, uptimeBodyBase64?: s
         logoBase64: logoBase64 || null,
         downtimeBodyBase64: downtimeBodyBase64 || uptimeBodyBase64 || null, // Use downtime image if available, otherwise fallback to uptime image
         textContent: defaultSectionContent.downtime,
+        useCid: false, // Use base64 for preview
       }),
     },
     creditsAdded: {
@@ -128,6 +130,7 @@ const createDefaultEmailData = (logoBase64?: string | null, uptimeBodyBase64?: s
         logoBase64: logoBase64 || null,
         creditsBodyBase64: creditsBodyBase64 || null,
         textContent: defaultSectionContent.creditsAdded,
+        useCid: false, // Use base64 for preview
       }),
     },
     activity: {
@@ -289,6 +292,7 @@ export function EmailCustomizationDialog({
                     logoBase64: data.images.logo,
                     uptimeBodyBase64: data.images.uptimeBody,
                     textContent: prev.sections.uptime.textContent,
+                    useCid: false, // Use base64 for preview
                   }),
                 },
                 downtime: {
@@ -297,6 +301,7 @@ export function EmailCustomizationDialog({
                     logoBase64: data.images.logo,
                     downtimeBodyBase64: data.images.downtimeBody || data.images.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
                     textContent: prev.sections.downtime.textContent,
+                    useCid: false, // Use base64 for preview
                   }),
                 },
                 creditsAdded: {
@@ -305,6 +310,7 @@ export function EmailCustomizationDialog({
                     logoBase64: data.images.logo,
                     creditsBodyBase64: data.images.creditsBody,
                     textContent: prev.sections.creditsAdded.textContent,
+                    useCid: false, // Use base64 for preview
                   }),
                 },
               },
@@ -336,6 +342,7 @@ export function EmailCustomizationDialog({
               logoBase64: emailImages.logo,
               uptimeBodyBase64: emailImages.uptimeBody,
               textContent,
+              useCid: false, // Use base64 for preview
             }),
           },
         },
@@ -352,6 +359,7 @@ export function EmailCustomizationDialog({
               logoBase64: emailImages.logo,
               downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
               textContent,
+              useCid: false, // Use base64 for preview
             }),
           },
         },
@@ -368,6 +376,7 @@ export function EmailCustomizationDialog({
               logoBase64: emailImages.logo,
               creditsBodyBase64: emailImages.creditsBody,
               textContent,
+              useCid: false, // Use base64 for preview
             }),
           },
         },
@@ -401,6 +410,7 @@ export function EmailCustomizationDialog({
               logoBase64: emailImages.logo,
               uptimeBodyBase64: emailImages.uptimeBody,
               textContent: defaultContent,
+              useCid: false, // Use base64 for preview
             }),
           },
         },
@@ -417,6 +427,7 @@ export function EmailCustomizationDialog({
               logoBase64: emailImages.logo,
               downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
               textContent: defaultContent,
+              useCid: false, // Use base64 for preview
             }),
           },
         },
@@ -433,6 +444,7 @@ export function EmailCustomizationDialog({
               logoBase64: emailImages.logo,
               creditsBodyBase64: emailImages.creditsBody,
               textContent: defaultContent,
+              useCid: false, // Use base64 for preview
             }),
           },
         },
@@ -499,60 +511,46 @@ export function EmailCustomizationDialog({
   };
 
   // Get the active section's content for sending
-  const getActiveSectionContent = (): { textContent: string; htmlContent: string } => {
+  // Note: When sending, regenerate HTML with CID references for SMTP attachments
+  // When previewing, use base64 data URIs
+  const getActiveSectionContent = (forSending: boolean = false): { textContent: string; htmlContent: string } => {
     const section = emailData.sections[activeTab];
     
-    // For uptime section, ensure HTML is generated with images if needed
+    // For uptime section, regenerate HTML with appropriate image mode
     if (activeTab === 'uptime') {
-      // If htmlContent is missing or doesn't include images, regenerate it
-      if (!section.htmlContent || (!section.htmlContent.includes('data:image') && (emailImages.logo || emailImages.uptimeBody))) {
-        const regeneratedHtml = createUptimeHtmlTemplate({
-          logoBase64: emailImages.logo,
-          uptimeBodyBase64: emailImages.uptimeBody,
-          textContent: section.textContent,
-        });
-        return {
-          textContent: section.textContent,
-          htmlContent: regeneratedHtml,
-        };
-      }
+      const regeneratedHtml = createUptimeHtmlTemplate({
+        logoBase64: emailImages.logo,
+        uptimeBodyBase64: emailImages.uptimeBody,
+        textContent: section.textContent,
+        useCid: forSending, // Use CID when sending, base64 for preview
+      });
       return {
         textContent: section.textContent,
-        htmlContent: section.htmlContent,
+        htmlContent: regeneratedHtml,
       };
     } else if (activeTab === 'downtime') {
-      // For downtime section, ensure HTML is generated with images if needed
-      if (!section.htmlContent || (!section.htmlContent.includes('data:image') && (emailImages.logo || emailImages.uptimeBody))) {
-        const regeneratedHtml = createDowntimeHtmlTemplate({
-          logoBase64: emailImages.logo,
-          downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
-          textContent: section.textContent,
-        });
-        return {
-          textContent: section.textContent,
-          htmlContent: regeneratedHtml,
-        };
-      }
+      // For downtime section, regenerate HTML with appropriate image mode
+      const regeneratedHtml = createDowntimeHtmlTemplate({
+        logoBase64: emailImages.logo,
+        downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
+        textContent: section.textContent,
+        useCid: forSending, // Use CID when sending, base64 for preview
+      });
       return {
         textContent: section.textContent,
-        htmlContent: section.htmlContent,
+        htmlContent: regeneratedHtml,
       };
     } else if (activeTab === 'creditsAdded') {
-      // For credits added section, ensure HTML is generated with images if needed
-      if (!section.htmlContent || (!section.htmlContent.includes('data:image') && (emailImages.logo || emailImages.creditsBody))) {
-        const regeneratedHtml = createCreditsHtmlTemplate({
-          logoBase64: emailImages.logo,
-          creditsBodyBase64: emailImages.creditsBody,
-          textContent: section.textContent,
-        });
-        return {
-          textContent: section.textContent,
-          htmlContent: regeneratedHtml,
-        };
-      }
+      // For credits added section, regenerate HTML with appropriate image mode
+      const regeneratedHtml = createCreditsHtmlTemplate({
+        logoBase64: emailImages.logo,
+        creditsBodyBase64: emailImages.creditsBody,
+        textContent: section.textContent,
+        useCid: forSending, // Use CID when sending, base64 for preview
+      });
       return {
         textContent: section.textContent,
-        htmlContent: section.htmlContent,
+        htmlContent: regeneratedHtml,
       };
     } else {
       // For simple templates, return as-is (they already have html wrapper)
@@ -564,7 +562,7 @@ export function EmailCustomizationDialog({
   };
 
   const handleSend = async (selectedOnly: boolean = false) => {
-    const activeContent = getActiveSectionContent();
+    const activeContent = getActiveSectionContent(true); // Use CID for sending
     const emailDataToSend: EmailData = {
       ...emailData,
       textContent: activeContent.textContent,
@@ -575,7 +573,7 @@ export function EmailCustomizationDialog({
 
   const handleSendToIndividual = async () => {
     if (individualEmail.trim()) {
-      const activeContent = getActiveSectionContent();
+      const activeContent = getActiveSectionContent(true); // Use CID for sending
       
       // Ensure we have valid content
       if (!activeContent.textContent || !activeContent.htmlContent) {

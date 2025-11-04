@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import nodemailer from 'nodemailer';
-import fs from 'fs';
-import path from 'path';
+import { getInviteEmailAttachments } from '@/lib/email-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,14 +80,8 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Read the Email.png image file
-    let imageBuffer;
-    try {
-      const imagePath = path.join(process.cwd(), 'public', 'images', 'Email.png');
-      imageBuffer = fs.readFileSync(imagePath);
-    } catch (error) {
-      console.warn('Could not read Email.png image file:', error);
-    }
+    // Get email attachments with CID references
+    const attachments = getInviteEmailAttachments();
 
     // Create reminder email template
     const emailSubject = 'Reminder: Your Helium Invite Code is Still Waiting for You';
@@ -97,7 +90,7 @@ export async function POST(request: NextRequest) {
     <html>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; margin-bottom: 30px;">
-          ${imageBuffer ? '<img src="cid:email-logo" alt="Helium Logo" style="max-width: 200px; height: auto;">' : ''}
+          <img src="cid:email-logo" alt="Helium Logo" style="max-width: 200px; height: auto;">
         </div>
         
         <h2 style="color: #2563eb;">Your Helium Invite Code is Still Waiting for You</h2>
@@ -166,21 +159,7 @@ https://he2.ai
 
 Helium AI by Neural Arc Inc. https://neuralarc.ai`;
 
-    // Prepare email attachments
-    const attachments: Array<{
-      filename: string;
-      content: Buffer;
-      cid: string;
-      contentType: string;
-    }> = [];
-    if (imageBuffer) {
-      attachments.push({
-        filename: 'Email.png',
-        content: imageBuffer,
-        cid: 'email-logo', // Content-ID for referencing in HTML
-        contentType: 'image/png'
-      });
-    }
+    // Attachments are already prepared above using getInviteEmailAttachments()
 
     // Send reminder emails
     const emailPromises = emails.map(async (email: string) => {

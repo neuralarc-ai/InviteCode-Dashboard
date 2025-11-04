@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { supabaseAdmin } from '@/lib/supabase';
+import { createEmailAttachments, EMAIL_IMAGES } from '@/lib/email-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -99,6 +100,29 @@ export async function POST(request: NextRequest) {
     const emailContent = customEmailData.htmlContent;
     const textContent = customEmailData.textContent;
 
+    // Detect if HTML contains CID references and attach corresponding images
+    const attachments: Array<{
+      filename: string;
+      content: Buffer;
+      cid: string;
+      contentType: string;
+      contentDisposition?: string;
+    }> = [];
+
+    // Check for common CID references in the HTML content
+    if (emailContent.includes('cid:email-logo')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.logo]));
+    }
+    if (emailContent.includes('cid:downtime-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.downtimeBody]));
+    }
+    if (emailContent.includes('cid:uptime-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.uptimeBody]));
+    }
+    if (emailContent.includes('cid:credits-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.creditsBody]));
+    }
+
     // Send email to individual user
     try {
       const info = await transporter.sendMail({
@@ -107,6 +131,7 @@ export async function POST(request: NextRequest) {
         subject: emailSubject,
         text: textContent,
         html: emailContent,
+        attachments: attachments.length > 0 ? attachments : undefined, // Attach images if CID references found
       });
 
       console.log(`Email sent to ${individualEmail}:`, info.messageId);
