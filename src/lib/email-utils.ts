@@ -34,8 +34,8 @@ export const EMAIL_IMAGES: Record<string, ImageAttachment> = {
     contentType: 'image/png',
   },
   creditsBody: {
-    filename: 'credits-body.png',
-    path: 'credits-body.png',
+    filename: '1Kcredits.png',
+    path: '1Kcredits.png',
     cid: 'credits-body',
     contentType: 'image/png',
   },

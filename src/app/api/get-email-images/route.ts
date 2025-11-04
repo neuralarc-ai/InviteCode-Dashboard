@@ -7,7 +7,7 @@ export async function GET() {
     const logoBase64 = getImageBase64('email-logo.png');
     const downtimeBodyBase64 = getImageBase64('downtime-body.png');
     const uptimeBodyBase64 = getImageBase64('uptime-body.png');
-    const creditsBodyBase64 = getImageBase64('credits-body.png');
+    const creditsBodyBase64 = getImageBase64('1Kcredits.png');
 
     return NextResponse.json({
       success: true,

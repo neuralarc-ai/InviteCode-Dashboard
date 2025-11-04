@@ -3,7 +3,7 @@ import Image from "next/image";
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <div className={cn("flex pb-4", className)}>
+    <div className={cn("flex pb-4 px-8", className)}>
       <Image
         src="/images/Helium_logo.png"
         alt="Helium Logo"
