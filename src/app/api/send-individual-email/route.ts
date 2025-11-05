@@ -131,17 +131,52 @@ export async function POST(request: NextRequest) {
         subject: emailSubject,
         text: textContent,
         html: emailContent,
-        attachments: attachments.length > 0 ? attachments : undefined, // Attach images if CID references found
+        attachments: attachments.length > 0 ? attachments as any : undefined, // Attach images if CID references found
       });
 
-      console.log(`Email sent to ${individualEmail}:`, info.messageId);
+      const messageId = (info as any).messageId || 'unknown';
+      console.log(`Email sent to ${individualEmail}:`, messageId);
+      
+      // If this is a credits email, mark user as sent
+      // Check for credits-related content in multiple ways
+      const isCreditsEmail = emailContent.includes('cid:credits-body') || 
+                             emailContent.includes('credits-body') ||
+                             emailSubject.toLowerCase().includes('credit') ||
+                             emailSubject.toLowerCase().includes('credits') ||
+                             textContent.toLowerCase().includes('credit') ||
+                             textContent.toLowerCase().includes('credits');
+      
+      if (isCreditsEmail) {
+        try {
+          // Get user ID from email
+          const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+          const user = authUsers?.users?.find(u => u.email === individualEmail);
+          if (user) {
+            // Mark user as credits email sent
+            const markResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/mark-credits-email-sent`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userIds: [user.id] }),
+            });
+            
+            if (!markResponse.ok) {
+              const markResult = await markResponse.json();
+              console.warn(`Failed to mark user as sent for ${individualEmail}:`, markResult);
+            } else {
+              console.log(`Marked user ${user.id} (${individualEmail}) as credits email sent`);
+            }
+          }
+        } catch (markError) {
+          console.warn(`Failed to mark user as sent for ${individualEmail}:`, markError);
+        }
+      }
       
       return NextResponse.json({
         success: true,
         message: `Email sent successfully to ${individualEmail}`,
         details: {
           recipient: individualEmail,
-          messageId: info.messageId
+          messageId: messageId
         }
       });
 

@@ -226,6 +226,34 @@ The Helium Team`;
 
         console.log(`Email sent to ${profile.email}:`, info.messageId);
         successCount++;
+        
+        // If this is a credits email, mark user as sent
+        // Check for credits-related content in multiple ways
+        const isCreditsEmail = emailContent.includes('cid:credits-body') || 
+                               emailContent.includes('credits-body') ||
+                               emailSubject.toLowerCase().includes('credit') ||
+                               emailSubject.toLowerCase().includes('credits') ||
+                               textContent.toLowerCase().includes('credit') ||
+                               textContent.toLowerCase().includes('credits');
+        
+        if (isCreditsEmail) {
+          try {
+            const markResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/mark-credits-email-sent`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userIds: [profile.userId] }),
+            });
+            
+            if (!markResponse.ok) {
+              const markResult = await markResponse.json();
+              console.warn(`Failed to mark user ${profile.userId} as sent:`, markResult);
+            } else {
+              console.log(`Marked user ${profile.userId} as credits email sent`);
+            }
+          } catch (markError) {
+            console.warn(`Failed to mark user ${profile.userId} as sent:`, markError);
+          }
+        }
       } catch (emailError) {
         console.error(`Failed to send email to ${profile.email}:`, emailError);
         errors.push(`${profile.email}: ${emailError}`);

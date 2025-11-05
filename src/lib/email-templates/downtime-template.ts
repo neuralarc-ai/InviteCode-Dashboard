@@ -47,9 +47,20 @@ export function createDowntimeHtmlTemplate(
     parsed.paragraphs.length > 0 ? parsed.paragraphs : defaultParagraphs;
   const signoffText = parsed.signoff || defaultSignoff;
 
+  // Distribute paragraphs across the three display sections
+  // First paragraph -> mainText, second paragraph -> secondaryText, rest -> closingText
   const mainText = paragraphs[0] || "";
   const secondaryText = paragraphs[1] || "";
-  const closingText = paragraphs[2] || "";
+  const closingText = paragraphs.length > 2 
+    ? paragraphs.slice(2).join("<br><br>")
+    : "";
+
+  // Reduced spacing between secondaryText and closingText (2px instead of 8px)
+  const spacingBetweenSecondaryAndClosing = closingText 
+    ? `<tr>
+<td style="font-size:0;height:2px" height="2">&nbsp;</td>
+</tr>`
+    : '';
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
@@ -158,9 +169,7 @@ ${downtimeBodyImg}
 ${secondaryText}<br>
 </td>
 </tr>
-<tr>
-<td style="font-size:0;height:8px" height="8">&nbsp;</td>
-</tr>
+${spacingBetweenSecondaryAndClosing}
 <tr>
 <td dir="ltr" style="color:#333333;font-size:18.6667px;white-space:pre-wrap;line-height:1.84;text-align:left;padding:0px 20px">
 ${closingText}<br>

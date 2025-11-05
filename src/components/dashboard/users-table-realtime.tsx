@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, RefreshCw, User, Mail, Calendar, CreditCard, Trash2, Loader2 } from 'lucide-react';
+import { Search, RefreshCw, User, Mail, Calendar, CreditCard, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 import { useUserProfiles } from '@/hooks/use-realtime-data';
 import { useToast } from '@/hooks/use-toast';
@@ -273,6 +273,57 @@ export function UsersTableRealtime({
       .slice(0, 2);
   };
 
+  // Check if user has credits email sent
+  const isCreditsEmailSent = (profile: UserProfile): boolean => {
+    return !!(profile.metadata?.credits_email_sent_at);
+  };
+
+  // Check if user has credits assigned
+  const isCreditsAssigned = (profile: UserProfile): boolean => {
+    return !!(profile.metadata?.credits_assigned);
+  };
+
+  // Get status badge for user
+  const getStatusBadge = (profile: UserProfile) => {
+    const sent = isCreditsEmailSent(profile);
+    const assigned = isCreditsAssigned(profile);
+    
+    if (sent && assigned) {
+      return (
+        <div className="flex flex-col gap-1">
+          <Badge variant="default" className="bg-green-600 hover:bg-green-700 flex items-center gap-1 w-fit">
+            <CheckCircle2 className="h-3 w-3" />
+            Sent
+          </Badge>
+          <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 flex items-center gap-1 w-fit">
+            <CheckCircle2 className="h-3 w-3" />
+            Assigned
+          </Badge>
+        </div>
+      );
+    } else if (sent) {
+      return (
+        <Badge variant="default" className="bg-green-600 hover:bg-green-700 flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          Sent
+        </Badge>
+      );
+    } else if (assigned) {
+      return (
+        <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          Assigned
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="outline" className="text-muted-foreground">
+          Not Sent
+        </Badge>
+      );
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -398,6 +449,7 @@ export function UsersTableRealtime({
                 </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>User ID</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
@@ -407,7 +459,7 @@ export function UsersTableRealtime({
             <TableBody>
               {paginatedProfiles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
@@ -454,6 +506,9 @@ export function UsersTableRealtime({
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">{profile.email}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(profile)}
                     </TableCell>
                     <TableCell>
                       <code className="text-xs bg-muted px-2 py-1 rounded">

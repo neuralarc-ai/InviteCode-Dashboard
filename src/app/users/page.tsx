@@ -60,6 +60,8 @@ export default function UsersPage() {
         if (selectedOnly) {
           setSelectedUserIds(new Set());
         }
+        // Note: Real-time subscription should automatically refresh the user profiles
+        // when the metadata is updated in the database
       } else {
         toast({
           title: "Error",
@@ -105,6 +107,8 @@ export default function UsersPage() {
           title: "Success",
           description: `Email sent successfully to ${emailAddress}!`,
         });
+        // Note: Real-time subscription should automatically refresh the user profiles
+        // when the metadata is updated in the database
       } else {
         toast({
           title: "Error",
@@ -135,6 +139,11 @@ export default function UsersPage() {
       title: "Success",
       description: "Credits assigned successfully!",
     });
+    // Refresh user profiles to show updated status
+    // The real-time subscription should handle this, but we'll also trigger a manual refresh
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   return (
@@ -149,18 +158,20 @@ export default function UsersPage() {
           <main className="flex-1 space-y-6 p-4 md:p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">User Profiles</h2>
-              <Button 
-                onClick={() => setShowCustomizationDialog(true)}
-                disabled={isSending}
-                className="flex items-center gap-2"
-              >
-                {isSending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Mail className="h-4 w-4" />
-                )}
-                {isSending ? "Sending..." : "Send EMAIL"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={() => setShowCustomizationDialog(true)}
+                  disabled={isSending}
+                  className="flex items-center gap-2"
+                >
+                  {isSending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mail className="h-4 w-4" />
+                  )}
+                  {isSending ? "Sending..." : "Send EMAIL"}
+                </Button>
+              </div>
             </div>
 
             {/* User Type Toggle */}

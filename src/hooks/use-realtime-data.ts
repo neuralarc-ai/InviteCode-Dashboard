@@ -369,7 +369,7 @@ export function useUserProfiles() {
       // Try user_profiles first
       const result1 = await supabase
         .from('user_profiles')
-        .select('*')
+        .select('id, user_id, full_name, preferred_name, work_description, personal_references, created_at, updated_at, avatar_url, referral_source, consent_given, consent_date, metadata')
         .order('created_at', { ascending: false });
       
       if (result1.error && result1.error.message.includes('relation "public.user_profiles" does not exist')) {
@@ -377,7 +377,7 @@ export function useUserProfiles() {
         // Try user_profile (singular)
         const result2 = await supabase
           .from('user_profile')
-          .select('*')
+          .select('id, user_id, full_name, preferred_name, work_description, personal_references, created_at, updated_at, avatar_url, referral_source, consent_given, consent_date, metadata')
           .order('created_at', { ascending: false });
         
         profilesData = result2.data;
@@ -482,6 +482,7 @@ export function useUserProfiles() {
         consentGiven: row.consent_given,
         consentDate: row.consent_date ? new Date(row.consent_date) : null,
         email: userIdToEmail.get(row.user_id) || 'Email not available',
+        metadata: row.metadata || null, // Will be null if column doesn't exist
       }));
 
       console.log('Transformed profiles:', transformedProfiles);

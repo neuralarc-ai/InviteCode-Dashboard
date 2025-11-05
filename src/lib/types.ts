@@ -83,6 +83,7 @@ export type UserProfile = {
   consentGiven: boolean | null;
   consentDate: Date | null;
   email: string; // This will be fetched from auth.users
+  metadata?: Record<string, any> | null; // Store credits_email_sent_at and other metadata
 };
 
 export type CreditBalance = {

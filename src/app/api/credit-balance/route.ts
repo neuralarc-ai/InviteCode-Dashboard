@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import nodemailer from 'nodemailer';
+import { createCreditsHtmlTemplate } from '@/lib/email-templates';
+import { createEmailAttachments, EMAIL_IMAGES, getImageBase64 } from '@/lib/email-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -143,6 +146,107 @@ export async function POST(request: NextRequest) {
 
       result = data;
       console.log('Created new credit balance:', result);
+    }
+
+    // Send credits email to user after successful assignment
+    try {
+      // Get user email from auth.users
+      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);
+      
+      if (authError || !authUser?.user?.email) {
+        console.warn('Could not fetch user email for credits notification:', authError);
+        // Don't fail the entire operation if email fetch fails
+      } else {
+        // Validate required environment variables for email
+        const requiredEnvVars = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SENDER_EMAIL', 'SMTP_FROM'];
+        const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+        
+        if (missingVars.length === 0) {
+          // Create email transporter
+          const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: false,
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASS,
+            },
+          });
+
+          // Get images as base64 for email
+          const logoBase64 = getImageBase64('email-logo.png');
+          const creditsBodyBase64 = getImageBase64('1Kcredits.png');
+
+          // Create credits email template
+          const emailContent = createCreditsHtmlTemplate({
+            logoBase64,
+            creditsBodyBase64,
+            useCid: true, // Use CID references for SMTP
+          });
+
+          // Get attachments
+          const attachments = createEmailAttachments([
+            EMAIL_IMAGES.logo,
+            EMAIL_IMAGES.creditsBody,
+          ]);
+
+          // Send email
+          const emailSubject = 'Extra Credits Have Been Added to Your Account';
+          const textContent = `Congratulations!\n\nExtra Credits Have Been Added to Your Account\n\n${creditsToAdd} credits have been added to your Helium account. These credits are now available for you to use across all platform features.\n\nThanks,\nThe Helium Team`;
+
+          await transporter.sendMail({
+            from: `"${process.env.SMTP_FROM}" <${process.env.SENDER_EMAIL}>`,
+            to: authUser.user.email,
+            subject: emailSubject,
+            text: textContent,
+            html: emailContent,
+            attachments: attachments.length > 0 ? attachments : undefined,
+          });
+
+          console.log(`Credits email sent to ${authUser.user.email}`);
+
+          // Mark user as credits email sent and assigned
+          try {
+            // Also update user_profiles metadata to mark credits as assigned
+            const { data: profile, error: profileError } = await supabaseAdmin
+              .from('user_profiles')
+              .select('user_id, metadata')
+              .eq('user_id', userId)
+              .single();
+
+            if (!profileError && profile) {
+              const updatedMetadata = {
+                ...(profile.metadata || {}),
+                credits_email_sent_at: now,
+                credits_assigned: true
+              };
+
+              await supabaseAdmin
+                .from('user_profiles')
+                .update({
+                  metadata: updatedMetadata,
+                  updated_at: now
+                })
+                .eq('user_id', userId);
+            }
+
+            // Also call the mark endpoint for consistency
+            await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/mark-credits-email-sent`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userIds: [userId] }),
+            });
+          } catch (markError) {
+            console.warn('Failed to mark user as sent:', markError);
+            // Don't fail the operation if marking fails
+          }
+        } else {
+          console.warn('Email configuration missing, skipping credits email notification');
+        }
+      }
+    } catch (emailError) {
+      console.error('Error sending credits email:', emailError);
+      // Don't fail the credit assignment if email fails
     }
 
     return NextResponse.json({
