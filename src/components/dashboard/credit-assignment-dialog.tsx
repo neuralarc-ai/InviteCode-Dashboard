@@ -30,15 +30,22 @@ export function CreditAssignmentDialog({
   user,
   onSuccess
 }: CreditAssignmentDialogProps) {
-  const [creditsToAdd, setCreditsToAdd] = React.useState('');
+  const [creditsInput, setCreditsInput] = React.useState('');
   const [notes, setNotes] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { toast } = useToast();
 
+  // Conversion rate: $1 = 100 credits
+  const CREDITS_PER_DOLLAR = 100;
+
+  // Calculate dollars from credits
+  const credits = creditsInput ? parseFloat(creditsInput) : 0;
+  const dollars = credits > 0 ? credits / CREDITS_PER_DOLLAR : 0;
+
   // Reset form when dialog opens/closes or user changes
   React.useEffect(() => {
     if (open) {
-      setCreditsToAdd('');
+      setCreditsInput('');
       setNotes('');
     }
   }, [open, user]);
@@ -55,8 +62,8 @@ export function CreditAssignmentDialog({
       return;
     }
 
-    const credits = parseInt(creditsToAdd);
-    if (isNaN(credits) || credits <= 0) {
+    const creditsValue = parseFloat(creditsInput);
+    if (isNaN(creditsValue) || creditsValue <= 0) {
       toast({
         title: "Error",
         description: "Please enter a valid number of credits",
@@ -64,6 +71,9 @@ export function CreditAssignmentDialog({
       });
       return;
     }
+
+    // Convert credits to dollars for API (API expects dollars)
+    const dollarsToAdd = creditsValue / CREDITS_PER_DOLLAR;
 
     setIsSubmitting(true);
 
@@ -75,7 +85,7 @@ export function CreditAssignmentDialog({
         },
         body: JSON.stringify({
           userId: user.userId,
-          creditsToAdd: credits,
+          creditsToAdd: dollarsToAdd,
           notes: notes.trim() || null,
         }),
       });
@@ -121,7 +131,7 @@ export function CreditAssignmentDialog({
             Assign Credits
           </DialogTitle>
           <DialogDescription>
-            Add credit dollars to {user?.fullName}'s account. This will increase their current balance.
+            Add credits to {user?.fullName}'s account. This will increase their current balance.
           </DialogDescription>
         </DialogHeader>
         
@@ -138,31 +148,31 @@ export function CreditAssignmentDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="credits">Credit Amount ($) *</Label>
+            <Label htmlFor="credits">Credits *</Label>
             <Input
               id="credits"
               type="number"
-              min="0.01"
-              step="0.01"
-              placeholder="Enter dollar amount"
-              value={creditsToAdd}
-              onChange={(e) => setCreditsToAdd(e.target.value)}
+              min="1"
+              step="1"
+              placeholder="Enter number of credits"
+              value={creditsInput}
+              onChange={(e) => setCreditsInput(e.target.value)}
               disabled={isSubmitting}
               required
             />
             <p className="text-sm text-muted-foreground">
-              Enter the dollar amount to add to this user's credit balance.
+              Enter the number of credits to add to this user's credit balance.
             </p>
-            {creditsToAdd && !isNaN(parseFloat(creditsToAdd)) && parseFloat(creditsToAdd) > 0 && (
+            {creditsInput && !isNaN(credits) && credits > 0 && (
               <div className="mt-2 p-3 bg-muted/50 rounded-md border">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Credits:</span>
+                  <span className="text-sm font-medium text-muted-foreground">Amount:</span>
                   <span className="text-lg font-bold text-primary">
-                    {(parseFloat(creditsToAdd) * 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                    ${dollars.toFixed(2)}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  ${parseFloat(creditsToAdd).toFixed(2)} × 100 = {(parseFloat(creditsToAdd) * 100).toLocaleString('en-US', { maximumFractionDigits: 0 })} credits
+                  {credits.toLocaleString('en-US', { maximumFractionDigits: 0 })} credits ÷ 100 = ${dollars.toFixed(2)}
                 </p>
               </div>
             )}
@@ -194,7 +204,7 @@ export function CreditAssignmentDialog({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || !creditsToAdd}
+              disabled={isSubmitting || !creditsInput}
               className="flex items-center gap-2"
             >
               {isSubmitting ? (

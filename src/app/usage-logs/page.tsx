@@ -808,10 +808,7 @@ The AI Team`);
                                      Activity Level
                                    </div>
                                  </TableHead>
-                                 <TableHead>Total Prompt Tokens</TableHead>
-                                 <TableHead>Total Completion Tokens</TableHead>
-                                 <TableHead>Total Tokens</TableHead>
-                                 <TableHead>Total Estimated Cost</TableHead>
+                                 <TableHead>Total estimated credits</TableHead>
                                  <TableHead>Usage Count</TableHead>
                                  <TableHead>Activity Period</TableHead>
                                </TableRow>
@@ -886,16 +883,7 @@ The AI Team`);
                                      </div>
                                    </TableCell>
                                    <TableCell>
-                                     {formatNumber(log.totalPromptTokens)}
-                                   </TableCell>
-                                   <TableCell>
-                                     {formatNumber(log.totalCompletionTokens)}
-                                   </TableCell>
-                                   <TableCell>
-                                     {formatNumber(log.totalTokens)}
-                                   </TableCell>
-                                   <TableCell>
-                                     {formatCurrency(log.totalEstimatedCost)}
+                                     {formatNumber(Math.round(log.totalEstimatedCost * 100))}
                                    </TableCell>
                                    <TableCell>
                                      <Badge variant="secondary">
