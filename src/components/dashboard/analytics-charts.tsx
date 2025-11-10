@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, Cell } from 'recharts';
 import { useCreditUsage, useUserProfiles, useCreditPurchases } from '@/hooks/use-realtime-data';
 import { TrendingUp, Users } from 'lucide-react';
 
@@ -141,29 +141,27 @@ export function AnalyticsCharts() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Charts Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* User Registration Trends Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              User Registration Trends
-            </CardTitle>
-            <CardDescription>Daily user registrations over the last 7 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={{
-                registrations: {
-                  label: 'User Registrations',
-                },
-              }}
-              className="h-[300px]"
-            >
+    <div className="grid gap-6 md:grid-cols-2 w-full">
+      {/* User Registration Trends Chart */}
+      <Card className="w-full overflow-hidden">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            User Registration Trends
+          </CardTitle>
+          <CardDescription>Daily user registrations over the last 7 days</CardDescription>
+        </CardHeader>
+        <CardContent className="w-full overflow-hidden">
+          <ChartContainer
+            config={{
+              registrations: {
+                label: 'User Registrations',
+              },
+            }}
+            className="h-[300px] w-full"
+          >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={userData}>
+                <BarChart data={userData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="date" 
@@ -186,80 +184,93 @@ export function AnalyticsCharts() {
                   />
                   <Bar 
                     dataKey="count" 
-                    fill="hsl(var(--chart-1))" 
                     radius={[4, 4, 0, 0]}
-                    className="fill-primary"
-                  />
+                  >
+                    {userData.map((entry, index) => {
+                      const colors = [
+                        'hsl(var(--chart-1))',
+                        'hsl(var(--chart-2))',
+                        'hsl(var(--chart-3))',
+                        'hsl(var(--chart-4))',
+                        'hsl(var(--chart-5))',
+                      ];
+                      return (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={colors[index % colors.length]}
+                        />
+                      );
+                    })}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+          </ChartContainer>
+        </CardContent>
+      </Card>
 
-        {/* Credit Usage Trends Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Credit Usage Trends
-            </CardTitle>
-            <CardDescription>Daily credit usage over the last 7 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={{
-                used: {
-                  label: 'Credits Used',
-                },
-                purchased: {
-                  label: 'Credits Purchased',
-                },
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={creditData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="date" 
-                    className="text-xs fill-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    className="text-xs fill-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent
-                        labelFormatter={(value) => `Date: ${value}`}
-                      />
-                    }
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="used" 
-                    stroke="hsl(var(--chart-3))" 
-                    strokeWidth={2}
-                    dot={{ fill: 'hsl(var(--chart-3))', strokeWidth: 2, r: 4 }}
-                    name="Credits Used"
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="purchased" 
-                    stroke="hsl(var(--chart-4))" 
-                    strokeWidth={2}
-                    dot={{ fill: 'hsl(var(--chart-4))', strokeWidth: 2, r: 4 }}
-                    name="Credits Purchased"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Credit Usage Trends Chart */}
+      <Card className="w-full overflow-hidden">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Credit Usage Trends
+          </CardTitle>
+          <CardDescription>Daily credit usage over the last 7 days</CardDescription>
+        </CardHeader>
+        <CardContent className="w-full overflow-hidden">
+          <ChartContainer
+            config={{
+              used: {
+                label: 'Credits Used',
+              },
+              purchased: {
+                label: 'Credits Purchased',
+              },
+            }}
+            className="h-[300px] w-full"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={creditData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="date" 
+                  className="text-xs fill-muted-foreground"
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis 
+                  className="text-xs fill-muted-foreground"
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(value) => `Date: ${value}`}
+                    />
+                  }
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="used" 
+                  stroke="hsl(var(--chart-3))" 
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--chart-3))', strokeWidth: 2, r: 4 }}
+                  name="Credits Used"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="purchased" 
+                  stroke="hsl(var(--chart-4))" 
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--chart-4))', strokeWidth: 2, r: 4 }}
+                  name="Credits Purchased"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
     </div>
   );
 }

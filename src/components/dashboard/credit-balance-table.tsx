@@ -239,32 +239,32 @@ export function CreditBalanceTable() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono font-semibold text-white">
+                      <span className="font-mono font-semibold text-foreground">
                         {formatCurrency(balance.balanceDollars)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono font-semibold text-white">
+                      <span className="font-mono font-semibold text-foreground">
                         {formatCredits(balance.balanceDollars)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono text-white">
+                      <span className="font-mono text-foreground">
                         {formatCurrency(balance.totalPurchased)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono font-semibold text-white">
+                      <span className="font-mono font-semibold text-foreground">
                         {formatCredits(balance.totalPurchased)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono text-white">
+                      <span className="font-mono text-foreground">
                         {formatCurrency(balance.totalUsed)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono font-semibold text-white">
+                      <span className="font-mono font-semibold text-foreground">
                         {formatCredits(balance.totalUsed)}
                       </span>
                     </TableCell>

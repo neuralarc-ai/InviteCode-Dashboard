@@ -6,58 +6,74 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%; /* Pure black background */
-    --foreground: 0 0% 100%; /* Pure white foreground */
-    --card: 0 0% 5%; /* Very dark gray for cards */
-    --card-foreground: 0 0% 100%; /* White text on cards */
-    --popover: 0 0% 3%; /* Darker for popovers */
-    --popover-foreground: 0 0% 100%; /* White text on popovers */
-    --primary: 0 0% 100%; /* White primary */
-    --primary-foreground: 0 0% 0%; /* Black text on primary */
-    --secondary: 0 0% 10%; /* Dark gray secondary */
-    --secondary-foreground: 0 0% 100%; /* White text on secondary */
-    --muted: 0 0% 8%; /* Dark muted background */
-    --muted-foreground: 0 0% 60%; /* Gray muted text */
-    --accent: 0 0% 15%; /* Dark accent */
+    --background: 0 0% 100%; /* White background */
+    --foreground: 0 0% 3.9%; /* Near black foreground */
+    --card: 30 50% 94%; /* #EEDBCD Light beige cards */
+    --card-foreground: 0 0% 3.9%; /* Near black text on cards */
+    --popover: 30 50% 87%; /* #EEDBCD Light beige popovers */
+    --popover-foreground: 0 0% 3.9%; /* Near black text on popovers */
+    --primary: 0 55% 51%; /* #C63E3E Primary Accent */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --secondary: 0 0% 96.1%; /* Very light gray secondary */
+    --secondary-foreground: 0 0% 9%; /* Dark text on secondary */
+    --muted: 5 60% 81%; /* #EFB3AF Soft Accent - muted background */
+    --muted-foreground: 0 0% 45.1%; /* Medium gray muted text */
+    --accent: 15 70% 56%; /* #E0693D Secondary Accent */
     --accent-foreground: 0 0% 100%; /* White text on accent */
-    --destructive: 0 0% 20%; /* Dark destructive */
+    --destructive: 0 55% 51%; /* #C63E3E Primary Accent for destructive */
     --destructive-foreground: 0 0% 100%; /* White text on destructive */
-    --border: 0 0% 20%; /* Dark border */
-    --input: 0 0% 8%; /* Dark input background */
-    --ring: 0 0% 100%; /* White ring */
-    --chart-1: 0 0% 100%; /* White chart color */
-    --chart-2: 0 0% 80%; /* Light gray chart color */
-    --chart-3: 0 0% 60%; /* Medium gray chart color */
-    --chart-4: 0 0% 40%; /* Dark gray chart color */
-    --chart-5: 0 0% 20%; /* Very dark gray chart color */
-    --radius: 0.5rem;
+    --border: 0 0% 89.8%; /* Light gray border */
+    --input: 0 0% 96.1%; /* Very light input background */
+    --ring: 0 55% 51%; /* #C63E3E Primary Accent for focus ring */
+    --chart-1: 15 70% 56%; /* #E0693D */
+    --chart-2: 35 85% 68%; /* #EFB25E */
+    --chart-3: 260 25% 68%; /* #A69CBE */
+    --chart-4: 170 40% 25%; /* #27584F */
+    --chart-5: 0 55% 51%; /* #C63E3E */
+    --sidebar-background: 30 50% 94%; /* #EEDBCD Light beige sidebar background */
+    --sidebar-foreground: 0 0% 3.9%; /* Dark sidebar text */
+    --sidebar-primary: 0 55% 51%; /* #C63E3E Primary Accent */
+    --sidebar-primary-foreground: 0 0% 100%; /* White sidebar primary text */
+    --sidebar-accent: 5 60% 81%; /* #EFB3AF Soft Accent */
+    --sidebar-accent-foreground: 0 0% 9%; /* Dark sidebar accent text */
+    --sidebar-border: 0 0% 89.8%; /* Light gray sidebar border */
+    --sidebar-ring: 0 55% 51%; /* #C63E3E Primary Accent */
+    --radius: 0.75rem;
   }
 
-  .light {
-    --background: 0 0% 100%; /* Pure white background */
-    --foreground: 0 0% 0%; /* Pure black foreground */
-    --card: 0 0% 100%; /* White cards */
-    --card-foreground: 0 0% 0%; /* Black text on cards */
-    --popover: 0 0% 100%; /* White popovers */
-    --popover-foreground: 0 0% 0%; /* Black text on popovers */
-    --primary: 0 0% 0%; /* Black primary */
+  .dark {
+    --background: 0 0% 3.9%; /* Near black background */
+    --foreground: 0 0% 98%; /* Near white foreground */
+    --card: 0 0% 15%; /* #262626 Dark gray for cards */
+    --card-foreground: 0 0% 98%; /* Near white text on cards */
+    --popover: 0 0% 15%; /* #262626 Dark gray popovers */
+    --popover-foreground: 0 0% 98%; /* Near white text on popovers */
+    --primary: 0 55% 51%; /* #C63E3E Primary Accent */
     --primary-foreground: 0 0% 100%; /* White text on primary */
-    --secondary: 0 0% 95%; /* Light gray secondary */
-    --secondary-foreground: 0 0% 0%; /* Black text on secondary */
-    --muted: 0 0% 95%; /* Light muted background */
-    --muted-foreground: 0 0% 40%; /* Dark gray muted text */
-    --accent: 0 0% 90%; /* Light accent */
-    --accent-foreground: 0 0% 0%; /* Black text on accent */
-    --destructive: 0 0% 80%; /* Light destructive */
-    --destructive-foreground: 0 0% 0%; /* Black text on destructive */
-    --border: 0 0% 80%; /* Light border */
-    --input: 0 0% 95%; /* Light input background */
-    --ring: 0 0% 0%; /* Black ring */
-    --chart-1: 0 0% 0%; /* Black chart color */
-    --chart-2: 0 0% 20%; /* Dark gray chart color */
-    --chart-3: 0 0% 40%; /* Medium gray chart color */
-    --chart-4: 0 0% 60%; /* Light gray chart color */
-    --chart-5: 0 0% 80%; /* Very light gray chart color */
+    --secondary: 0 0% 14.9%; /* Dark gray secondary */
+    --secondary-foreground: 0 0% 98%; /* Near white text on secondary */
+    --muted: 0 0% 14.9%; /* Dark muted background */
+    --muted-foreground: 0 0% 63.9%; /* Light gray muted text */
+    --accent: 15 70% 56%; /* #E0693D Secondary Accent */
+    --accent-foreground: 0 0% 100%; /* White text on accent */
+    --destructive: 0 55% 51%; /* #C63E3E Primary Accent for destructive */
+    --destructive-foreground: 0 0% 100%; /* White text on destructive */
+    --border: 0 0% 0%; /* Dark gray border */
+    --input: 0 0% 14.9%; /* Dark input background */
+    --ring: 0 55% 51%; /* #C63E3E Primary Accent for focus ring */
+    --chart-1: 15 70% 56% / 0.7; /* #E0693D with reduced opacity */
+    --chart-2: 35 85% 68% / 0.7; /* #EFB25E with reduced opacity */
+    --chart-3: 260 25% 68% / 0.7; /* #A69CBE with reduced opacity */
+    --chart-4: 170 40% 25% / 0.7; /* #27584F with reduced opacity */
+    --chart-5: 0 55% 51% / 0.7; /* #C63E3E with reduced opacity */
+    --sidebar-background: 0 0% 15%; /* #262626 Dark gray sidebar background */
+    --sidebar-foreground: 0 0% 98%; /* Near white sidebar text */
+    --sidebar-primary: 0 55% 51%; /* #C63E3E Primary Accent */
+    --sidebar-primary-foreground: 0 0% 100%; /* White sidebar primary text */
+    --sidebar-accent: 0 0% 14.9%; /* Dark sidebar accent */
+    --sidebar-accent-foreground: 0 0% 98%; /* Near white sidebar accent text */
+    --sidebar-border: 0 0% 14.9%; /* Dark gray sidebar border */
+    --sidebar-ring: 0 55% 51%; /* #C63E3E Primary Accent */
   }
 }
 
@@ -65,8 +81,75 @@
   * {
     @apply border-border;
   }
+  html {
+    scroll-behavior: smooth;
+  }
+  
   body {
     @apply bg-background text-foreground;
     font-family: 'Fustat', sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Smooth transitions for interactive elements */
+  button, a, input, select, textarea {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  /* Modern card styling */
+  .card {
+    @apply transition-all duration-300 ease-in-out;
+  }
+  
+  .card:hover {
+    @apply shadow-lg;
+    transform: translateY(-2px);
+  }
+}
+
+/* View Transition API support for theme toggle */
+@supports (view-transition-name: none) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.5s;
+    animation-timing-function: ease-in-out;
+  }
+}
+
+/* Modern scrollbar styling */
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-muted rounded-full;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+    transition: background-color 0.2s;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+  
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-background/80 backdrop-blur-md border border-border/50;
+  }
+  
+  /* Info/Support color background utility */
+  .bg-info {
+    background-color: hsl(200 35% 74%); /* #A6C8D5 Info/Support color */
+  }
+  
+  /* Soft Accent background utility */
+  .bg-soft-accent {
+    background-color: hsl(5 60% 81%); /* #EFB3AF Soft Accent */
   }
 }

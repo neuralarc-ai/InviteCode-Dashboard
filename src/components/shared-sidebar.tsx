@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { LogoutButton } from '@/components/logout-button';
+import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler';
 
 export function SharedSidebar() {
   return (
@@ -98,7 +99,8 @@ export function SharedSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex items-center justify-end gap-3 p-2 rounded-md transition-colors">
+        <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-sidebar-accent/50 border border-sidebar-border/50 transition-all duration-200 hover:bg-sidebar-accent">
+          <AnimatedThemeToggler />
           <LogoutButton />
         </div>
       </SidebarFooter>

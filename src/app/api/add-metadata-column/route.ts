@@ -116,3 +116,4 @@ UPDATE user_profiles SET metadata = '{}'::jsonb WHERE metadata IS NULL;
 
 
 
+

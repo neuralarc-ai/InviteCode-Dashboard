@@ -663,8 +663,8 @@ export function EmailCustomizationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-x-hidden">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
             Customize Email Content
@@ -679,7 +679,8 @@ export function EmailCustomizationDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 w-full min-w-0">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-4 w-full min-w-0">
           {/* Subject Line */}
           <div className="space-y-2">
             <Label htmlFor="subject">Email Subject</Label>
@@ -778,9 +779,10 @@ export function EmailCustomizationDialog({
               />
             </TabsContent>
           </Tabs>
+          </div>
         </div>
 
-        <DialogFooter className="flex justify-between flex-wrap gap-2">
+        <DialogFooter className="px-6 py-4 border-t shrink-0 flex justify-between flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
