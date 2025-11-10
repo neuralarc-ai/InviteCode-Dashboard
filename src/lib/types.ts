@@ -84,6 +84,8 @@ export type UserProfile = {
   consentDate: Date | null;
   email: string; // This will be fetched from auth.users
   metadata?: Record<string, any> | null; // Store credits_email_sent_at and other metadata
+  planType: 'seed' | 'edge' | 'quantum';
+  accountType: 'individual' | 'business';
 };
 
 export type CreditBalance = {
@@ -226,6 +228,9 @@ export interface Database {
           referral_source: string | null;
           consent_given: boolean | null;
           consent_date: string | null;
+          metadata: Record<string, any> | null;
+          plan_type: 'seed' | 'edge' | 'quantum';
+          account_type: 'individual' | 'business';
         };
         Insert: {
           id?: string;
@@ -240,6 +245,9 @@ export interface Database {
           referral_source?: string | null;
           consent_given?: boolean | null;
           consent_date?: string | null;
+          metadata?: Record<string, any> | null;
+          plan_type: 'seed' | 'edge' | 'quantum';
+          account_type: 'individual' | 'business';
         };
         Update: {
           id?: string;
@@ -254,6 +262,9 @@ export interface Database {
           referral_source?: string | null;
           consent_given?: boolean | null;
           consent_date?: string | null;
+          metadata?: Record<string, any> | null;
+          plan_type?: 'seed' | 'edge' | 'quantum';
+          account_type?: 'individual' | 'business';
         };
       };
       credit_usage: {

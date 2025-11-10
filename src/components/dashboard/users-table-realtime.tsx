@@ -236,11 +236,23 @@ export function UsersTableRealtime({
         setSelectedUserIds(new Set());
         setBulkDeleteDialogOpen(false);
       } else {
-        toast({
-          title: "Error",
-          description: result.message || "Failed to delete user profiles",
-          variant: "destructive",
-        });
+        // Check if some users were deleted but some failed
+        if (result.deletedCount && result.deletedCount > 0) {
+          toast({
+            title: "Partial Success",
+            description: result.message || `Deleted ${result.deletedCount} user(s), but some failed. Check the error details.`,
+            variant: "destructive",
+          });
+          // Still clear selection for successfully deleted users
+          setSelectedUserIds(new Set());
+          setBulkDeleteDialogOpen(false);
+        } else {
+          toast({
+            title: "Error",
+            description: result.message || "Failed to delete user profiles",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       toast({

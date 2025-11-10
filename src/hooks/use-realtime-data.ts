@@ -369,7 +369,7 @@ export function useUserProfiles() {
       // Try user_profiles first
       const result1 = await supabase
         .from('user_profiles')
-        .select('id, user_id, full_name, preferred_name, work_description, personal_references, created_at, updated_at, avatar_url, referral_source, consent_given, consent_date, metadata')
+        .select('id, user_id, full_name, preferred_name, work_description, personal_references, created_at, updated_at, avatar_url, referral_source, consent_given, consent_date, metadata, plan_type, account_type')
         .order('created_at', { ascending: false });
       
       if (result1.error && result1.error.message.includes('relation "public.user_profiles" does not exist')) {
@@ -377,7 +377,7 @@ export function useUserProfiles() {
         // Try user_profile (singular)
         const result2 = await supabase
           .from('user_profile')
-          .select('id, user_id, full_name, preferred_name, work_description, personal_references, created_at, updated_at, avatar_url, referral_source, consent_given, consent_date, metadata')
+          .select('id, user_id, full_name, preferred_name, work_description, personal_references, created_at, updated_at, avatar_url, referral_source, consent_given, consent_date, metadata, plan_type, account_type')
           .order('created_at', { ascending: false });
         
         profilesData = result2.data;
@@ -483,6 +483,8 @@ export function useUserProfiles() {
         consentDate: row.consent_date ? new Date(row.consent_date) : null,
         email: userIdToEmail.get(row.user_id) || 'Email not available',
         metadata: row.metadata || null, // Will be null if column doesn't exist
+        planType: row.plan_type || 'seed', // Default to 'seed' if not present
+        accountType: row.account_type || 'individual', // Default to 'individual' if not present
       }));
 
       console.log('Transformed profiles:', transformedProfiles);
@@ -511,14 +513,21 @@ export function useUserProfiles() {
 
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
+      // If profile was deleted successfully, treat as success even if auth deletion failed
+      // The API returns success: true if profile was deleted, even if auth deletion failed
+      if (result.success) {
+        // Refresh the list after deletion
+        await fetchUserProfiles();
+        return { success: true, message: result.message || 'User profile deleted successfully' };
+      }
+
+      // Only throw error if profile deletion actually failed
+      if (!response.ok) {
         throw new Error(result.message || 'Failed to delete user profile');
       }
 
-      // Refresh the list after deletion
-      await fetchUserProfiles();
-
-      return { success: true, message: result.message || 'User profile deleted successfully' };
+      // If we get here, something unexpected happened
+      throw new Error(result.message || 'Failed to delete user profile');
     } catch (err) {
       console.error('Error deleting user profile:', err);
       return { 
@@ -545,12 +554,23 @@ export function useUserProfiles() {
 
       const result = await response.json();
 
+      // Refresh the list after deletion (even if there were partial errors)
+      await fetchUserProfiles();
+
+      // If there were auth errors but some users were deleted, return partial success
+      if (result.deletedCount > 0 && result.authDeleteErrors && result.authDeleteErrors.length > 0) {
+        return {
+          success: false, // Mark as failed because not all deletions succeeded
+          message: result.message || 'Some users were deleted, but some failed',
+          deletedCount: result.deletedCount,
+          authDeleteErrors: result.authDeleteErrors,
+          failedUserIds: result.failedUserIds
+        };
+      }
+
       if (!response.ok || !result.success) {
         throw new Error(result.message || 'Failed to delete user profiles');
       }
-
-      // Refresh the list after deletion
-      await fetchUserProfiles();
 
       return { 
         success: true, 

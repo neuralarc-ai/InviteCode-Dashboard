@@ -10,9 +10,10 @@ import { SharedSidebar } from '@/components/shared-sidebar';
 import { UsersTableRealtime } from '@/components/dashboard/users-table-realtime';
 import { EmailCustomizationDialog, type EmailData } from '@/components/dashboard/email-customization-dialog';
 import { CreditAssignmentDialog } from '@/components/dashboard/credit-assignment-dialog';
+import { CreateUserDialog } from '@/components/dashboard/create-user-dialog';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-import { Mail, Loader2, Users, Building2 } from 'lucide-react';
+import { Mail, Loader2, Users, Building2, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/types';
 
@@ -23,6 +24,7 @@ export default function UsersPage() {
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [creditDialogOpen, setCreditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const handleSendEmail = async (emailData: EmailData, selectedOnly: boolean = false) => {
@@ -146,6 +148,15 @@ export default function UsersPage() {
     }, 1000);
   };
 
+  const handleCreateUserSuccess = () => {
+    toast({
+      title: "Success",
+      description: "User created successfully! The user list will update automatically.",
+    });
+    // The real-time subscription should automatically refresh the user profiles
+    // when a new user_profiles entry is created
+  };
+
   return (
     <>
       <SidebarProvider>
@@ -159,6 +170,14 @@ export default function UsersPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">User Profiles</h2>
               <div className="flex items-center gap-2">
+                <Button 
+                  onClick={() => setCreateUserDialogOpen(true)}
+                  variant="default"
+                  className="flex items-center gap-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Create User
+                </Button>
                 <Button 
                   onClick={() => setShowCustomizationDialog(true)}
                   disabled={isSending}
@@ -224,6 +243,13 @@ export default function UsersPage() {
           onSuccess={handleCreditAssignmentSuccess}
         />
       )}
+
+      {/* Create User Dialog */}
+      <CreateUserDialog
+        open={createUserDialogOpen}
+        onOpenChange={setCreateUserDialogOpen}
+        onSuccess={handleCreateUserSuccess}
+      />
     </>
   );
 }
