@@ -11,22 +11,8 @@ import {
 import RemixIcon from 'react-native-remix-icon';
 import { ThemedText } from '@/components/themed-text';
 import { getAppConfig } from '@/utils/config';
-
-const palette = {
-  background: '#F5ECE4',
-  modalBackground: 'rgba(0, 0, 0, 0.5)',
-  cardBackground: '#FFFFFF',
-  primaryText: '#1F1F1F',
-  secondaryText: '#5C5C5C',
-  mutedBackground: '#F5F5F5',
-  mutedBorder: '#E4D5CA',
-  buttonPrimary: '#C3473D',
-  buttonSecondary: '#E4D5CA',
-  inputBorder: '#D1D1D1',
-  inputFocus: '#C3473D',
-  errorText: '#DC2626',
-  successText: '#22C55E',
-} as const;
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type UserProfile = {
   readonly id: string;
@@ -49,6 +35,8 @@ export function CreditAssignmentDialog({
   user,
   onSuccess,
 }: CreditAssignmentDialogProps): ReactElement {
+  const theme = useColorScheme();
+  const colors = Colors[theme];
   const [creditsInput, setCreditsInput] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,42 +128,42 @@ export function CreditAssignmentDialog({
       onRequestClose={handleCancel}>
       <View style={styles.modalOverlay}>
         <Pressable style={styles.overlayPressable} onPress={handleCancel} />
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled">
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerTitleRow}>
-                <RemixIcon name="bank-card-line" size={20} color={palette.primaryText} />
-                <ThemedText type="title" style={styles.title}>
+                <RemixIcon name="bank-card-line" size={20} color={colors.textPrimary} />
+                <ThemedText type="title" style={styles.title} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Assign Credits
                 </ThemedText>
               </View>
               <Pressable onPress={handleCancel} style={styles.closeButton} disabled={isSubmitting}>
-                <RemixIcon name="close-line" size={24} color={palette.secondaryText} />
+                <RemixIcon name="close-line" size={24} color={colors.textSecondary} />
               </Pressable>
             </View>
 
             {/* Description */}
-            <ThemedText type="default" style={styles.description}>
+            <ThemedText type="default" style={styles.description} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Add credits to {user?.fullName}'s account. This will increase their current balance.
             </ThemedText>
 
             {/* User Info */}
             <View style={styles.section}>
-              <ThemedText type="defaultSemiBold" style={styles.label}>
+              <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                 User
               </ThemedText>
-              <View style={styles.userInfoBox}>
-                <ThemedText type="defaultSemiBold" style={styles.userName}>
+              <View style={[styles.userInfoBox, { backgroundColor: colors.badgeBackground }]}>
+                <ThemedText type="defaultSemiBold" style={styles.userName} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   {user?.fullName}
                 </ThemedText>
-                <ThemedText type="default" style={styles.userEmail}>
+                <ThemedText type="default" style={styles.userEmail} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                   {user?.email}
                 </ThemedText>
                 {user?.preferredName && user.preferredName !== user.fullName && (
-                  <ThemedText type="default" style={styles.userPreferredName}>
+                  <ThemedText type="default" style={styles.userPreferredName} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                     ({user.preferredName})
                   </ThemedText>
                 )}
@@ -184,35 +172,40 @@ export function CreditAssignmentDialog({
 
             {/* Credits Input */}
             <View style={styles.section}>
-              <ThemedText type="defaultSemiBold" style={styles.label}>
-                Credits <ThemedText style={styles.required}>*</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                Credits <ThemedText style={styles.required} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>*</ThemedText>
               </ThemedText>
               <TextInput
-                style={[styles.input, isSubmitting && styles.inputDisabled]}
+                style={[
+                  styles.input,
+                  { borderColor: colors.inputBorder, color: colors.textPrimary },
+                  isSubmitting && { backgroundColor: colors.badgeBackground },
+                  isSubmitting && styles.inputDisabled,
+                ]}
                 placeholder="Enter number of credits"
-                placeholderTextColor={palette.secondaryText}
+                placeholderTextColor={colors.textSecondary}
                 value={creditsInput}
                 onChangeText={setCreditsInput}
                 keyboardType="numeric"
                 editable={!isSubmitting}
                 autoFocus={false}
               />
-              <ThemedText type="default" style={styles.helperText}>
+              <ThemedText type="default" style={styles.helperText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Enter the number of credits to add to this user's credit balance.
               </ThemedText>
 
               {/* Dollar Conversion Display */}
               {creditsInput && !isNaN(credits) && credits > 0 && (
-                <View style={styles.conversionBox}>
+                <View style={[styles.conversionBox, { backgroundColor: colors.badgeBackground, borderColor: colors.divider }]}>
                   <View style={styles.conversionRow}>
-                    <ThemedText type="defaultSemiBold" style={styles.conversionLabel}>
+                    <ThemedText type="defaultSemiBold" style={styles.conversionLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       Amount:
                     </ThemedText>
-                    <ThemedText type="title" style={styles.conversionAmount}>
+                    <ThemedText type="title" style={styles.conversionAmount} lightColor={colors.buttonPrimary} darkColor={colors.buttonPrimary}>
                       ${dollars.toFixed(2)}
                     </ThemedText>
                   </View>
-                  <ThemedText type="default" style={styles.conversionFormula}>
+                  <ThemedText type="default" style={styles.conversionFormula} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                     {credits.toLocaleString('en-US', { maximumFractionDigits: 0 })} credits ÷ 100 = ${dollars.toFixed(2)}
                   </ThemedText>
                 </View>
@@ -221,16 +214,18 @@ export function CreditAssignmentDialog({
 
             {/* Notes Input */}
             <View style={styles.section}>
-              <ThemedText type="defaultSemiBold" style={styles.label}>
+              <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                 Notes (Optional)
               </ThemedText>
               <TextInput
                 style={[
                   styles.textarea,
+                  { borderColor: colors.inputBorder, color: colors.textPrimary },
+                  isSubmitting && { backgroundColor: colors.badgeBackground },
                   isSubmitting && styles.inputDisabled,
                 ]}
                 placeholder="Add a note about this credit assignment..."
-                placeholderTextColor={palette.secondaryText}
+                placeholderTextColor={colors.textSecondary}
                 value={notes}
                 onChangeText={setNotes}
                 multiline
@@ -238,32 +233,33 @@ export function CreditAssignmentDialog({
                 textAlignVertical="top"
                 editable={!isSubmitting}
               />
-              <ThemedText type="default" style={styles.helperText}>
+              <ThemedText type="default" style={styles.helperText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Optional note to track the reason for this credit assignment.
               </ThemedText>
             </View>
 
             {/* Error Message */}
             {error && (
-              <View style={styles.errorContainer}>
-                <RemixIcon name="error-warning-line" size={16} color={palette.errorText} />
-                <ThemedText type="default" style={styles.errorText}>
+              <View style={[styles.errorContainer, { borderColor: colors.buttonDanger }]}>
+                <RemixIcon name="error-warning-line" size={16} color={colors.buttonDanger} />
+                <ThemedText type="default" style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>
                   {error}
                 </ThemedText>
               </View>
             )}
 
             {/* Footer Buttons */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { borderTopColor: colors.divider }]}>
               <Pressable
                 onPress={handleCancel}
                 disabled={isSubmitting}
                 style={[
                   styles.button,
                   styles.cancelButton,
+                  { backgroundColor: colors.cardBackground, borderColor: colors.inputBorder },
                   isSubmitting && styles.buttonDisabled,
                 ]}>
-                <ThemedText type="defaultSemiBold" style={styles.cancelButtonText}>
+                <ThemedText type="defaultSemiBold" style={styles.cancelButtonText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Cancel
                 </ThemedText>
               </Pressable>
@@ -273,19 +269,20 @@ export function CreditAssignmentDialog({
                 style={[
                   styles.button,
                   styles.submitButton,
+                  { backgroundColor: colors.buttonPrimary },
                   (isSubmitting || !creditsInput) && styles.buttonDisabled,
                 ]}>
                 {isSubmitting ? (
                   <>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <ThemedText type="defaultSemiBold" style={styles.submitButtonText}>
+                    <ActivityIndicator size="small" color={colors.iconAccentLight} />
+                    <ThemedText type="defaultSemiBold" style={styles.submitButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                       Assigning...
                     </ThemedText>
                   </>
                 ) : (
                   <>
-                    <RemixIcon name="bank-card-line" size={16} color="#FFFFFF" />
-                    <ThemedText type="defaultSemiBold" style={styles.submitButtonText}>
+                    <RemixIcon name="bank-card-line" size={16} color={colors.iconAccentLight} />
+                    <ThemedText type="defaultSemiBold" style={styles.submitButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                       Assign Credits
                     </ThemedText>
                   </>
@@ -302,7 +299,7 @@ export function CreditAssignmentDialog({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: palette.modalBackground,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -314,7 +311,6 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   modalContent: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 16,
     width: '90%',
     maxWidth: 425,
@@ -324,6 +320,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     elevation: 8,
+    // Background color applied inline
   },
   scrollContent: {
     padding: 24,
@@ -341,14 +338,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    color: palette.primaryText,
     fontSize: 20,
   },
   closeButton: {
     padding: 4,
   },
   description: {
-    color: palette.secondaryText,
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 4,
@@ -357,69 +352,61 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   required: {
-    color: palette.errorText,
+    // Color applied inline
   },
   userInfoBox: {
-    backgroundColor: palette.mutedBackground,
     borderRadius: 8,
     padding: 12,
     gap: 4,
+    // Background color applied inline
   },
   userName: {
-    color: palette.primaryText,
     fontSize: 16,
   },
   userEmail: {
-    color: palette.secondaryText,
     fontSize: 14,
   },
   userPreferredName: {
-    color: palette.secondaryText,
     fontSize: 14,
   },
   input: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: palette.inputBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: palette.primaryText,
+    // Border and text colors applied inline
   },
   textarea: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: palette.inputBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: palette.primaryText,
     minHeight: 80,
     maxHeight: 120,
+    // Border and text colors applied inline
   },
   inputDisabled: {
-    backgroundColor: palette.mutedBackground,
     opacity: 0.6,
+    // Background color applied inline
   },
   helperText: {
-    color: palette.secondaryText,
     fontSize: 12,
     lineHeight: 16,
   },
   conversionBox: {
-    backgroundColor: palette.mutedBackground,
     borderWidth: 1,
-    borderColor: palette.mutedBorder,
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
     gap: 4,
+    // Background and border colors applied inline
   },
   conversionRow: {
     flexDirection: 'row',
@@ -427,15 +414,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   conversionLabel: {
-    color: palette.secondaryText,
     fontSize: 14,
   },
   conversionAmount: {
-    color: palette.buttonPrimary,
     fontSize: 18,
   },
   conversionFormula: {
-    color: palette.secondaryText,
     fontSize: 12,
     marginTop: 4,
   },
@@ -447,10 +431,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: palette.errorText,
+    // Border color applied inline
   },
   errorText: {
-    color: palette.errorText,
     fontSize: 14,
     flex: 1,
   },
@@ -461,7 +444,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: palette.mutedBorder,
+    // Border color applied inline
   },
   button: {
     flexDirection: 'row',
@@ -474,16 +457,14 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   cancelButton: {
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: palette.inputBorder,
+    // Background and border colors applied inline
   },
   cancelButtonText: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   submitButton: {
-    backgroundColor: palette.buttonPrimary,
+    // Background color applied inline
   },
   submitButtonText: {
     color: '#FFFFFF',

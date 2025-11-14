@@ -15,21 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { getAppConfig } from '@/utils/config';
 import { CreditAssignmentDialog } from '@/components/credit-assignment-dialog';
-
-const palette = {
-  background: '#F5ECE4',
-  cardBackground: '#FFFFFF',
-  headerText: '#1A1A1A',
-  primaryText: '#1F1F1F',
-  secondaryText: '#5C5C5C',
-  searchBackground: '#FFFFFF',
-  searchBorder: '#E4D5CA',
-  rowBackground: '#FFFFFF',
-  rowBorder: '#E4D5CA',
-  buttonPrimary: '#C3473D',
-  buttonSecondary: '#E4D5CA',
-  divider: '#E4D5CA',
-} as const;
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type CreditBalance = {
   readonly userId: string;
@@ -43,6 +30,8 @@ type CreditBalance = {
 
 export function CreditBalanceTable(): ReactElement {
   const router = useRouter();
+  const theme = useColorScheme();
+  const colors = Colors[theme];
   const [creditBalances, setCreditBalances] = useState<readonly CreditBalance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -170,7 +159,7 @@ export function CreditBalanceTable(): ReactElement {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -179,17 +168,17 @@ export function CreditBalanceTable(): ReactElement {
             <View style={styles.headerLeft}>
               <Pressable
                 onPress={() => router.back()}
-                style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-                <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+                style={({ pressed }) => [styles.backButton, { backgroundColor: colors.cardBackground }, pressed && styles.backButtonPressed]}>
+                <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
               </Pressable>
-              <ThemedText type="title" style={styles.headerTitle}>
+              <ThemedText type="title" style={styles.headerTitle} lightColor={colors.headerText} darkColor={colors.headerText}>
                 Credit Balances
               </ThemedText>
             </View>
           </View>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={palette.buttonPrimary} />
-            <ThemedText type="default" style={styles.loadingText}>
+            <ActivityIndicator size="large" color={colors.buttonPrimary} />
+            <ThemedText type="default" style={styles.loadingText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Loading credit balances...
             </ThemedText>
           </View>
@@ -200,7 +189,7 @@ export function CreditBalanceTable(): ReactElement {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -209,20 +198,20 @@ export function CreditBalanceTable(): ReactElement {
             <View style={styles.headerLeft}>
               <Pressable
                 onPress={() => router.back()}
-                style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-                <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+                style={({ pressed }) => [styles.backButton, { backgroundColor: colors.cardBackground }, pressed && styles.backButtonPressed]}>
+                <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
               </Pressable>
-              <ThemedText type="title" style={styles.headerTitle}>
+              <ThemedText type="title" style={styles.headerTitle} lightColor={colors.headerText} darkColor={colors.headerText}>
                 Credit Balances
               </ThemedText>
             </View>
           </View>
           <View style={styles.errorContainer}>
-            <ThemedText type="default" style={styles.errorText}>
+            <ThemedText type="default" style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>
               {error}
             </ThemedText>
-            <Pressable onPress={fetchCreditBalances} style={styles.retryButton}>
-              <ThemedText type="defaultSemiBold" style={styles.retryButtonText}>
+            <Pressable onPress={fetchCreditBalances} style={[styles.retryButton, { backgroundColor: colors.buttonPrimary }]}>
+              <ThemedText type="defaultSemiBold" style={styles.retryButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                 Retry
               </ThemedText>
             </Pressable>
@@ -233,7 +222,7 @@ export function CreditBalanceTable(): ReactElement {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -243,57 +232,57 @@ export function CreditBalanceTable(): ReactElement {
           <View style={styles.headerLeft}>
             <Pressable
               onPress={() => router.back()}
-              style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-              <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+              style={({ pressed }) => [styles.backButton, { backgroundColor: colors.cardBackground }, pressed && styles.backButtonPressed]}>
+              <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
             </Pressable>
-            <ThemedText type="title" style={styles.headerTitle}>
+            <ThemedText type="title" style={styles.headerTitle} lightColor={colors.headerText} darkColor={colors.headerText}>
               Credit Balances ({filteredBalances.length})
             </ThemedText>
           </View>
         </View>
         {/* Search */}
         <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <RemixIcon name="search-line" size={20} color={palette.secondaryText} style={styles.searchIcon} />
+          <View style={[styles.searchInputContainer, { backgroundColor: colors.searchBackground, borderColor: colors.searchBorder }]}>
+            <RemixIcon name="search-line" size={20} color={colors.textSecondary} style={styles.searchIcon} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.textPrimary }]}
               placeholder="Search by user email or name..."
-              placeholderTextColor={palette.secondaryText}
+              placeholderTextColor={colors.textSecondary}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
           </View>
           <Pressable
             onPress={fetchCreditBalances}
-            style={({ pressed }) => [styles.refreshButton, pressed && styles.refreshButtonPressed]}>
-            <RemixIcon name="refresh-line" size={20} color={palette.primaryText} />
+            style={({ pressed }) => [styles.refreshButton, { backgroundColor: colors.cardBackground }, pressed && styles.refreshButtonPressed]}>
+            <RemixIcon name="refresh-line" size={20} color={colors.textPrimary} />
           </Pressable>
         </View>
 
         {/* Balance List */}
         {paginatedBalances.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <RemixIcon name="user-line" size={48} color={palette.secondaryText} />
-            <ThemedText type="default" style={styles.emptyText}>
+            <RemixIcon name="user-line" size={48} color={colors.textSecondary} />
+            <ThemedText type="default" style={styles.emptyText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               {searchQuery ? 'No credit balances found matching your search' : 'No credit balances found'}
             </ThemedText>
           </View>
         ) : (
           <View style={styles.balancesList}>
             {paginatedBalances.map((balance) => (
-              <View key={balance.userId} style={styles.balanceCard}>
+              <View key={balance.userId} style={[styles.balanceCard, { backgroundColor: colors.cardBackground }]}>
                 <View style={styles.balanceHeader}>
                   <View style={styles.userInfo}>
-                    <View style={styles.avatarContainer}>
-                      <RemixIcon name="user-line" size={20} color={palette.buttonPrimary} />
+                    <View style={[styles.avatarContainer, { backgroundColor: colors.avatarBackground }]}>
+                      <RemixIcon name="user-line" size={20} color={colors.buttonPrimary} />
                     </View>
                     <View style={styles.userDetails}>
-                      <ThemedText type="defaultSemiBold" style={styles.userName}>
+                      <ThemedText type="defaultSemiBold" style={styles.userName} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                         {balance.userName}
                       </ThemedText>
                       <View style={styles.emailRow}>
-                        <RemixIcon name="mail-line" size={14} color={palette.secondaryText} />
-                        <ThemedText type="default" style={styles.userEmail}>
+                        <RemixIcon name="mail-line" size={14} color={colors.textSecondary} />
+                        <ThemedText type="default" style={styles.userEmail} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                           {balance.userEmail}
                         </ThemedText>
                       </View>
@@ -301,62 +290,62 @@ export function CreditBalanceTable(): ReactElement {
                   </View>
                 </View>
 
-                <View style={styles.balanceDetails}>
+                <View style={[styles.balanceDetails, { borderTopColor: colors.divider }]}>
                   <View style={styles.balanceRow}>
-                    <ThemedText type="default" style={styles.balanceLabel}>
+                    <ThemedText type="default" style={styles.balanceLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       Balance
                     </ThemedText>
-                    <ThemedText type="defaultSemiBold" style={styles.balanceValue}>
+                    <ThemedText type="defaultSemiBold" style={styles.balanceValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                       {formatCurrency(balance.balanceDollars)}
                     </ThemedText>
                   </View>
                   <View style={styles.balanceRow}>
-                    <ThemedText type="default" style={styles.balanceLabel}>
+                    <ThemedText type="default" style={styles.balanceLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       Credits
                     </ThemedText>
-                    <ThemedText type="defaultSemiBold" style={styles.balanceValue}>
+                    <ThemedText type="defaultSemiBold" style={styles.balanceValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                       {formatCredits(balance.balanceDollars)}
                     </ThemedText>
                   </View>
                   <View style={styles.balanceRow}>
-                    <ThemedText type="default" style={styles.balanceLabel}>
+                    <ThemedText type="default" style={styles.balanceLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       Total Purchased
                     </ThemedText>
-                    <ThemedText type="default" style={styles.balanceValue}>
+                    <ThemedText type="default" style={styles.balanceValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                       {formatCurrency(balance.totalPurchased)}
                     </ThemedText>
                   </View>
                   <View style={styles.balanceRow}>
-                    <ThemedText type="default" style={styles.balanceLabel}>
+                    <ThemedText type="default" style={styles.balanceLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       Purchased Credits
                     </ThemedText>
-                    <ThemedText type="defaultSemiBold" style={styles.balanceValue}>
+                    <ThemedText type="defaultSemiBold" style={styles.balanceValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                       {formatCredits(balance.totalPurchased)}
                     </ThemedText>
                   </View>
                   <View style={styles.balanceRow}>
-                    <ThemedText type="default" style={styles.balanceLabel}>
+                    <ThemedText type="default" style={styles.balanceLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       Total Used
                     </ThemedText>
-                    <ThemedText type="default" style={styles.balanceValue}>
+                    <ThemedText type="default" style={styles.balanceValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                       {formatCurrency(balance.totalUsed)}
                     </ThemedText>
                   </View>
                   <View style={styles.balanceRow}>
-                    <ThemedText type="default" style={styles.balanceLabel}>
+                    <ThemedText type="default" style={styles.balanceLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       Used Credits
                     </ThemedText>
-                    <ThemedText type="defaultSemiBold" style={styles.balanceValue}>
+                    <ThemedText type="defaultSemiBold" style={styles.balanceValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                       {formatCredits(balance.totalUsed)}
                     </ThemedText>
                   </View>
                   <View style={styles.balanceRow}>
-                    <ThemedText type="default" style={styles.balanceLabel}>
+                    <ThemedText type="default" style={styles.balanceLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       Last Updated
                     </ThemedText>
                     <View style={styles.dateRow}>
-                      <RemixIcon name="calendar-line" size={14} color={palette.secondaryText} />
-                      <ThemedText type="default" style={styles.dateText}>
+                      <RemixIcon name="calendar-line" size={14} color={colors.textSecondary} />
+                      <ThemedText type="default" style={styles.dateText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         {formatDate(balance.lastUpdated)}
                       </ThemedText>
                     </View>
@@ -367,10 +356,11 @@ export function CreditBalanceTable(): ReactElement {
                   onPress={() => handleAssignCredits(balance)}
                   style={({ pressed }) => [
                     styles.assignButton,
+                    { backgroundColor: colors.buttonPrimary },
                     pressed && styles.assignButtonPressed,
                   ]}>
-                  <RemixIcon name="bank-card-line" size={16} color="#FFFFFF" />
-                  <ThemedText type="defaultSemiBold" style={styles.assignButtonText}>
+                  <RemixIcon name="bank-card-line" size={16} color={colors.iconAccentLight} />
+                  <ThemedText type="defaultSemiBold" style={styles.assignButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                     Assign Credits
                   </ThemedText>
                 </Pressable>
@@ -382,7 +372,7 @@ export function CreditBalanceTable(): ReactElement {
         {/* Pagination */}
         {totalPages > 1 && (
           <View style={styles.pagination}>
-            <ThemedText type="default" style={styles.paginationText}>
+            <ThemedText type="default" style={styles.paginationText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Showing {page * rowsPerPage + 1} to {Math.min((page + 1) * rowsPerPage, filteredBalances.length)} of {filteredBalances.length} balances
             </ThemedText>
             <View style={styles.paginationButtons}>
@@ -391,20 +381,20 @@ export function CreditBalanceTable(): ReactElement {
                 disabled={page === 0}
                 style={({ pressed }) => [
                   styles.paginationButton,
+                  { backgroundColor: colors.cardBackground, borderColor: colors.searchBorder },
                   page === 0 && styles.paginationButtonDisabled,
                   pressed && !(page === 0) && styles.paginationButtonPressed,
                 ]}>
-                <RemixIcon name="arrow-left-s-line" size={16} color={page === 0 ? palette.secondaryText : palette.primaryText} />
+                <RemixIcon name="arrow-left-s-line" size={16} color={page === 0 ? colors.textSecondary : colors.textPrimary} />
                 <ThemedText
                   type="defaultSemiBold"
-                  style={[
-                    styles.paginationButtonText,
-                    page === 0 && styles.paginationButtonTextDisabled,
-                  ]}>
+                  style={styles.paginationButtonText}
+                  lightColor={page === 0 ? colors.textSecondary : colors.textPrimary}
+                  darkColor={page === 0 ? colors.textSecondary : colors.textPrimary}>
                   Previous
                 </ThemedText>
               </Pressable>
-              <ThemedText type="default" style={styles.paginationPageText}>
+              <ThemedText type="default" style={styles.paginationPageText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                 Page {page + 1} of {totalPages}
               </ThemedText>
               <Pressable
@@ -412,18 +402,18 @@ export function CreditBalanceTable(): ReactElement {
                 disabled={page === totalPages - 1}
                 style={({ pressed }) => [
                   styles.paginationButton,
+                  { backgroundColor: colors.cardBackground, borderColor: colors.searchBorder },
                   page === totalPages - 1 && styles.paginationButtonDisabled,
                   pressed && !(page === totalPages - 1) && styles.paginationButtonPressed,
                 ]}>
                 <ThemedText
                   type="defaultSemiBold"
-                  style={[
-                    styles.paginationButtonText,
-                    page === totalPages - 1 && styles.paginationButtonTextDisabled,
-                  ]}>
+                  style={styles.paginationButtonText}
+                  lightColor={page === totalPages - 1 ? colors.textSecondary : colors.textPrimary}
+                  darkColor={page === totalPages - 1 ? colors.textSecondary : colors.textPrimary}>
                   Next
                 </ThemedText>
-                <RemixIcon name="arrow-right-s-line" size={16} color={page === totalPages - 1 ? palette.secondaryText : palette.primaryText} />
+                <RemixIcon name="arrow-right-s-line" size={16} color={page === totalPages - 1 ? colors.textSecondary : colors.textPrimary} />
               </Pressable>
             </View>
           </View>
@@ -452,7 +442,6 @@ export function CreditBalanceTable(): ReactElement {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: palette.background,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -484,13 +473,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: palette.headerText,
   },
   refreshButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F6E8DC',
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'flex-start',
@@ -505,12 +492,11 @@ const styles = StyleSheet.create({
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: palette.searchBackground,
     borderWidth: 1,
-    borderColor: palette.searchBorder,
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 48,
+    // Background and border colors applied inline
   },
   searchIcon: {
     marginRight: 8,
@@ -518,13 +504,12 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: palette.primaryText,
+    // Color applied inline
   },
   balancesList: {
     gap: 12,
   },
   balanceCard: {
-    backgroundColor: '#F6E8DC',
     borderRadius: 22,
     padding: 20,
     gap: 16,
@@ -533,6 +518,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
     elevation: 5,
+    // Background color applied inline
   },
   balanceHeader: {
     marginBottom: 8,
@@ -546,9 +532,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F0CFC2',
     alignItems: 'center',
     justifyContent: 'center',
+    // Background color applied inline
   },
   userDetails: {
     flex: 1,
@@ -556,7 +542,6 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    color: palette.primaryText,
   },
   emailRow: {
     flexDirection: 'row',
@@ -565,13 +550,12 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   balanceDetails: {
     gap: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: palette.divider,
+    // Border color applied inline
   },
   balanceRow: {
     flexDirection: 'row',
@@ -580,11 +564,9 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   balanceValue: {
     fontSize: 14,
-    color: palette.primaryText,
     fontFamily: 'monospace',
   },
   dateRow: {
@@ -594,18 +576,17 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   assignButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: palette.buttonPrimary,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginTop: 8,
+    // Background color applied inline
   },
   assignButtonPressed: {
     opacity: 0.8,
@@ -622,7 +603,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: palette.secondaryText,
     textAlign: 'center',
   },
   loadingContainer: {
@@ -633,7 +613,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: palette.secondaryText,
   },
   errorContainer: {
     flex: 1,
@@ -648,10 +627,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: palette.buttonPrimary,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,
+    // Background color applied inline
   },
   retryButtonText: {
     fontSize: 16,
@@ -663,7 +642,6 @@ const styles = StyleSheet.create({
   },
   paginationText: {
     fontSize: 14,
-    color: palette.secondaryText,
     textAlign: 'center',
   },
   paginationButtons: {
@@ -680,8 +658,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: palette.searchBorder,
-    backgroundColor: palette.cardBackground,
+    // Border and background colors applied inline
   },
   paginationButtonPressed: {
     opacity: 0.7,
@@ -691,14 +668,12 @@ const styles = StyleSheet.create({
   },
   paginationButtonText: {
     fontSize: 14,
-    color: palette.primaryText,
   },
   paginationButtonTextDisabled: {
-    color: palette.secondaryText,
+    // Color applied inline
   },
   paginationPageText: {
     fontSize: 14,
-    color: palette.primaryText,
   },
 });
 

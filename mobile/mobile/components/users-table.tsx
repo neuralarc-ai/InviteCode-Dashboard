@@ -18,31 +18,8 @@ import { getAppConfig } from '@/utils/config';
 import { CreditAssignmentDialog } from '@/components/credit-assignment-dialog';
 import { CreateUserDialog } from '@/components/create-user-dialog';
 import { EmailCustomizationDialog } from '@/components/email-customization-dialog';
-
-const palette = {
-  background: '#F5ECE4',
-  cardBackground: '#F6E8DC',
-  headerText: '#1A1A1A',
-  primaryText: '#1F1F1F',
-  secondaryText: '#5C5C5C',
-  activeTabBackground: '#E7A79A',
-  inactiveTabBackground: '#E4D5CA',
-  activeTabText: '#1F1F1F',
-  inactiveTabText: '#5C5C5C',
-  searchBackground: '#FFFFFF',
-  searchBorder: '#E4D5CA',
-  rowBackground: '#FFFFFF',
-  rowBorder: '#E4D5CA',
-  badgeSent: '#22C55E',
-  badgeAssigned: '#3B82F6',
-  badgeNotSent: '#9CA3AF',
-  buttonPrimary: '#C3473D',
-  buttonSecondary: '#E4D5CA',
-  buttonDanger: '#DC2626',
-  avatarBackground: '#F0CFC2',
-  avatarText: '#643022',
-  divider: '#E4D5CA',
-} as const;
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type UserProfile = {
   readonly id: string;
@@ -57,6 +34,8 @@ type UserProfile = {
 
 export function UsersTable(): ReactElement {
   const router = useRouter();
+  const theme = useColorScheme();
+  const colors = Colors[theme];
   const [userProfiles, setUserProfiles] = useState<readonly UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -254,10 +233,10 @@ export function UsersTable(): ReactElement {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.buttonPrimary} />
-          <ThemedText style={styles.loadingText} type="defaultSemiBold">
+          <ActivityIndicator size="large" color={colors.buttonPrimary} />
+          <ThemedText style={styles.loadingText} type="defaultSemiBold" lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
             Loading user profiles...
           </ThemedText>
         </View>
@@ -267,15 +246,15 @@ export function UsersTable(): ReactElement {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <View style={styles.errorContainer}>
-          <ThemedText style={styles.errorText} type="defaultSemiBold">
+          <ThemedText style={styles.errorText} type="defaultSemiBold" lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>
             Error loading user profiles
           </ThemedText>
-          <ThemedText style={styles.errorSubtext}>{error}</ThemedText>
-          <Pressable onPress={fetchUserProfiles} style={styles.retryButton}>
-            <RemixIcon name="refresh-line" size={18} color={palette.buttonPrimary} />
-            <ThemedText style={styles.retryButtonText} type="defaultSemiBold">
+          <ThemedText style={styles.errorSubtext} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>{error}</ThemedText>
+          <Pressable onPress={fetchUserProfiles} style={[styles.retryButton, { backgroundColor: colors.buttonPrimary }]}>
+            <RemixIcon name="refresh-line" size={18} color={colors.iconAccentLight} />
+            <ThemedText style={styles.retryButtonText} type="defaultSemiBold" lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
               Retry
             </ThemedText>
           </Pressable>
@@ -285,7 +264,7 @@ export function UsersTable(): ReactElement {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -298,11 +277,12 @@ export function UsersTable(): ReactElement {
               onPress={() => router.back()}
               style={({ pressed }) => [
                 styles.backButton,
+                { backgroundColor: colors.cardBackground },
                 pressed ? styles.backButtonPressed : undefined,
               ]}>
-              <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+              <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
             </Pressable>
-            <ThemedText type="title" style={styles.headerTitle}>
+            <ThemedText type="title" style={styles.headerTitle} lightColor={colors.headerText} darkColor={colors.headerText}>
               Users
             </ThemedText>
           </View>
@@ -315,10 +295,11 @@ export function UsersTable(): ReactElement {
             style={({ pressed }) => [
               styles.actionButton,
               styles.createUserButton,
+              { backgroundColor: colors.buttonPrimary },
               pressed ? styles.actionButtonPressed : undefined,
             ]}>
-            <RemixIcon name="user-add-line" size={16} color="#FFFFFF" />
-            <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+            <RemixIcon name="user-add-line" size={16} color={colors.iconAccentLight} />
+            <ThemedText type="defaultSemiBold" style={styles.actionButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
               Create User
             </ThemedText>
           </Pressable>
@@ -328,15 +309,16 @@ export function UsersTable(): ReactElement {
             style={({ pressed }) => [
               styles.actionButton,
               styles.sendEmailButton,
+              { backgroundColor: colors.buttonPrimary },
               pressed ? styles.actionButtonPressed : undefined,
               isSendingEmail ? styles.actionButtonDisabled : undefined,
             ]}>
             {isSendingEmail ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={colors.iconAccentLight} />
             ) : (
-              <RemixIcon name="mail-line" size={16} color="#FFFFFF" />
+              <RemixIcon name="mail-line" size={16} color={colors.iconAccentLight} />
             )}
-            <ThemedText type="defaultSemiBold" style={styles.actionButtonText}>
+            <ThemedText type="defaultSemiBold" style={styles.actionButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
               {isSendingEmail ? 'Sending...' : 'Send EMAIL'}
             </ThemedText>
           </Pressable>
@@ -348,14 +330,15 @@ export function UsersTable(): ReactElement {
             onPress={() => setUserTypeFilter('external')}
             style={[
               styles.tab,
-              userTypeFilter === 'external' ? styles.tabActive : styles.tabInactive,
+              {
+                backgroundColor: userTypeFilter === 'external' ? colors.activeTabBackground : colors.inactiveTabBackground,
+              },
             ]}>
             <ThemedText
               type="defaultSemiBold"
-              style={[
-                styles.tabText,
-                userTypeFilter === 'external' ? styles.tabTextActive : styles.tabTextInactive,
-              ]}>
+              style={styles.tabText}
+              lightColor={userTypeFilter === 'external' ? colors.activeTabText : colors.inactiveTabText}
+              darkColor={userTypeFilter === 'external' ? colors.activeTabText : colors.inactiveTabText}>
               External Users
             </ThemedText>
           </Pressable>
@@ -363,33 +346,34 @@ export function UsersTable(): ReactElement {
             onPress={() => setUserTypeFilter('internal')}
             style={[
               styles.tab,
-              userTypeFilter === 'internal' ? styles.tabActive : styles.tabInactive,
+              {
+                backgroundColor: userTypeFilter === 'internal' ? colors.activeTabBackground : colors.inactiveTabBackground,
+              },
             ]}>
             <ThemedText
               type="defaultSemiBold"
-              style={[
-                styles.tabText,
-                userTypeFilter === 'internal' ? styles.tabTextActive : styles.tabTextInactive,
-              ]}>
+              style={styles.tabText}
+              lightColor={userTypeFilter === 'internal' ? colors.activeTabText : colors.inactiveTabText}
+              darkColor={userTypeFilter === 'internal' ? colors.activeTabText : colors.inactiveTabText}>
               Internal Users
             </ThemedText>
           </Pressable>
         </View>
 
         {/* Card Container */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
           {/* Card Header */}
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
-              <RemixIcon name="user-3-line" size={20} color={palette.primaryText} />
-              <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
+              <RemixIcon name="user-3-line" size={20} color={colors.textPrimary} />
+              <ThemedText type="defaultSemiBold" style={styles.cardTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                 User Profiles ({filteredProfiles.length}{' '}
                 {userTypeFilter === 'internal' ? 'internal' : 'external'} user
                 {filteredProfiles.length !== 1 ? 's' : ''})
               </ThemedText>
               {selectedUserIds.size > 0 && (
-                <View style={styles.selectedBadge}>
-                  <ThemedText type="defaultSemiBold" style={styles.selectedBadgeText}>
+                <View style={[styles.selectedBadge, { backgroundColor: colors.buttonSecondary }]}>
+                  <ThemedText type="defaultSemiBold" style={styles.selectedBadgeText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     {selectedUserIds.size} selected
                   </ThemedText>
                 </View>
@@ -402,54 +386,55 @@ export function UsersTable(): ReactElement {
                     // Bulk delete functionality can be added here
                     console.log('Bulk delete', selectedUserIds.size, 'users');
                   }}
-                  style={[styles.cardActionButton, styles.deleteButton]}>
-                  <RemixIcon name="delete-bin-line" size={16} color="#FFFFFF" />
-                  <ThemedText type="defaultSemiBold" style={styles.deleteButtonText}>
+                  style={[styles.cardActionButton, styles.deleteButton, { backgroundColor: colors.buttonDanger }]}>
+                  <RemixIcon name="delete-bin-line" size={16} color={colors.iconAccentLight} />
+                  <ThemedText type="defaultSemiBold" style={styles.deleteButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                     Delete ({selectedUserIds.size})
                   </ThemedText>
                 </Pressable>
               )}
-              <Pressable onPress={fetchUserProfiles} style={[styles.cardActionButton, styles.refreshButton]}>
-                <RemixIcon name="refresh-line" size={16} color={palette.primaryText} />
+              <Pressable onPress={fetchUserProfiles} style={[styles.cardActionButton, styles.refreshButton, { backgroundColor: colors.buttonSecondary }]}>
+                <RemixIcon name="refresh-line" size={16} color={colors.textPrimary} />
               </Pressable>
             </View>
           </View>
 
           {/* Search */}
-          <View style={styles.searchContainer}>
+          <View style={[styles.searchContainer, { backgroundColor: colors.searchBackground, borderColor: colors.searchBorder }]}>
             <RemixIcon
               name="search-line"
               size={18}
-              color={palette.secondaryText}
+              color={colors.textSecondary}
               style={styles.searchIcon}
             />
             <TextInput
               placeholder="Search users..."
               value={searchQuery}
               onChangeText={setSearchQuery}
-              style={styles.searchInput}
-              placeholderTextColor={palette.secondaryText}
+              style={[styles.searchInput, { color: colors.textPrimary }]}
+              placeholderTextColor={colors.textSecondary}
             />
           </View>
 
           {/* Select All */}
           {filteredProfiles.length > 0 && (
-            <View style={styles.selectAllContainer}>
+            <View style={[styles.selectAllContainer, { borderBottomColor: colors.divider }]}>
               <Pressable onPress={handleSelectAll} style={styles.checkboxContainer}>
                 <View
                   style={[
                     styles.checkbox,
-                    isAllSelected ? styles.checkboxChecked : undefined,
-                    isSomeSelected && !isAllSelected ? styles.checkboxIndeterminate : undefined,
+                    { borderColor: isAllSelected || (isSomeSelected && !isAllSelected) ? colors.buttonPrimary : colors.textSecondary },
+                    isAllSelected ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
+                    isSomeSelected && !isAllSelected ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
                   ]}>
                   {isAllSelected && (
-                    <RemixIcon name="check-line" size={14} color="#FFFFFF" />
+                    <RemixIcon name="check-line" size={14} color={colors.iconAccentLight} />
                   )}
                   {isSomeSelected && !isAllSelected && (
                     <View style={styles.checkboxIndeterminateMark} />
                   )}
                 </View>
-                <ThemedText type="default" style={styles.selectAllText}>
+                <ThemedText type="default" style={styles.selectAllText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Select All
                 </ThemedText>
               </Pressable>
@@ -459,8 +444,8 @@ export function UsersTable(): ReactElement {
           {/* User List */}
           {filteredProfiles.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <RemixIcon name="user-3-line" size={48} color={palette.secondaryText} />
-              <ThemedText type="defaultSemiBold" style={styles.emptyText}>
+              <RemixIcon name="user-3-line" size={48} color={colors.textSecondary} />
+              <ThemedText type="defaultSemiBold" style={styles.emptyText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 {searchQuery
                   ? `No ${userTypeFilter} users found matching your search`
                   : `No ${userTypeFilter} user profiles found`}
@@ -472,16 +457,17 @@ export function UsersTable(): ReactElement {
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
               renderItem={({ item: profile }) => (
-                <View style={styles.userRow}>
+                <View style={[styles.userRow, { backgroundColor: colors.rowBackground, borderColor: colors.rowBorder }]}>
                   {/* Checkbox */}
                   <Pressable onPress={() => handleToggleSelect(profile.userId)} style={styles.checkboxContainer}>
                     <View
                       style={[
                         styles.checkbox,
-                        selectedUserIds.has(profile.userId) ? styles.checkboxChecked : undefined,
+                        { borderColor: selectedUserIds.has(profile.userId) ? colors.buttonPrimary : colors.textSecondary },
+                        selectedUserIds.has(profile.userId) ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
                       ]}>
                       {selectedUserIds.has(profile.userId) && (
-                        <RemixIcon name="check-line" size={14} color="#FFFFFF" />
+                        <RemixIcon name="check-line" size={14} color={colors.iconAccentLight} />
                       )}
                     </View>
                   </Pressable>
@@ -489,17 +475,17 @@ export function UsersTable(): ReactElement {
                   <View style={styles.userInfo}>
                     {/* Name */}
                     <View style={styles.userNameRow}>
-                      <View style={styles.avatar}>
-                        <ThemedText type="defaultSemiBold" style={styles.avatarText}>
+                      <View style={[styles.avatar, { backgroundColor: colors.avatarBackground }]}>
+                        <ThemedText type="defaultSemiBold" style={styles.avatarText} lightColor={colors.avatarText} darkColor={colors.avatarText}>
                           {getInitials(profile.fullName)}
                         </ThemedText>
                       </View>
                       <View style={styles.userNameContainer}>
-                        <ThemedText type="defaultSemiBold" style={styles.userName}>
+                        <ThemedText type="defaultSemiBold" style={styles.userName} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                           {profile.fullName}
                         </ThemedText>
                         {profile.preferredName && profile.preferredName !== profile.fullName && (
-                          <ThemedText type="default" style={styles.userPreferredName}>
+                          <ThemedText type="default" style={styles.userPreferredName} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                             ({profile.preferredName})
                           </ThemedText>
                         )}
@@ -508,8 +494,8 @@ export function UsersTable(): ReactElement {
 
                     {/* Email */}
                     <View style={styles.userEmailRow}>
-                      <RemixIcon name="mail-line" size={14} color={palette.secondaryText} />
-                      <ThemedText type="default" style={styles.userEmail}>
+                      <RemixIcon name="mail-line" size={14} color={colors.textSecondary} />
+                      <ThemedText type="default" style={styles.userEmail} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         {profile.email}
                       </ThemedText>
                     </View>
@@ -518,65 +504,61 @@ export function UsersTable(): ReactElement {
                     <View style={styles.statusContainer}>
                       {isCreditsEmailSent(profile) && isCreditsAssigned(profile) ? (
                         <View style={styles.statusBadges}>
-                          <View style={[styles.statusBadge, styles.statusBadgeSent]}>
-                            <RemixIcon name="check-line" size={12} color="#FFFFFF" />
-                            <ThemedText type="default" style={styles.statusBadgeText}>
+                          <View style={styles.statusBadgePlain}>
+                            <RemixIcon name="check-line" size={12} color={colors.textSecondary} />
+                            <ThemedText type="default" style={styles.statusBadgeTextPlain} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                               Sent
                             </ThemedText>
                           </View>
-                          <View style={[styles.statusBadge, styles.statusBadgeAssigned]}>
-                            <RemixIcon name="check-line" size={12} color="#FFFFFF" />
-                            <ThemedText type="default" style={styles.statusBadgeText}>
+                          <View style={styles.statusBadgePlain}>
+                            <RemixIcon name="check-line" size={12} color={colors.textSecondary} />
+                            <ThemedText type="default" style={styles.statusBadgeTextPlain} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                               Assigned
                             </ThemedText>
                           </View>
                         </View>
                       ) : isCreditsEmailSent(profile) ? (
-                        <View style={[styles.statusBadge, styles.statusBadgeSent]}>
-                          <RemixIcon name="check-line" size={12} color="#FFFFFF" />
-                          <ThemedText type="default" style={styles.statusBadgeText}>
+                        <View style={styles.statusBadgePlain}>
+                          <RemixIcon name="check-line" size={12} color={colors.textSecondary} />
+                          <ThemedText type="default" style={styles.statusBadgeTextPlain} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                             Sent
                           </ThemedText>
                         </View>
                       ) : isCreditsAssigned(profile) ? (
-                        <View style={[styles.statusBadge, styles.statusBadgeAssigned]}>
-                          <RemixIcon name="check-line" size={12} color="#FFFFFF" />
-                          <ThemedText type="default" style={styles.statusBadgeText}>
+                        <View style={styles.statusBadgePlain}>
+                          <RemixIcon name="check-line" size={12} color={colors.textSecondary} />
+                          <ThemedText type="default" style={styles.statusBadgeTextPlain} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                             Assigned
                           </ThemedText>
                         </View>
                       ) : (
-                        <View style={[styles.statusBadge, styles.statusBadgeNotSent]}>
-                          <ThemedText type="default" style={styles.statusBadgeTextNotSent}>
-                            Not Sent
-                          </ThemedText>
-                        </View>
+                        <ThemedText type="default" style={styles.statusBadgeTextNotSent} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                          Not Sent
+                        </ThemedText>
                       )}
                     </View>
 
                     {/* User ID */}
                     <View style={styles.userIdRow}>
-                      <ThemedText type="default" style={styles.userIdLabel}>
+                      <ThemedText type="default" style={styles.userIdLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         User ID:
                       </ThemedText>
-                      <View style={styles.userIdBadge}>
-                        <ThemedText type="default" style={styles.userIdValue}>
-                          {profile.userId.slice(0, 8)}...
-                        </ThemedText>
-                      </View>
+                      <ThemedText type="default" style={styles.userIdValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                        {profile.userId.slice(0, 8)}...
+                      </ThemedText>
                     </View>
 
                     {/* Dates */}
                     <View style={styles.datesRow}>
                       <View style={styles.dateItem}>
-                        <RemixIcon name="calendar-line" size={14} color={palette.secondaryText} />
-                        <ThemedText type="default" style={styles.dateText}>
+                        <RemixIcon name="calendar-line" size={14} color={colors.textSecondary} />
+                        <ThemedText type="default" style={styles.dateText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                           Created: {formatDate(profile.createdAt)}
                         </ThemedText>
                       </View>
                       <View style={styles.dateItem}>
-                        <RemixIcon name="calendar-line" size={14} color={palette.secondaryText} />
-                        <ThemedText type="default" style={styles.dateText}>
+                        <RemixIcon name="calendar-line" size={14} color={colors.textSecondary} />
+                        <ThemedText type="default" style={styles.dateText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                           Updated: {formatDate(profile.updatedAt)}
                         </ThemedText>
                       </View>
@@ -589,19 +571,13 @@ export function UsersTable(): ReactElement {
                           setUserToAssignCredits(profile);
                           setAssignCreditsDialogOpen(true);
                         }}
-                        style={[styles.actionButtonSmall, styles.assignButton]}>
-                        <RemixIcon name="bank-card-line" size={14} color={palette.primaryText} />
-                        <ThemedText type="defaultSemiBold" style={styles.assignButtonText}>
-                          Assign Credits
-                        </ThemedText>
+                        style={[styles.actionButtonSmall, styles.assignButton, { backgroundColor: colors.buttonSecondary }]}>
+                        <RemixIcon name="bank-card-line" size={18} color={colors.textPrimary} />
                       </Pressable>
                       <Pressable
                         onPress={() => handleDeleteClick(profile)}
                         style={[styles.actionButtonSmall, styles.deleteButtonSmall]}>
-                        <RemixIcon name="delete-bin-line" size={14} color={palette.buttonDanger} />
-                        <ThemedText type="defaultSemiBold" style={styles.deleteButtonSmallText}>
-                          Delete
-                        </ThemedText>
+                        <RemixIcon name="delete-bin-line" size={18} color={colors.buttonDanger} />
                       </Pressable>
                     </View>
                   </View>
@@ -612,8 +588,8 @@ export function UsersTable(): ReactElement {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <View style={styles.pagination}>
-              <ThemedText type="default" style={styles.paginationText}>
+            <View style={[styles.pagination, { borderTopColor: colors.divider }]}>
+              <ThemedText type="default" style={styles.paginationText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Showing {page * rowsPerPage + 1} to{' '}
                 {Math.min((page + 1) * rowsPerPage, filteredProfiles.length)} of{' '}
                 {filteredProfiles.length} users
@@ -624,18 +600,18 @@ export function UsersTable(): ReactElement {
                   disabled={page === 0}
                   style={[
                     styles.paginationButton,
+                    { backgroundColor: colors.buttonSecondary },
                     page === 0 && styles.paginationButtonDisabled,
                   ]}>
                   <ThemedText
                     type="defaultSemiBold"
-                    style={[
-                      styles.paginationButtonText,
-                      page === 0 && styles.paginationButtonTextDisabled,
-                    ]}>
+                    style={styles.paginationButtonText}
+                    lightColor={page === 0 ? colors.textSecondary : colors.textPrimary}
+                    darkColor={page === 0 ? colors.textSecondary : colors.textPrimary}>
                     Previous
                   </ThemedText>
                 </Pressable>
-                <ThemedText type="default" style={styles.paginationPageText}>
+                <ThemedText type="default" style={styles.paginationPageText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Page {page + 1} of {totalPages}
                 </ThemedText>
                 <Pressable
@@ -643,14 +619,14 @@ export function UsersTable(): ReactElement {
                   disabled={page === totalPages - 1}
                   style={[
                     styles.paginationButton,
+                    { backgroundColor: colors.buttonSecondary },
                     page === totalPages - 1 && styles.paginationButtonDisabled,
                   ]}>
                   <ThemedText
                     type="defaultSemiBold"
-                    style={[
-                      styles.paginationButtonText,
-                      page === totalPages - 1 && styles.paginationButtonTextDisabled,
-                    ]}>
+                    style={styles.paginationButtonText}
+                    lightColor={page === totalPages - 1 ? colors.textSecondary : colors.textPrimary}
+                    darkColor={page === totalPages - 1 ? colors.textSecondary : colors.textPrimary}>
                     Next
                   </ThemedText>
                 </Pressable>
@@ -680,13 +656,13 @@ export function UsersTable(): ReactElement {
                 }
               }}
             />
-            <View style={styles.dialog}>
-              <ThemedText type="title" style={styles.dialogTitle}>
+            <View style={[styles.dialog, { backgroundColor: colors.cardBackground }]}>
+              <ThemedText type="title" style={styles.dialogTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                 Are you sure?
               </ThemedText>
-              <ThemedText type="default" style={styles.dialogDescription}>
+              <ThemedText type="default" style={styles.dialogDescription} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 This action cannot be undone. This will permanently delete the user profile for{' '}
-                <ThemedText type="defaultSemiBold">{userToDelete?.fullName}</ThemedText> (
+                <ThemedText type="defaultSemiBold" lightColor={colors.textPrimary} darkColor={colors.textPrimary}>{userToDelete?.fullName}</ThemedText> (
                 {userToDelete?.email}).
               </ThemedText>
               <View style={styles.dialogActions}>
@@ -701,9 +677,10 @@ export function UsersTable(): ReactElement {
                   style={[
                     styles.dialogButton,
                     styles.dialogButtonCancel,
+                    { backgroundColor: colors.cardBackground, borderColor: colors.divider },
                     isDeleting && styles.dialogButtonDisabled,
                   ]}>
-                  <ThemedText type="defaultSemiBold" style={styles.dialogButtonCancelText}>
+                  <ThemedText type="defaultSemiBold" style={styles.dialogButtonCancelText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Cancel
                   </ThemedText>
                 </Pressable>
@@ -713,17 +690,18 @@ export function UsersTable(): ReactElement {
                   style={[
                     styles.dialogButton,
                     styles.dialogButtonConfirm,
+                    { backgroundColor: colors.buttonDanger },
                     isDeleting && styles.dialogButtonDisabled,
                   ]}>
                   {isDeleting ? (
                     <>
-                      <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-                      <ThemedText type="defaultSemiBold" style={styles.dialogButtonConfirmText}>
+                      <ActivityIndicator size="small" color={colors.iconAccentLight} style={{ marginRight: 8 }} />
+                      <ThemedText type="defaultSemiBold" style={styles.dialogButtonConfirmText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                         Deleting...
                       </ThemedText>
                     </>
                   ) : (
-                    <ThemedText type="defaultSemiBold" style={styles.dialogButtonConfirmText}>
+                    <ThemedText type="defaultSemiBold" style={styles.dialogButtonConfirmText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                       Delete
                     </ThemedText>
                   )}
@@ -843,7 +821,6 @@ export function UsersTable(): ReactElement {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: palette.background,
   },
   scrollView: {
     flex: 1,
@@ -860,7 +837,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   loadingText: {
-    color: palette.primaryText,
+    // Color applied inline
   },
   errorContainer: {
     flex: 1,
@@ -870,11 +847,9 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   errorText: {
-    color: palette.buttonDanger,
     fontSize: 18,
   },
   errorSubtext: {
-    color: palette.secondaryText,
     textAlign: 'center',
   },
   retryButton: {
@@ -883,7 +858,6 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: palette.buttonPrimary,
     borderRadius: 8,
     marginTop: 8,
   },
@@ -912,7 +886,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   headerTitle: {
-    color: palette.headerText,
+    // Color applied inline
   },
   actionButtonsContainer: {
     flexDirection: 'row',
@@ -930,10 +904,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   createUserButton: {
-    backgroundColor: palette.buttonPrimary,
+    // Background color applied inline
   },
   sendEmailButton: {
-    backgroundColor: palette.buttonPrimary,
+    // Background color applied inline
   },
   actionButtonPressed: {
     opacity: 0.8,
@@ -958,22 +932,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabActive: {
-    backgroundColor: palette.activeTabBackground,
+    // Background color applied inline
   },
   tabInactive: {
-    backgroundColor: palette.inactiveTabBackground,
+    // Background color applied inline
   },
   tabText: {
     fontSize: 16,
   },
   tabTextActive: {
-    color: palette.activeTabText,
+    // Color applied inline
   },
   tabTextInactive: {
-    color: palette.inactiveTabText,
+    // Color applied inline
   },
   card: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 16,
     padding: 16,
     gap: 16,
@@ -991,17 +964,14 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   cardTitle: {
-    color: palette.primaryText,
     fontSize: 18,
   },
   selectedBadge: {
-    backgroundColor: palette.buttonSecondary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   selectedBadgeText: {
-    color: palette.primaryText,
     fontSize: 12,
   },
   cardHeaderActions: {
@@ -1018,10 +988,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   refreshButton: {
-    backgroundColor: palette.buttonSecondary,
+    // Background color applied inline
   },
   deleteButton: {
-    backgroundColor: palette.buttonDanger,
+    // Background color applied inline
   },
   deleteButtonText: {
     color: '#FFFFFF',
@@ -1030,7 +1000,7 @@ const styles = StyleSheet.create({
   selectAllContainer: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: palette.divider,
+    // Border color applied inline
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -1042,17 +1012,15 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: palette.secondaryText,
+    // Border color applied inline
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: palette.buttonPrimary,
-    borderColor: palette.buttonPrimary,
+    // Background and border colors applied inline
   },
   checkboxIndeterminate: {
-    backgroundColor: palette.buttonPrimary,
-    borderColor: palette.buttonPrimary,
+    // Background and border colors applied inline
   },
   checkboxIndeterminateMark: {
     width: 10,
@@ -1060,18 +1028,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   selectAllText: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: palette.searchBackground,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: palette.searchBorder,
+    // Background and border colors applied inline
   },
   searchIcon: {
     marginRight: 8,
@@ -1079,7 +1045,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: palette.primaryText,
+    // Color applied inline
   },
   emptyContainer: {
     alignItems: 'center',
@@ -1088,18 +1054,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    color: palette.secondaryText,
     textAlign: 'center',
   },
   userRow: {
     flexDirection: 'row',
-    backgroundColor: palette.rowBackground,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: palette.rowBorder,
     gap: 12,
+    // Background and border colors applied inline
   },
   userInfo: {
     flex: 1,
@@ -1114,23 +1078,20 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: palette.avatarBackground,
     alignItems: 'center',
     justifyContent: 'center',
+    // Background color applied inline
   },
   avatarText: {
-    color: palette.avatarText,
     fontSize: 14,
   },
   userNameContainer: {
     flex: 1,
   },
   userName: {
-    color: palette.primaryText,
     fontSize: 16,
   },
   userPreferredName: {
-    color: palette.secondaryText,
     fontSize: 14,
   },
   userEmailRow: {
@@ -1139,7 +1100,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   userEmail: {
-    color: palette.secondaryText,
     fontSize: 14,
   },
   statusContainer: {
@@ -1159,14 +1119,19 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
   },
+  statusBadgePlain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   statusBadgeSent: {
-    backgroundColor: palette.badgeSent,
+    // Background color applied inline
   },
   statusBadgeAssigned: {
-    backgroundColor: palette.badgeAssigned,
+    // Background color applied inline
   },
   statusBadgeNotSent: {
-    backgroundColor: palette.badgeNotSent,
+    // Background color applied inline
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -1175,8 +1140,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
   },
+  statusBadgeTextPlain: {
+    fontSize: 12,
+  },
   statusBadgeTextNotSent: {
-    color: palette.primaryText,
     fontSize: 12,
   },
   userIdRow: {
@@ -1185,7 +1152,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   userIdLabel: {
-    color: palette.secondaryText,
     fontSize: 12,
   },
   userIdBadge: {
@@ -1195,7 +1161,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   userIdValue: {
-    color: palette.buttonDanger,
     fontSize: 12,
     fontFamily: 'monospace',
   },
@@ -1208,7 +1173,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dateText: {
-    color: palette.secondaryText,
     fontSize: 12,
   },
   actionsRow: {
@@ -1219,23 +1183,23 @@ const styles = StyleSheet.create({
   actionButtonSmall: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 12,
     borderRadius: 8,
+    minWidth: 44,
+    minHeight: 44,
   },
   assignButton: {
-    backgroundColor: palette.buttonSecondary,
+    // Background color applied inline
   },
   assignButtonText: {
-    color: palette.primaryText,
     fontSize: 12,
   },
   deleteButtonSmall: {
     backgroundColor: '#FEE2E2',
   },
   deleteButtonSmallText: {
-    color: palette.buttonDanger,
     fontSize: 12,
   },
   dialogOverlay: {
@@ -1252,7 +1216,6 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   dialog: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 24,
     width: '90%',
@@ -1263,15 +1226,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     elevation: 8,
+    // Background color applied inline
   },
   dialogTitle: {
-    color: palette.primaryText,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
   },
   dialogDescription: {
-    color: palette.secondaryText,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -1291,17 +1253,15 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   dialogButtonCancel: {
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E4E4E4',
+    // Background and border colors applied inline
   },
   dialogButtonCancelText: {
-    color: palette.primaryText,
     fontSize: 14,
     fontWeight: '500',
   },
   dialogButtonConfirm: {
-    backgroundColor: palette.buttonDanger,
+    // Background color applied inline
   },
   dialogButtonConfirmText: {
     color: '#FFFFFF',
@@ -1314,12 +1274,11 @@ const styles = StyleSheet.create({
   pagination: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: palette.divider,
     gap: 12,
     marginTop: 8,
+    // Border color applied inline
   },
   paginationText: {
-    color: palette.secondaryText,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -1333,22 +1292,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: palette.buttonSecondary,
     minWidth: 80,
     alignItems: 'center',
+    // Background color applied inline
   },
   paginationButtonDisabled: {
     opacity: 0.5,
   },
   paginationButtonText: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   paginationButtonTextDisabled: {
-    color: palette.secondaryText,
+    // Color applied inline
   },
   paginationPageText: {
-    color: palette.primaryText,
     fontSize: 14,
   },
 });

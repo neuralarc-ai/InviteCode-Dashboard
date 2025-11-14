@@ -11,22 +11,8 @@ import {
 import RemixIcon from 'react-native-remix-icon';
 import { ThemedText } from '@/components/themed-text';
 import { getAppConfig } from '@/utils/config';
-
-const palette = {
-  background: '#F5ECE4',
-  cardBackground: '#FFFFFF',
-  primaryText: '#1F1F1F',
-  secondaryText: '#5C5C5C',
-  buttonPrimary: '#C3473D',
-  buttonSecondary: '#E4D5CA',
-  inputBackground: '#FFFFFF',
-  inputBorder: '#E4D5CA',
-  error: '#DC2626',
-  divider: '#E4D5CA',
-  weakPassword: '#DC2626',
-  mediumPassword: '#F59E0B',
-  strongPassword: '#22C55E',
-} as const;
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -50,6 +36,8 @@ export function CreateUserDialog({
   onOpenChange,
   onSuccess,
 }: CreateUserDialogProps): ReactElement {
+  const theme = useColorScheme();
+  const colors = Colors[theme];
   // Required fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -118,15 +106,15 @@ export function CreateUserDialog({
 
   const getPasswordStrength = useCallback((passwordValue: string): { strength: 'weak' | 'medium' | 'strong'; color: string } => {
     if (passwordValue.length === 0) {
-      return { strength: 'weak', color: palette.secondaryText };
+      return { strength: 'weak', color: colors.secondaryText };
     }
     if (passwordValue.length < 6) {
-      return { strength: 'weak', color: palette.weakPassword };
+      return { strength: 'weak', color: colors.weakPassword };
     }
     if (passwordValue.length < 10) {
-      return { strength: 'medium', color: palette.mediumPassword };
+      return { strength: 'medium', color: colors.mediumPassword };
     }
-    return { strength: 'strong', color: palette.strongPassword };
+    return { strength: 'strong', color: colors.strongPassword };
   }, []);
 
   const passwordStrength = getPasswordStrength(password);
@@ -270,21 +258,21 @@ export function CreateUserDialog({
       animationType="fade"
       onRequestClose={handleCancel}>
       <View style={styles.overlay}>
-        <View style={styles.dialog}>
-          <View style={styles.dialogHeader}>
+        <View style={[styles.dialog, { backgroundColor: colors.cardBackground }]}>
+          <View style={[styles.dialogHeader, { borderBottomColor: colors.divider }]}>
             <View style={styles.dialogHeaderLeft}>
-              <RemixIcon name="user-add-line" size={24} color={palette.buttonPrimary} />
+              <RemixIcon name="user-add-line" size={24} color={colors.buttonPrimary} />
               <View style={styles.dialogTitleContainer}>
-                <ThemedText type="title" style={styles.dialogTitle}>
+                <ThemedText type="title" style={styles.dialogTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Create New User
                 </ThemedText>
-                <ThemedText type="default" style={styles.dialogDescription}>
+                <ThemedText type="default" style={styles.dialogDescription} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                   Create a new user in Supabase Auth with a complete profile. All required fields must be filled.
                 </ThemedText>
               </View>
             </View>
             <Pressable onPress={handleCancel} style={styles.closeButton}>
-              <RemixIcon name="close-line" size={24} color={palette.primaryText} />
+              <RemixIcon name="close-line" size={24} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -296,16 +284,20 @@ export function CreateUserDialog({
             <View style={styles.form}>
               {/* Authentication Section */}
               <View style={styles.section}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Authentication
                 </ThemedText>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
-                    Email <ThemedText style={styles.required}>*</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Email <ThemedText style={styles.required} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>*</ThemedText>
                   </ThemedText>
                   <TextInput
-                    style={[styles.input, errors.email && styles.inputError]}
+                    style={[
+                      styles.input,
+                      { backgroundColor: colors.searchBackground, borderColor: errors.email ? colors.buttonDanger : colors.inputBorder, color: colors.textPrimary },
+                      errors.email && styles.inputError,
+                    ]}
                     value={email}
                     onChangeText={(value) => {
                       setEmail(value);
@@ -314,7 +306,7 @@ export function CreateUserDialog({
                       }
                     }}
                     placeholder="user@example.com"
-                    placeholderTextColor={palette.secondaryText}
+                    placeholderTextColor={colors.textSecondary}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -322,19 +314,19 @@ export function CreateUserDialog({
                   />
                   {errors.email && (
                     <View style={styles.errorContainer}>
-                      <RemixIcon name="error-warning-line" size={12} color={palette.error} />
-                      <ThemedText style={styles.errorText}>{errors.email}</ThemedText>
+                      <RemixIcon name="error-warning-line" size={12} color={colors.buttonDanger} />
+                      <ThemedText style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>{errors.email}</ThemedText>
                     </View>
                   )}
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
-                    Password <ThemedText style={styles.required}>*</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Password <ThemedText style={styles.required} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>*</ThemedText>
                   </ThemedText>
-                  <View style={styles.passwordContainer}>
+                  <View style={[styles.passwordContainer, { backgroundColor: colors.searchBackground, borderColor: errors.password ? colors.buttonDanger : colors.inputBorder }]}>
                     <TextInput
-                      style={[styles.passwordInput, errors.password && styles.inputError]}
+                      style={[styles.passwordInput, { color: colors.textPrimary }, errors.password && styles.inputError]}
                       value={password}
                       onChangeText={(value) => {
                         setPassword(value);
@@ -343,7 +335,7 @@ export function CreateUserDialog({
                         }
                       }}
                       placeholder="Enter password (min 6 characters)"
-                      placeholderTextColor={palette.secondaryText}
+                      placeholderTextColor={colors.textSecondary}
                       secureTextEntry={!showPassword}
                       autoCapitalize="none"
                       autoCorrect={false}
@@ -356,14 +348,14 @@ export function CreateUserDialog({
                       <RemixIcon
                         name={showPassword ? 'eye-off-line' : 'eye-line'}
                         size={20}
-                        color={palette.secondaryText}
+                        color={colors.textSecondary}
                       />
                     </Pressable>
                   </View>
                   {errors.password && (
                     <View style={styles.errorContainer}>
-                      <RemixIcon name="error-warning-line" size={12} color={palette.error} />
-                      <ThemedText style={styles.errorText}>{errors.password}</ThemedText>
+                      <RemixIcon name="error-warning-line" size={12} color={colors.buttonDanger} />
+                      <ThemedText style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>{errors.password}</ThemedText>
                     </View>
                   )}
                   {password && !errors.password && (
@@ -385,7 +377,7 @@ export function CreateUserDialog({
                     </View>
                   )}
                   {password && (
-                    <ThemedText type="default" style={styles.passwordHint}>
+                    <ThemedText type="default" style={styles.passwordHint} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       Password must be at least 6 characters long
                     </ThemedText>
                   )}
@@ -394,16 +386,20 @@ export function CreateUserDialog({
 
               {/* Profile Information Section */}
               <View style={styles.section}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Profile Information
                 </ThemedText>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
-                    Full Name <ThemedText style={styles.required}>*</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Full Name <ThemedText style={styles.required} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>*</ThemedText>
                   </ThemedText>
                   <TextInput
-                    style={[styles.input, errors.fullName && styles.inputError]}
+                    style={[
+                      styles.input,
+                      { backgroundColor: colors.searchBackground, borderColor: errors.fullName ? colors.buttonDanger : colors.inputBorder, color: colors.textPrimary },
+                      errors.fullName && styles.inputError,
+                    ]}
                     value={fullName}
                     onChangeText={(value) => {
                       setFullName(value);
@@ -412,40 +408,44 @@ export function CreateUserDialog({
                       }
                     }}
                     placeholder="John Doe"
-                    placeholderTextColor={palette.secondaryText}
+                    placeholderTextColor={colors.textSecondary}
                     editable={!isSubmitting}
                   />
                   {errors.fullName && (
                     <View style={styles.errorContainer}>
-                      <RemixIcon name="error-warning-line" size={12} color={palette.error} />
-                      <ThemedText style={styles.errorText}>{errors.fullName}</ThemedText>
+                      <RemixIcon name="error-warning-line" size={12} color={colors.buttonDanger} />
+                      <ThemedText style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>{errors.fullName}</ThemedText>
                     </View>
                   )}
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Preferred Name (Optional)
                   </ThemedText>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.searchBackground, borderColor: colors.inputBorder, color: colors.textPrimary }]}
                     value={preferredName}
                     onChangeText={setPreferredName}
                     placeholder="John (defaults to full name if not provided)"
-                    placeholderTextColor={palette.secondaryText}
+                    placeholderTextColor={colors.textSecondary}
                     editable={!isSubmitting}
                   />
-                  <ThemedText type="default" style={styles.hintText}>
+                  <ThemedText type="default" style={styles.hintText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                     If not provided, the full name will be used as the preferred name.
                   </ThemedText>
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
-                    Work Description <ThemedText style={styles.required}>*</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Work Description <ThemedText style={styles.required} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>*</ThemedText>
                   </ThemedText>
                   <TextInput
-                    style={[styles.textArea, errors.workDescription && styles.inputError]}
+                    style={[
+                      styles.textArea,
+                      { backgroundColor: colors.searchBackground, borderColor: errors.workDescription ? colors.buttonDanger : colors.inputBorder, color: colors.textPrimary },
+                      errors.workDescription && styles.inputError,
+                    ]}
                     value={workDescription}
                     onChangeText={(value) => {
                       setWorkDescription(value);
@@ -454,7 +454,7 @@ export function CreateUserDialog({
                       }
                     }}
                     placeholder="Describe the user's work or role..."
-                    placeholderTextColor={palette.secondaryText}
+                    placeholderTextColor={colors.textSecondary}
                     multiline
                     numberOfLines={3}
                     textAlignVertical="top"
@@ -462,22 +462,22 @@ export function CreateUserDialog({
                   />
                   {errors.workDescription && (
                     <View style={styles.errorContainer}>
-                      <RemixIcon name="error-warning-line" size={12} color={palette.error} />
-                      <ThemedText style={styles.errorText}>{errors.workDescription}</ThemedText>
+                      <RemixIcon name="error-warning-line" size={12} color={colors.buttonDanger} />
+                      <ThemedText style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>{errors.workDescription}</ThemedText>
                     </View>
                   )}
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Personal References (Optional)
                   </ThemedText>
                   <TextInput
-                    style={styles.textArea}
+                    style={[styles.textArea, { backgroundColor: colors.searchBackground, borderColor: colors.inputBorder, color: colors.textPrimary }]}
                     value={personalReferences}
                     onChangeText={setPersonalReferences}
                     placeholder="Any personal references or notes..."
-                    placeholderTextColor={palette.secondaryText}
+                    placeholderTextColor={colors.textSecondary}
                     multiline
                     numberOfLines={2}
                     textAlignVertical="top"
@@ -486,15 +486,15 @@ export function CreateUserDialog({
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Avatar URL (Optional)
                   </ThemedText>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.searchBackground, borderColor: colors.inputBorder, color: colors.textPrimary }]}
                     value={avatarUrl}
                     onChangeText={setAvatarUrl}
                     placeholder="https://example.com/avatar.jpg"
-                    placeholderTextColor={palette.secondaryText}
+                    placeholderTextColor={colors.textSecondary}
                     keyboardType="url"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -503,15 +503,15 @@ export function CreateUserDialog({
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Referral Source (Optional)
                   </ThemedText>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.searchBackground, borderColor: colors.inputBorder, color: colors.textPrimary }]}
                     value={referralSource}
                     onChangeText={setReferralSource}
                     placeholder="How did this user find us?"
-                    placeholderTextColor={palette.secondaryText}
+                    placeholderTextColor={colors.textSecondary}
                     editable={!isSubmitting}
                   />
                 </View>
@@ -519,13 +519,13 @@ export function CreateUserDialog({
 
               {/* Account Settings Section */}
               <View style={styles.section}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Account Settings
                 </ThemedText>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
-                    Plan Type <ThemedText style={styles.required}>*</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Plan Type <ThemedText style={styles.required} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>*</ThemedText>
                   </ThemedText>
                   <View style={styles.radioGroup}>
                     {(['seed', 'edge', 'quantum'] as const).map((plan) => (
@@ -541,18 +541,18 @@ export function CreateUserDialog({
                         }}
                         style={[
                           styles.radioOption,
-                          planType === plan && styles.radioOptionSelected,
+                          { backgroundColor: colors.searchBackground, borderColor: colors.inputBorder },
+                          planType === plan && { borderColor: colors.buttonPrimary, backgroundColor: colors.badgeBackground },
                         ]}
                         disabled={isSubmitting}>
-                        <View style={styles.radio}>
-                          {planType === plan && <View style={styles.radioSelected} />}
+                        <View style={[styles.radio, { borderColor: colors.inputBorder }]}>
+                          {planType === plan && <View style={[styles.radioSelected, { backgroundColor: colors.buttonPrimary }]} />}
                         </View>
                         <ThemedText
                           type="default"
-                          style={[
-                            styles.radioLabel,
-                            planType === plan && styles.radioLabelSelected,
-                          ]}>
+                          style={styles.radioLabel}
+                          lightColor={planType === plan ? colors.buttonPrimary : colors.textSecondary}
+                          darkColor={planType === plan ? colors.buttonPrimary : colors.textSecondary}>
                           {plan.charAt(0).toUpperCase() + plan.slice(1)}
                         </ThemedText>
                       </Pressable>
@@ -560,15 +560,15 @@ export function CreateUserDialog({
                   </View>
                   {errors.planType && (
                     <View style={styles.errorContainer}>
-                      <RemixIcon name="error-warning-line" size={12} color={palette.error} />
-                      <ThemedText style={styles.errorText}>{errors.planType}</ThemedText>
+                      <RemixIcon name="error-warning-line" size={12} color={colors.buttonDanger} />
+                      <ThemedText style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>{errors.planType}</ThemedText>
                     </View>
                   )}
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
-                    Account Type <ThemedText style={styles.required}>*</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Account Type <ThemedText style={styles.required} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>*</ThemedText>
                   </ThemedText>
                   <View style={styles.radioGroup}>
                     {(['individual', 'business'] as const).map((type) => (
@@ -584,18 +584,18 @@ export function CreateUserDialog({
                         }}
                         style={[
                           styles.radioOption,
-                          accountType === type && styles.radioOptionSelected,
+                          { backgroundColor: colors.searchBackground, borderColor: colors.inputBorder },
+                          accountType === type && { borderColor: colors.buttonPrimary, backgroundColor: colors.badgeBackground },
                         ]}
                         disabled={isSubmitting}>
-                        <View style={styles.radio}>
-                          {accountType === type && <View style={styles.radioSelected} />}
+                        <View style={[styles.radio, { borderColor: colors.inputBorder }]}>
+                          {accountType === type && <View style={[styles.radioSelected, { backgroundColor: colors.buttonPrimary }]} />}
                         </View>
                         <ThemedText
                           type="default"
-                          style={[
-                            styles.radioLabel,
-                            accountType === type && styles.radioLabelSelected,
-                          ]}>
+                          style={styles.radioLabel}
+                          lightColor={accountType === type ? colors.buttonPrimary : colors.textSecondary}
+                          darkColor={accountType === type ? colors.buttonPrimary : colors.textSecondary}>
                           {type.charAt(0).toUpperCase() + type.slice(1)}
                         </ThemedText>
                       </Pressable>
@@ -603,8 +603,8 @@ export function CreateUserDialog({
                   </View>
                   {errors.accountType && (
                     <View style={styles.errorContainer}>
-                      <RemixIcon name="error-warning-line" size={12} color={palette.error} />
-                      <ThemedText style={styles.errorText}>{errors.accountType}</ThemedText>
+                      <RemixIcon name="error-warning-line" size={12} color={colors.buttonDanger} />
+                      <ThemedText style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>{errors.accountType}</ThemedText>
                     </View>
                   )}
                 </View>
@@ -612,7 +612,7 @@ export function CreateUserDialog({
 
               {/* Consent Section */}
               <View style={styles.section}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Consent
                 </ThemedText>
 
@@ -633,23 +633,27 @@ export function CreateUserDialog({
                     style={styles.checkbox}
                     disabled={isSubmitting}>
                     {consentGiven ? (
-                      <RemixIcon name="checkbox-fill" size={20} color={palette.buttonPrimary} />
+                      <RemixIcon name="checkbox-fill" size={20} color={colors.buttonPrimary} />
                     ) : (
-                      <RemixIcon name="checkbox-blank-line" size={20} color={palette.secondaryText} />
+                      <RemixIcon name="checkbox-blank-line" size={20} color={colors.textSecondary} />
                     )}
                   </Pressable>
-                  <ThemedText type="default" style={styles.checkboxLabel}>
+                  <ThemedText type="default" style={styles.checkboxLabel} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Consent Given (Optional)
                   </ThemedText>
                 </View>
 
                 {consentGiven && (
                   <View style={styles.inputGroup}>
-                    <ThemedText type="defaultSemiBold" style={styles.label}>
-                      Consent Date <ThemedText style={styles.required}>*</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                      Consent Date <ThemedText style={styles.required} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>*</ThemedText>
                     </ThemedText>
                     <TextInput
-                      style={[styles.input, errors.consentDate && styles.inputError]}
+                      style={[
+                        styles.input,
+                        { backgroundColor: colors.searchBackground, borderColor: errors.consentDate ? colors.buttonDanger : colors.inputBorder, color: colors.textPrimary },
+                        errors.consentDate && styles.inputError,
+                      ]}
                       value={consentDate}
                       onChangeText={(value) => {
                         setConsentDate(value);
@@ -658,13 +662,13 @@ export function CreateUserDialog({
                         }
                       }}
                       placeholder="YYYY-MM-DD"
-                      placeholderTextColor={palette.secondaryText}
+                      placeholderTextColor={colors.textSecondary}
                       editable={!isSubmitting}
                     />
                     {errors.consentDate && (
                       <View style={styles.errorContainer}>
-                        <RemixIcon name="error-warning-line" size={12} color={palette.error} />
-                        <ThemedText style={styles.errorText}>{errors.consentDate}</ThemedText>
+                        <RemixIcon name="error-warning-line" size={12} color={colors.buttonDanger} />
+                        <ThemedText style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>{errors.consentDate}</ThemedText>
                       </View>
                     )}
                   </View>
@@ -673,16 +677,20 @@ export function CreateUserDialog({
 
               {/* Additional Information Section */}
               <View style={styles.section}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Additional Information
                 </ThemedText>
 
                 <View style={styles.inputGroup}>
-                  <ThemedText type="defaultSemiBold" style={styles.label}>
+                  <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Metadata (Optional - JSON format)
                   </ThemedText>
                   <TextInput
-                    style={[styles.textArea, errors.metadata && styles.inputError]}
+                    style={[
+                      styles.textArea,
+                      { backgroundColor: colors.searchBackground, borderColor: errors.metadata ? colors.buttonDanger : colors.inputBorder, color: colors.textPrimary },
+                      errors.metadata && styles.inputError,
+                    ]}
                     value={metadata}
                     onChangeText={(value) => {
                       setMetadata(value);
@@ -691,7 +699,7 @@ export function CreateUserDialog({
                       }
                     }}
                     placeholder='{"key": "value"}'
-                    placeholderTextColor={palette.secondaryText}
+                    placeholderTextColor={colors.textSecondary}
                     multiline
                     numberOfLines={3}
                     textAlignVertical="top"
@@ -701,11 +709,11 @@ export function CreateUserDialog({
                   />
                   {errors.metadata && (
                     <View style={styles.errorContainer}>
-                      <RemixIcon name="error-warning-line" size={12} color={palette.error} />
-                      <ThemedText style={styles.errorText}>{errors.metadata}</ThemedText>
+                      <RemixIcon name="error-warning-line" size={12} color={colors.buttonDanger} />
+                      <ThemedText style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>{errors.metadata}</ThemedText>
                     </View>
                   )}
-                  <ThemedText type="default" style={styles.hintText}>
+                  <ThemedText type="default" style={styles.hintText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                     Enter metadata as valid JSON. Leave empty for default empty object.
                   </ThemedText>
                 </View>
@@ -713,25 +721,25 @@ export function CreateUserDialog({
             </View>
           </ScrollView>
 
-          <View style={styles.dialogFooter}>
+          <View style={[styles.dialogFooter, { borderTopColor: colors.divider }]}>
             <Pressable
               onPress={handleCancel}
               disabled={isSubmitting}
-              style={[styles.button, styles.cancelButton]}>
-              <ThemedText type="defaultSemiBold" style={styles.cancelButtonText}>
+              style={[styles.button, styles.cancelButton, { backgroundColor: colors.buttonSecondary }]}>
+              <ThemedText type="defaultSemiBold" style={styles.cancelButtonText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                 Cancel
               </ThemedText>
             </Pressable>
             <Pressable
               onPress={handleSubmit}
               disabled={isSubmitting}
-              style={[styles.button, styles.submitButton, isSubmitting && styles.buttonDisabled]}>
+              style={[styles.button, styles.submitButton, { backgroundColor: colors.buttonPrimary }, isSubmitting && styles.buttonDisabled]}>
               {isSubmitting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={colors.iconAccentLight} />
               ) : (
                 <>
-                  <RemixIcon name="user-add-line" size={16} color="#FFFFFF" />
-                  <ThemedText type="defaultSemiBold" style={styles.submitButtonText}>
+                  <RemixIcon name="user-add-line" size={16} color={colors.iconAccentLight} />
+                  <ThemedText type="defaultSemiBold" style={styles.submitButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                     Create User
                   </ThemedText>
                 </>
@@ -753,7 +761,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   dialog: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 16,
     width: '100%',
     maxWidth: 500,
@@ -761,6 +768,7 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
     overflow: 'hidden',
     flexDirection: 'column',
+    // Background color applied inline
   },
   dialogHeader: {
     flexDirection: 'row',
@@ -769,9 +777,9 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: palette.divider,
     gap: 12,
     flexShrink: 0,
+    // Border color applied inline
   },
   dialogHeaderLeft: {
     flexDirection: 'row',
@@ -784,11 +792,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   dialogTitle: {
-    color: palette.primaryText,
     fontSize: 20,
   },
   dialogDescription: {
-    color: palette.secondaryText,
     fontSize: 14,
     marginTop: 4,
   },
@@ -810,7 +816,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   sectionTitle: {
-    color: palette.primaryText,
     fontSize: 14,
     marginBottom: 4,
   },
@@ -818,39 +823,35 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   required: {
-    color: palette.error,
+    // Color applied inline
   },
   input: {
-    backgroundColor: palette.inputBackground,
     borderWidth: 1,
-    borderColor: palette.inputBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: palette.primaryText,
+    // Background, border, and text colors applied inline
   },
   inputError: {
-    borderColor: palette.error,
+    // Border color applied inline
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: palette.inputBackground,
     borderWidth: 1,
-    borderColor: palette.inputBorder,
     borderRadius: 8,
+    // Background and border colors applied inline
   },
   passwordInput: {
     flex: 1,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: palette.primaryText,
+    // Color applied inline
   },
   passwordToggle: {
     padding: 10,
@@ -877,20 +878,17 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   passwordHint: {
-    color: palette.secondaryText,
     fontSize: 12,
     marginTop: 4,
   },
   textArea: {
-    backgroundColor: palette.inputBackground,
     borderWidth: 1,
-    borderColor: palette.inputBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: palette.primaryText,
     minHeight: 80,
+    // Background, border, and text colors applied inline
   },
   radioGroup: {
     flexDirection: 'row',
@@ -905,34 +903,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: palette.inputBorder,
-    backgroundColor: palette.inputBackground,
+    // Border and background colors applied inline
   },
   radioOptionSelected: {
-    borderColor: palette.buttonPrimary,
-    backgroundColor: '#FFF5F3',
+    // Border and background colors applied inline
   },
   radio: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: palette.inputBorder,
     alignItems: 'center',
     justifyContent: 'center',
+    // Border color applied inline
   },
   radioSelected: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: palette.buttonPrimary,
+    // Background color applied inline
   },
   radioLabel: {
-    color: palette.secondaryText,
     fontSize: 14,
   },
   radioLabelSelected: {
-    color: palette.buttonPrimary,
+    // Color applied inline
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -943,7 +938,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   checkboxLabel: {
-    color: palette.primaryText,
     fontSize: 14,
     flex: 1,
   },
@@ -954,11 +948,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   errorText: {
-    color: palette.error,
     fontSize: 12,
   },
   hintText: {
-    color: palette.secondaryText,
     fontSize: 12,
     marginTop: 4,
   },
@@ -969,8 +961,8 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: palette.divider,
     flexShrink: 0,
+    // Border color applied inline
   },
   button: {
     flexDirection: 'row',
@@ -983,14 +975,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: palette.buttonSecondary,
+    // Background color applied inline
   },
   cancelButtonText: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   submitButton: {
-    backgroundColor: palette.buttonPrimary,
+    // Background color applied inline
   },
   submitButtonText: {
     color: '#FFFFFF',

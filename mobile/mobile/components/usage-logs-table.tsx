@@ -15,26 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { getAppConfig } from '@/utils/config';
-
-const palette = {
-  background: '#F5ECE4',
-  cardBackground: '#F6E8DC',
-  headerText: '#1A1A1A',
-  primaryText: '#1F1F1F',
-  secondaryText: '#5C5C5C',
-  divider: '#E4D5CA',
-  highlightText: '#C3473D',
-  iconAccent: '#C3473D',
-  activeTabBackground: '#E7A79A',
-  inactiveTabBackground: '#E4D5CA',
-  activeTabText: '#1F1F1F',
-  inactiveTabText: '#5C5C5C',
-  badgeHigh: '#22C55E',
-  badgeMedium: '#F59E0B',
-  badgeLow: '#F97316',
-  badgeInactive: '#DC2626',
-  badgeBackground: '#EDD5C5',
-} as const;
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type UsageLog = {
   readonly userId: string;
@@ -56,6 +38,8 @@ type UsageLog = {
 
 export function UsageLogsTable(): ReactElement {
   const router = useRouter();
+  const theme = useColorScheme();
+  const colors = Colors[theme];
   const [usageLogs, setUsageLogs] = useState<readonly UsageLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -304,11 +288,11 @@ export function UsageLogsTable(): ReactElement {
 
   const getActivityColor = useCallback((level: string): string => {
     switch (level) {
-      case 'high': return palette.badgeHigh;
-      case 'medium': return palette.badgeMedium;
-      case 'low': return palette.badgeLow;
-      case 'inactive': return palette.badgeInactive;
-      default: return palette.secondaryText;
+      case 'high': return colors.badgeHigh;
+      case 'medium': return colors.badgeMedium;
+      case 'low': return colors.badgeLow;
+      case 'inactive': return colors.badgeInactive;
+      default: return colors.secondaryText;
     }
   }, []);
 
@@ -590,7 +574,7 @@ The Helium Team 🌟`
 
   if (isLoading && usageLogs.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -599,17 +583,17 @@ The Helium Team 🌟`
             <View style={styles.headerLeft}>
               <Pressable
                 onPress={() => router.back()}
-                style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-                <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+                style={({ pressed }) => [styles.backButton, { backgroundColor: colors.cardBackground }, pressed && styles.backButtonPressed]}>
+                <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
               </Pressable>
-              <ThemedText type="title" style={styles.headerTitle}>
+              <ThemedText type="title" style={styles.headerTitle} lightColor={colors.headerText} darkColor={colors.headerText}>
                 Usage Logs
               </ThemedText>
             </View>
           </View>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={palette.iconAccent} />
-            <ThemedText type="default" style={styles.loadingText}>
+            <ActivityIndicator size="large" color={colors.iconAccent} />
+            <ThemedText type="default" style={styles.loadingText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Loading usage logs...
             </ThemedText>
           </View>
@@ -630,7 +614,7 @@ The Helium Team 🌟`
               <Pressable
                 onPress={() => router.back()}
                 style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-                <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+                <RemixIcon name="arrow-left-line" size={22} color={colors.primaryText} />
               </Pressable>
               <ThemedText type="title" style={styles.headerTitle}>
                 Usage Logs
@@ -653,7 +637,7 @@ The Helium Team 🌟`
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -663,15 +647,15 @@ The Helium Team 🌟`
           <View style={styles.headerLeft}>
             <Pressable
               onPress={() => router.back()}
-              style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-              <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+              style={({ pressed }) => [styles.backButton, { backgroundColor: colors.cardBackground }, pressed && styles.backButtonPressed]}>
+              <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
             </Pressable>
             <View style={styles.headerTitleContainer}>
-              <ThemedText type="title" style={styles.headerTitle}>
+              <ThemedText type="title" style={styles.headerTitle} lightColor={colors.headerText} darkColor={colors.headerText}>
                 Usage Logs
               </ThemedText>
-              <ThemedText type="default" style={styles.headerSubtitle}>
-                Overall Total Credits: <ThemedText type="defaultSemiBold">{formatNumberWithDecimals(stats.overallTotalCredits)}</ThemedText>
+              <ThemedText type="default" style={styles.headerSubtitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                Overall Total Credits: <ThemedText type="defaultSemiBold" lightColor={colors.textPrimary} darkColor={colors.textPrimary}>{formatNumberWithDecimals(stats.overallTotalCredits)}</ThemedText>
               </ThemedText>
             </View>
           </View>
@@ -680,11 +664,11 @@ The Helium Team 🌟`
         {/* Description and Refresh */}
         <View style={styles.descriptionRow}>
           <View>
-            <ThemedText type="default" style={styles.descriptionText}>
+            <ThemedText type="default" style={styles.descriptionText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Monitor AI usage and token consumption
             </ThemedText>
             {lastUpdateTime && (
-              <ThemedText type="default" style={styles.updateTimeText}>
+              <ThemedText type="default" style={styles.updateTimeText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Last updated: {lastUpdateTime.toLocaleTimeString()} (Real-time)
               </ThemedText>
             )}
@@ -694,37 +678,37 @@ The Helium Team 🌟`
             disabled={isLoading}
             style={({ pressed }) => [
               styles.refreshButton,
+              { backgroundColor: colors.cardBackground },
               pressed && styles.refreshButtonPressed,
               isLoading && styles.refreshButtonDisabled,
             ]}>
             <RemixIcon
               name="refresh-line"
               size={20}
-              color={isLoading ? palette.secondaryText : palette.primaryText}
+              color={isLoading ? colors.textSecondary : colors.textPrimary}
             />
           </Pressable>
         </View>
 
         {/* User Type Tabs */}
-        <View style={styles.tabContainer}>
+        <View style={[styles.tabContainer, { backgroundColor: colors.inactiveTabBackground }]}>
           <Pressable
             onPress={() => handleUserTypeFilter('external')}
             style={({ pressed }) => [
               styles.tab,
-              userTypeFilter === 'external' && styles.tabActive,
+              { backgroundColor: userTypeFilter === 'external' ? colors.activeTabBackground : 'transparent' },
               pressed && styles.tabPressed,
             ]}>
             <RemixIcon
               name="user-line"
               size={16}
-              color={userTypeFilter === 'external' ? palette.activeTabText : palette.inactiveTabText}
+              color={userTypeFilter === 'external' ? colors.activeTabText : colors.inactiveTabText}
             />
             <ThemedText
               type="defaultSemiBold"
-              style={[
-                styles.tabText,
-                userTypeFilter === 'external' && styles.tabTextActive,
-              ]}>
+              style={styles.tabText}
+              lightColor={userTypeFilter === 'external' ? colors.activeTabText : colors.inactiveTabText}
+              darkColor={userTypeFilter === 'external' ? colors.activeTabText : colors.inactiveTabText}>
               External Users
             </ThemedText>
           </Pressable>
@@ -732,20 +716,19 @@ The Helium Team 🌟`
             onPress={() => handleUserTypeFilter('internal')}
             style={({ pressed }) => [
               styles.tab,
-              userTypeFilter === 'internal' && styles.tabActive,
+              { backgroundColor: userTypeFilter === 'internal' ? colors.activeTabBackground : 'transparent' },
               pressed && styles.tabPressed,
             ]}>
             <RemixIcon
               name="building-line"
               size={16}
-              color={userTypeFilter === 'internal' ? palette.activeTabText : palette.inactiveTabText}
+              color={userTypeFilter === 'internal' ? colors.activeTabText : colors.inactiveTabText}
             />
             <ThemedText
               type="defaultSemiBold"
-              style={[
-                styles.tabText,
-                userTypeFilter === 'internal' && styles.tabTextActive,
-              ]}>
+              style={styles.tabText}
+              lightColor={userTypeFilter === 'internal' ? colors.activeTabText : colors.inactiveTabText}
+              darkColor={userTypeFilter === 'internal' ? colors.activeTabText : colors.inactiveTabText}>
               Internal Users
             </ThemedText>
           </Pressable>
@@ -753,18 +736,18 @@ The Helium Team 🌟`
 
         {/* Search and Activity Filter */}
         <View style={styles.filterRow}>
-          <View style={styles.searchContainer}>
-            <RemixIcon name="search-line" size={18} color={palette.secondaryText} style={styles.searchIcon} />
+          <View style={[styles.searchContainer, { backgroundColor: colors.searchBackground, borderColor: colors.searchBorder }]}>
+            <RemixIcon name="search-line" size={18} color={colors.textSecondary} style={styles.searchIcon} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.textPrimary }]}
               placeholder="Search users by name, email, or ID..."
-              placeholderTextColor={palette.secondaryText}
+              placeholderTextColor={colors.textSecondary}
               value={localSearchQuery}
               onChangeText={setLocalSearchQuery}
             />
             {localSearchQuery.length > 0 && (
               <Pressable onPress={clearSearch} style={styles.clearButton}>
-                <RemixIcon name="close-line" size={16} color={palette.secondaryText} />
+                <RemixIcon name="close-line" size={16} color={colors.textSecondary} />
               </Pressable>
             )}
           </View>
@@ -772,7 +755,7 @@ The Helium Team 🌟`
 
         {/* Activity Filter */}
         <View style={styles.activityFilterContainer}>
-          <ThemedText type="default" style={styles.filterLabel}>
+          <ThemedText type="default" style={styles.filterLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
             Activity Filter:
           </ThemedText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.activityFilterScroll}>
@@ -782,15 +765,17 @@ The Helium Team 🌟`
                 onPress={() => handleActivityFilter(filter)}
                 style={({ pressed }) => [
                   styles.activityFilterButton,
-                  activityFilter === filter && styles.activityFilterButtonActive,
+                  {
+                    backgroundColor: activityFilter === filter ? colors.iconAccent : colors.rowBackground,
+                    borderColor: colors.divider,
+                  },
                   pressed && styles.activityFilterButtonPressed,
                 ]}>
                 <ThemedText
                   type="defaultSemiBold"
-                  style={[
-                    styles.activityFilterText,
-                    activityFilter === filter && styles.activityFilterTextActive,
-                  ]}>
+                  style={styles.activityFilterText}
+                  lightColor={activityFilter === filter ? colors.iconAccentLight : colors.textPrimary}
+                  darkColor={activityFilter === filter ? colors.iconAccentLight : colors.textPrimary}>
                   {filter === 'all' ? 'All Users' : filter.charAt(0).toUpperCase() + filter.slice(1)}
                 </ThemedText>
               </Pressable>
@@ -800,68 +785,68 @@ The Helium Team 🌟`
 
         {/* Stats Cards */}
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.statHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.statTitle}>
+              <ThemedText type="defaultSemiBold" style={styles.statTitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Total Users
               </ThemedText>
-              <RemixIcon name="pulse-line" size={16} color={palette.secondaryText} />
+              <RemixIcon name="pulse-line" size={16} color={colors.textSecondary} />
             </View>
-            <ThemedText type="title" style={styles.statValue}>
+            <ThemedText type="title" style={styles.statValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
               {formatNumber(stats.totalLogs)}
             </ThemedText>
-            <ThemedText type="default" style={styles.statSubtitle}>
+            <ThemedText type="default" style={styles.statSubtitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Users with usage logs
             </ThemedText>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.statHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.statTitle}>
+              <ThemedText type="defaultSemiBold" style={styles.statTitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Total Credits
               </ThemedText>
-              <RemixIcon name="hashtag-line" size={16} color={palette.secondaryText} />
+              <RemixIcon name="hashtag-line" size={16} color={colors.textSecondary} />
             </View>
-            <ThemedText type="title" style={styles.statValue}>
+            <ThemedText type="title" style={styles.statValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
               {formatNumberWithDecimals(stats.totalTokens)}
             </ThemedText>
-            <ThemedText type="default" style={styles.statSubtitle}>
+            <ThemedText type="default" style={styles.statSubtitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Calculated (Total Cost × 100)
             </ThemedText>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.statHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.statTitle}>
+              <ThemedText type="defaultSemiBold" style={styles.statTitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Total Cost
               </ThemedText>
-              <RemixIcon name="money-dollar-circle-line" size={16} color={palette.secondaryText} />
+              <RemixIcon name="money-dollar-circle-line" size={16} color={colors.textSecondary} />
             </View>
-            <ThemedText type="title" style={styles.statValue}>
+            <ThemedText type="title" style={styles.statValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
               {formatCurrency(stats.totalCost)}
             </ThemedText>
-            <ThemedText type="default" style={styles.statSubtitle}>
+            <ThemedText type="default" style={styles.statSubtitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Estimated usage cost
             </ThemedText>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.statHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.statTitle}>
+              <ThemedText type="defaultSemiBold" style={styles.statTitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Page Users
               </ThemedText>
-              <RemixIcon name="calendar-line" size={16} color={palette.secondaryText} />
+              <RemixIcon name="calendar-line" size={16} color={colors.textSecondary} />
             </View>
-            <ThemedText type="title" style={styles.statValue}>
+            <ThemedText type="title" style={styles.statValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
               {formatNumber(stats.uniqueUsers)}
             </ThemedText>
-            <ThemedText type="default" style={styles.statSubtitle}>
+            <ThemedText type="default" style={styles.statSubtitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Users on current page
             </ThemedText>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: colors.cardBackground }]}>
             <View style={styles.statHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.statTitle}>
+              <ThemedText type="defaultSemiBold" style={styles.statTitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Cache Performance
               </ThemedText>
-              <RemixIcon name="flashlight-line" size={16} color={palette.secondaryText} />
+              <RemixIcon name="flashlight-line" size={16} color={colors.textSecondary} />
             </View>
             <ThemedText type="title" style={styles.statValue}>
               N/A
@@ -873,12 +858,12 @@ The Helium Team 🌟`
         </View>
 
         {/* Usage Logs Table Card */}
-        <View style={styles.tableCard}>
+        <View style={[styles.tableCard, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.tableCardHeader}>
-            <ThemedText type="subtitle" style={styles.tableCardTitle}>
+            <ThemedText type="subtitle" style={styles.tableCardTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
               Usage Logs
             </ThemedText>
-            <ThemedText type="default" style={styles.tableCardDescription}>
+            <ThemedText type="default" style={styles.tableCardDescription} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               {searchQuery || activityFilter !== 'all' ? (
                 <>Filtered results ({totalCount} {userTypeFilter === 'internal' ? 'internal' : 'external'} user{totalCount !== 1 ? 's' : ''} found)</>
               ) : (
@@ -890,26 +875,26 @@ The Helium Team 🌟`
           {/* Usage Logs List */}
           {usageLogs.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <RemixIcon name="file-list-3-line" size={48} color={palette.secondaryText} />
-              <ThemedText type="default" style={styles.emptyText}>
+              <RemixIcon name="file-list-3-line" size={48} color={colors.textSecondary} />
+              <ThemedText type="default" style={styles.emptyText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 {searchQuery || activityFilter !== 'all' ? 'No users found' : 'No usage data found'}
               </ThemedText>
             </View>
           ) : (
             <View style={styles.logsList}>
               {usageLogs.map((log) => (
-                <View key={log.userId} style={styles.logCard}>
+                <View key={log.userId} style={[styles.logCard, { backgroundColor: colors.rowBackground, borderColor: colors.divider }]}>
                   {/* User Info */}
                   <View style={styles.logHeader}>
                     <View style={styles.userInfo}>
                       {log.hasCompletedPayment && (
-                        <View style={styles.paidIndicator} />
+                        <View style={[styles.paidIndicator, { backgroundColor: colors.badgeHigh }]} />
                       )}
                       <View style={styles.userDetails}>
-                        <ThemedText type="defaultSemiBold" style={styles.userName}>
+                        <ThemedText type="defaultSemiBold" style={styles.userName} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                           {log.userName}
                         </ThemedText>
-                        <ThemedText type="default" style={styles.userEmail}>
+                        <ThemedText type="default" style={styles.userEmail} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                           {log.userEmail}
                         </ThemedText>
                       </View>
@@ -917,7 +902,7 @@ The Helium Team 🌟`
                   </View>
 
                   {/* Activity Level */}
-                  <View style={styles.activitySection}>
+                  <View style={[styles.activitySection, { borderTopColor: colors.divider }]}>
                     <View style={styles.activityRow}>
                       <RemixIcon
                         name={getActivityIcon(log.activityLevel)}
@@ -932,7 +917,7 @@ The Helium Team 🌟`
                         </ThemedText>
                       </View>
                     </View>
-                    <ThemedText type="default" style={styles.activityTimeText}>
+                    <ThemedText type="default" style={styles.activityTimeText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       {log.daysSinceLastActivity === 0
                         ? 'Today'
                         : log.daysSinceLastActivity === 1
@@ -946,20 +931,20 @@ The Helium Team 🌟`
                           disabled={sendingEmails.has(log.userId)}
                           style={({ pressed }) => [
                             styles.emailButton,
+                            { borderColor: colors.divider },
                             pressed && styles.emailButtonPressed,
                             sendingEmails.has(log.userId) && styles.emailButtonDisabled,
                           ]}>
                           {sendingEmails.has(log.userId) ? (
-                            <ActivityIndicator size="small" color={palette.iconAccent} />
+                            <ActivityIndicator size="small" color={colors.iconAccent} />
                           ) : (
-                            <RemixIcon name="mail-line" size={14} color={palette.iconAccent} />
+                            <RemixIcon name="mail-line" size={14} color={colors.iconAccent} />
                           )}
                           <ThemedText
                             type="defaultSemiBold"
-                            style={[
-                              styles.emailButtonText,
-                              sendingEmails.has(log.userId) && styles.emailButtonTextDisabled,
-                            ]}>
+                            style={styles.emailButtonText}
+                            lightColor={sendingEmails.has(log.userId) ? colors.textSecondary : colors.iconAccent}
+                            darkColor={sendingEmails.has(log.userId) ? colors.textSecondary : colors.iconAccent}>
                             {sendingEmails.has(log.userId) ? 'Sending...' : 'Quick Reminder'}
                           </ThemedText>
                         </Pressable>
@@ -968,16 +953,16 @@ The Helium Team 🌟`
                           disabled={sendingEmails.has(log.userId)}
                           style={({ pressed }) => [
                             styles.emailButton,
+                            { borderColor: colors.divider },
                             pressed && styles.emailButtonPressed,
                             sendingEmails.has(log.userId) && styles.emailButtonDisabled,
                           ]}>
-                          <RemixIcon name="edit-line" size={14} color={palette.iconAccent} />
+                          <RemixIcon name="edit-line" size={14} color={colors.iconAccent} />
                           <ThemedText
                             type="defaultSemiBold"
-                            style={[
-                              styles.emailButtonText,
-                              sendingEmails.has(log.userId) && styles.emailButtonTextDisabled,
-                            ]}>
+                            style={styles.emailButtonText}
+                            lightColor={sendingEmails.has(log.userId) ? colors.textSecondary : colors.iconAccent}
+                            darkColor={sendingEmails.has(log.userId) ? colors.textSecondary : colors.iconAccent}>
                             Custom Email
                           </ThemedText>
                         </Pressable>
@@ -985,12 +970,9 @@ The Helium Team 🌟`
                           <View style={styles.emailResult}>
                             <ThemedText
                               type="default"
-                              style={[
-                                styles.emailResultText,
-                                emailResults.get(log.userId)?.success
-                                  ? styles.emailResultSuccess
-                                  : styles.emailResultError,
-                              ]}>
+                              style={styles.emailResultText}
+                              lightColor={emailResults.get(log.userId)?.success ? colors.badgeHigh : colors.badgeInactive}
+                              darkColor={emailResults.get(log.userId)?.success ? colors.badgeHigh : colors.badgeInactive}>
                               {emailResults.get(log.userId)?.success ? '✓ Sent' : '✗ Failed'}
                             </ThemedText>
                           </View>
@@ -1000,34 +982,34 @@ The Helium Team 🌟`
                   </View>
 
                   {/* Usage Details */}
-                  <View style={styles.logDetails}>
+                  <View style={[styles.logDetails, { borderTopColor: colors.divider }]}>
                     <View style={styles.logRow}>
-                      <ThemedText type="default" style={styles.logLabel}>
+                      <ThemedText type="default" style={styles.logLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         Total estimated credits
                       </ThemedText>
-                      <ThemedText type="defaultSemiBold" style={styles.logValue}>
+                      <ThemedText type="defaultSemiBold" style={styles.logValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                         {formatNumber(Math.round(log.totalEstimatedCost * 100))}
                       </ThemedText>
                     </View>
                     <View style={styles.logRow}>
-                      <ThemedText type="default" style={styles.logLabel}>
+                      <ThemedText type="default" style={styles.logLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         Usage Count
                       </ThemedText>
-                      <View style={styles.usageCountBadge}>
-                        <ThemedText type="defaultSemiBold" style={styles.usageCountText}>
+                      <View style={[styles.usageCountBadge, { backgroundColor: colors.badgeBackground }]}>
+                        <ThemedText type="defaultSemiBold" style={styles.usageCountText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                           {log.usageCount} sessions
                         </ThemedText>
                       </View>
                     </View>
                     <View style={styles.logRow}>
-                      <ThemedText type="default" style={styles.logLabel}>
+                      <ThemedText type="default" style={styles.logLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         Activity Period
                       </ThemedText>
                       <View style={styles.activityPeriod}>
-                        <ThemedText type="default" style={styles.activityPeriodText}>
+                        <ThemedText type="default" style={styles.activityPeriodText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                           From: {formatDate(log.earliestActivity)}
                         </ThemedText>
-                        <ThemedText type="default" style={styles.activityPeriodText}>
+                        <ThemedText type="default" style={styles.activityPeriodText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                           To: {formatDate(log.latestActivity)}
                         </ThemedText>
                       </View>
@@ -1040,8 +1022,8 @@ The Helium Team 🌟`
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <View style={styles.pagination}>
-              <ThemedText type="default" style={styles.paginationText}>
+            <View style={[styles.pagination, { borderTopColor: colors.divider }]}>
+              <ThemedText type="default" style={styles.paginationText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 {searchQuery || activityFilter !== 'all' ? (
                   <>Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} filtered results</>
                 ) : (
@@ -1054,20 +1036,20 @@ The Helium Team 🌟`
                   disabled={!hasPreviousPage || isLoading}
                   style={({ pressed }) => [
                     styles.paginationButton,
+                    { backgroundColor: colors.rowBackground, borderColor: colors.divider },
                     (!hasPreviousPage || isLoading) && styles.paginationButtonDisabled,
                     pressed && hasPreviousPage && !isLoading && styles.paginationButtonPressed,
                   ]}>
                   <RemixIcon
                     name="arrow-left-s-line"
                     size={16}
-                    color={!hasPreviousPage || isLoading ? palette.secondaryText : palette.primaryText}
+                    color={!hasPreviousPage || isLoading ? colors.textSecondary : colors.textPrimary}
                   />
                   <ThemedText
                     type="defaultSemiBold"
-                    style={[
-                      styles.paginationButtonText,
-                      (!hasPreviousPage || isLoading) && styles.paginationButtonTextDisabled,
-                    ]}>
+                    style={styles.paginationButtonText}
+                    lightColor={!hasPreviousPage || isLoading ? colors.textSecondary : colors.textPrimary}
+                    darkColor={!hasPreviousPage || isLoading ? colors.textSecondary : colors.textPrimary}>
                     Previous
                   </ThemedText>
                 </Pressable>
@@ -1081,15 +1063,17 @@ The Helium Team 🌟`
                         disabled={isLoading}
                         style={({ pressed }) => [
                           styles.pageNumberButton,
-                          currentPage === page && styles.pageNumberButtonActive,
+                          {
+                            backgroundColor: currentPage === page ? colors.iconAccent : colors.rowBackground,
+                            borderColor: currentPage === page ? colors.iconAccent : colors.divider,
+                          },
                           pressed && styles.pageNumberButtonPressed,
                         ]}>
                         <ThemedText
                           type="defaultSemiBold"
-                          style={[
-                            styles.pageNumberText,
-                            currentPage === page && styles.pageNumberTextActive,
-                          ]}>
+                          style={styles.pageNumberText}
+                          lightColor={currentPage === page ? colors.iconAccentLight : colors.textPrimary}
+                          darkColor={currentPage === page ? colors.iconAccentLight : colors.textPrimary}>
                           {page}
                         </ThemedText>
                       </Pressable>
@@ -1101,21 +1085,21 @@ The Helium Team 🌟`
                   disabled={!hasNextPage || isLoading}
                   style={({ pressed }) => [
                     styles.paginationButton,
+                    { backgroundColor: colors.rowBackground, borderColor: colors.divider },
                     (!hasNextPage || isLoading) && styles.paginationButtonDisabled,
                     pressed && hasNextPage && !isLoading && styles.paginationButtonPressed,
                   ]}>
                   <ThemedText
                     type="defaultSemiBold"
-                    style={[
-                      styles.paginationButtonText,
-                      (!hasNextPage || isLoading) && styles.paginationButtonTextDisabled,
-                    ]}>
+                    style={styles.paginationButtonText}
+                    lightColor={!hasNextPage || isLoading ? colors.textSecondary : colors.textPrimary}
+                    darkColor={!hasNextPage || isLoading ? colors.textSecondary : colors.textPrimary}>
                     Next
                   </ThemedText>
                   <RemixIcon
                     name="arrow-right-s-line"
                     size={16}
-                    color={!hasNextPage || isLoading ? palette.secondaryText : palette.primaryText}
+                    color={!hasNextPage || isLoading ? colors.textSecondary : colors.textPrimary}
                   />
                 </Pressable>
               </View>
@@ -1131,47 +1115,47 @@ The Helium Team 🌟`
         transparent={true}
         onRequestClose={() => setCustomEmailDialog({ isOpen: false, user: null })}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.divider }]}>
               <View style={styles.modalHeaderLeft}>
-                <RemixIcon name="edit-line" size={20} color={palette.primaryText} />
-                <ThemedText type="subtitle" style={styles.modalTitle}>
+                <RemixIcon name="edit-line" size={20} color={colors.textPrimary} />
+                <ThemedText type="subtitle" style={styles.modalTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Send Custom Reminder Email
                 </ThemedText>
               </View>
               <Pressable
                 onPress={() => setCustomEmailDialog({ isOpen: false, user: null })}
                 style={({ pressed }) => [styles.modalCloseButton, pressed && styles.modalCloseButtonPressed]}>
-                <RemixIcon name="close-line" size={22} color={palette.primaryText} />
+                <RemixIcon name="close-line" size={22} color={colors.textPrimary} />
               </Pressable>
             </View>
-            <ThemedText type="default" style={styles.modalDescription}>
+            <ThemedText type="default" style={styles.modalDescription} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Send a personalized reminder email to {customEmailDialog.user?.name} ({customEmailDialog.user?.email})
             </ThemedText>
 
             <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.modalForm}>
                 <View style={styles.formField}>
-                  <ThemedText type="defaultSemiBold" style={styles.formLabel}>
+                  <ThemedText type="defaultSemiBold" style={styles.formLabel} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Email Subject
                   </ThemedText>
                   <TextInput
-                    style={styles.formInput}
+                    style={[styles.formInput, { borderColor: colors.inputBorder, color: '#000000' }]}
                     placeholder="Enter email subject..."
-                    placeholderTextColor={palette.secondaryText}
+                    placeholderTextColor={colors.textSecondary}
                     value={customSubject}
                     onChangeText={setCustomSubject}
                   />
                 </View>
 
                 <View style={styles.formField}>
-                  <ThemedText type="defaultSemiBold" style={styles.formLabel}>
+                  <ThemedText type="defaultSemiBold" style={styles.formLabel} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Email Message
                   </ThemedText>
                   <TextInput
-                    style={[styles.formTextArea, styles.formInput]}
+                    style={[styles.formTextArea, styles.formInput, { borderColor: colors.inputBorder, color: '#000000' }]}
                     placeholder="Enter your custom message..."
-                    placeholderTextColor={palette.secondaryText}
+                    placeholderTextColor={colors.textSecondary}
                     value={customMessage}
                     onChangeText={setCustomMessage}
                     multiline
@@ -1179,7 +1163,7 @@ The Helium Team 🌟`
                     textAlignVertical="top"
                   />
                   <View style={styles.messageFooter}>
-                    <ThemedText type="default" style={styles.characterCount}>
+                    <ThemedText type="default" style={styles.characterCount} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       {customMessage.length} characters
                     </ThemedText>
                     <Pressable
@@ -1187,59 +1171,59 @@ The Helium Team 🌟`
                       disabled={enhancingEmail || !customMessage.trim()}
                       style={({ pressed }) => [
                         styles.enhanceButton,
+                        { backgroundColor: colors.buttonSecondary, borderColor: colors.divider },
                         pressed && styles.enhanceButtonPressed,
                         (enhancingEmail || !customMessage.trim()) && styles.enhanceButtonDisabled,
                       ]}>
                       {enhancingEmail ? (
-                        <ActivityIndicator size="small" color={palette.iconAccent} />
+                        <ActivityIndicator size="small" color={colors.iconAccent} />
                       ) : (
-                        <RemixIcon name="sparkling-2-line" size={14} color={palette.iconAccent} />
+                        <RemixIcon name="sparkling-2-line" size={14} color={colors.iconAccent} />
                       )}
                       <ThemedText
                         type="defaultSemiBold"
-                        style={[
-                          styles.enhanceButtonText,
-                          (enhancingEmail || !customMessage.trim()) && styles.enhanceButtonTextDisabled,
-                        ]}>
+                        style={styles.enhanceButtonText}
+                        lightColor={(enhancingEmail || !customMessage.trim()) ? colors.textSecondary : colors.iconAccent}
+                        darkColor={(enhancingEmail || !customMessage.trim()) ? colors.textSecondary : colors.iconAccent}>
                         {enhancingEmail ? 'Enhancing...' : 'Enhance with AI'}
                       </ThemedText>
                     </Pressable>
                   </View>
                 </View>
 
-                <View style={styles.emailPreview}>
-                  <ThemedText type="defaultSemiBold" style={styles.previewTitle}>
+                <View style={[styles.emailPreview, { backgroundColor: colors.badgeBackground }]}>
+                  <ThemedText type="defaultSemiBold" style={styles.previewTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Email Preview
                   </ThemedText>
-                  <ThemedText type="default" style={styles.previewText}>
-                    <ThemedText type="defaultSemiBold">To:</ThemedText> {customEmailDialog.user?.email}
+                  <ThemedText type="default" style={styles.previewText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                    <ThemedText type="defaultSemiBold" lightColor={colors.textPrimary} darkColor={colors.textPrimary}>To:</ThemedText> {customEmailDialog.user?.email}
                   </ThemedText>
-                  <ThemedText type="default" style={styles.previewText}>
-                    <ThemedText type="defaultSemiBold">Subject:</ThemedText> {customSubject || 'No subject'}
+                  <ThemedText type="default" style={styles.previewText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                    <ThemedText type="defaultSemiBold" lightColor={colors.textPrimary} darkColor={colors.textPrimary}>Subject:</ThemedText> {customSubject || 'No subject'}
                   </ThemedText>
-                  <ThemedText type="default" style={styles.previewText}>
-                    <ThemedText type="defaultSemiBold">Activity Level:</ThemedText> {customEmailDialog.user?.activityLevel}
+                  <ThemedText type="default" style={styles.previewText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                    <ThemedText type="defaultSemiBold" lightColor={colors.textPrimary} darkColor={colors.textPrimary}>Activity Level:</ThemedText> {customEmailDialog.user?.activityLevel}
                   </ThemedText>
                 </View>
               </View>
             </ScrollView>
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { borderTopColor: colors.divider }]}>
               <Pressable
                 onPress={() => setCustomEmailDialog({ isOpen: false, user: null })}
                 disabled={sendingCustomEmail}
                 style={({ pressed }) => [
                   styles.modalButton,
                   styles.modalButtonCancel,
+                  { backgroundColor: colors.cardBackground, borderColor: colors.inputBorder },
                   pressed && styles.modalButtonPressed,
                   sendingCustomEmail && styles.modalButtonDisabled,
                 ]}>
                 <ThemedText
                   type="defaultSemiBold"
-                  style={[
-                    styles.modalButtonText,
-                    sendingCustomEmail && styles.modalButtonTextDisabled,
-                  ]}>
+                  style={styles.modalButtonText}
+                  lightColor={sendingCustomEmail ? colors.textSecondary : colors.textPrimary}
+                  darkColor={sendingCustomEmail ? colors.textSecondary : colors.textPrimary}>
                   Cancel
                 </ThemedText>
               </Pressable>
@@ -1249,21 +1233,20 @@ The Helium Team 🌟`
                 style={({ pressed }) => [
                   styles.modalButton,
                   styles.modalButtonSend,
+                  { backgroundColor: colors.buttonPrimary },
                   pressed && styles.modalButtonPressed,
                   (!customSubject.trim() || !customMessage.trim() || sendingCustomEmail) && styles.modalButtonDisabled,
                 ]}>
                 {sendingCustomEmail ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.iconAccentLight} />
                 ) : (
-                  <RemixIcon name="send-plane-2-line" size={16} color="#FFFFFF" />
+                  <RemixIcon name="send-plane-2-line" size={16} color={colors.iconAccentLight} />
                 )}
                 <ThemedText
                   type="defaultSemiBold"
-                  style={[
-                    styles.modalButtonText,
-                    styles.modalButtonTextSend,
-                    (!customSubject.trim() || !customMessage.trim() || sendingCustomEmail) && styles.modalButtonTextDisabled,
-                  ]}>
+                  style={styles.modalButtonText}
+                  lightColor={colors.iconAccentLight}
+                  darkColor={colors.iconAccentLight}>
                   {sendingCustomEmail ? 'Sending...' : 'Send Custom Email'}
                 </ThemedText>
               </Pressable>
@@ -1278,7 +1261,6 @@ The Helium Team 🌟`
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: palette.background,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -1301,9 +1283,9 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: palette.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
+    // Background color applied inline
   },
   backButtonPressed: {
     opacity: 0.8,
@@ -1315,11 +1297,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: palette.headerText,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   descriptionRow: {
     flexDirection: 'row',
@@ -1329,20 +1309,18 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   updateTimeText: {
     fontSize: 12,
-    color: palette.secondaryText,
     marginTop: 4,
   },
   refreshButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: palette.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
+    // Background color applied inline
   },
   refreshButtonPressed: {
     opacity: 0.7,
@@ -1353,9 +1331,9 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: palette.inactiveTabBackground,
     borderRadius: 12,
     padding: 4,
+    // Background color applied inline
   },
   tab: {
     flex: 1,
@@ -1368,17 +1346,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tabActive: {
-    backgroundColor: palette.activeTabBackground,
+    // Background color applied inline
   },
   tabPressed: {
     opacity: 0.7,
   },
   tabText: {
     fontSize: 14,
-    color: palette.inactiveTabText,
   },
   tabTextActive: {
-    color: palette.activeTabText,
+    // Color applied inline
   },
   filterRow: {
     gap: 12,
@@ -1386,12 +1363,11 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: palette.divider,
     paddingHorizontal: 12,
     gap: 8,
+    // Background and border colors applied inline
   },
   searchIcon: {
     marginLeft: 4,
@@ -1399,8 +1375,8 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: palette.primaryText,
     paddingVertical: 12,
+    // Color applied inline
   },
   clearButton: {
     padding: 4,
@@ -1410,7 +1386,6 @@ const styles = StyleSheet.create({
   },
   filterLabel: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   activityFilterScroll: {
     flexDirection: 'row',
@@ -1420,20 +1395,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: palette.divider,
-    backgroundColor: '#FFFFFF',
     marginRight: 8,
+    // Background and border colors applied inline
   },
   activityFilterButtonActive: {
-    backgroundColor: palette.iconAccent,
-    borderColor: palette.iconAccent,
+    // Background and border colors applied inline
   },
   activityFilterButtonPressed: {
     opacity: 0.7,
   },
   activityFilterText: {
     fontSize: 14,
-    color: palette.primaryText,
   },
   activityFilterTextActive: {
     color: '#FFFFFF',
@@ -1442,7 +1414,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   statCard: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 22,
     padding: 20,
     gap: 12,
@@ -1451,6 +1422,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
     elevation: 5,
+    // Background color applied inline
   },
   statHeader: {
     flexDirection: 'row',
@@ -1459,19 +1431,15 @@ const styles = StyleSheet.create({
   },
   statTitle: {
     fontSize: 15,
-    color: palette.secondaryText,
   },
   statValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: palette.primaryText,
   },
   statSubtitle: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   tableCard: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 24,
     padding: 20,
     gap: 18,
@@ -1480,6 +1448,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
     elevation: 4,
+    // Background color applied inline
   },
   tableCardHeader: {
     gap: 6,
@@ -1487,22 +1456,19 @@ const styles = StyleSheet.create({
   tableCardTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: palette.primaryText,
   },
   tableCardDescription: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   logsList: {
     gap: 12,
   },
   logCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: palette.divider,
     gap: 16,
+    // Background and border colors applied inline
   },
   logHeader: {
     marginBottom: 8,
@@ -1516,7 +1482,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: palette.badgeHigh,
+    // Background color applied inline
   },
   userDetails: {
     flex: 1,
@@ -1524,17 +1490,15 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    color: palette.primaryText,
   },
   userEmail: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   activitySection: {
     gap: 8,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: palette.divider,
+    // Border color applied inline
   },
   activityRow: {
     flexDirection: 'row',
@@ -1545,6 +1509,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 8,
+    // Background color applied inline
   },
   activityBadgeText: {
     fontSize: 12,
@@ -1552,7 +1517,6 @@ const styles = StyleSheet.create({
   },
   activityTimeText: {
     fontSize: 12,
-    color: palette.secondaryText,
   },
   emailButtonsRow: {
     flexDirection: 'row',
@@ -1569,8 +1533,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: palette.divider,
     backgroundColor: '#FFFFFF',
+    // Border color applied inline
   },
   emailButtonPressed: {
     opacity: 0.7,
@@ -1580,10 +1544,9 @@ const styles = StyleSheet.create({
   },
   emailButtonText: {
     fontSize: 12,
-    color: palette.iconAccent,
   },
   emailButtonTextDisabled: {
-    color: palette.secondaryText,
+    // Color applied inline
   },
   emailResult: {
     marginLeft: 4,
@@ -1593,16 +1556,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emailResultSuccess: {
-    color: palette.badgeHigh,
+    // Color applied inline
   },
   emailResultError: {
-    color: palette.badgeInactive,
+    // Color applied inline
   },
   logDetails: {
     gap: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: palette.divider,
+    // Border color applied inline
   },
   logRow: {
     flexDirection: 'row',
@@ -1612,25 +1575,22 @@ const styles = StyleSheet.create({
   },
   logLabel: {
     fontSize: 14,
-    color: palette.secondaryText,
     flex: 1,
   },
   logValue: {
     fontSize: 14,
-    color: palette.primaryText,
     fontFamily: 'monospace',
     flex: 1,
     textAlign: 'right',
   },
   usageCountBadge: {
-    backgroundColor: palette.badgeBackground,
     borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 8,
+    // Background color applied inline
   },
   usageCountText: {
     fontSize: 12,
-    color: palette.primaryText,
   },
   activityPeriod: {
     flex: 1,
@@ -1639,7 +1599,6 @@ const styles = StyleSheet.create({
   },
   activityPeriodText: {
     fontSize: 14,
-    color: palette.secondaryText,
     textAlign: 'right',
   },
   emptyContainer: {
@@ -1650,7 +1609,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: palette.secondaryText,
     textAlign: 'center',
   },
   loadingContainer: {
@@ -1662,7 +1620,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: palette.secondaryText,
   },
   errorContainer: {
     flex: 1,
@@ -1677,10 +1634,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: palette.highlightText,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,
+    // Background color applied inline
   },
   retryButtonText: {
     fontSize: 16,
@@ -1691,11 +1648,10 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: palette.divider,
+    // Border color applied inline
   },
   paginationText: {
     fontSize: 14,
-    color: palette.secondaryText,
     textAlign: 'center',
   },
   paginationButtons: {
@@ -1712,8 +1668,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: palette.divider,
-    backgroundColor: '#FFFFFF',
+    // Border and background colors applied inline
   },
   paginationButtonPressed: {
     opacity: 0.7,
@@ -1723,10 +1678,9 @@ const styles = StyleSheet.create({
   },
   paginationButtonText: {
     fontSize: 14,
-    color: palette.primaryText,
   },
   paginationButtonTextDisabled: {
-    color: palette.secondaryText,
+    // Color applied inline
   },
   pageNumbers: {
     flexDirection: 'row',
@@ -1738,21 +1692,18 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: palette.divider,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    // Border and background colors applied inline
   },
   pageNumberButtonActive: {
-    backgroundColor: palette.highlightText,
-    borderColor: palette.highlightText,
+    // Background and border colors applied inline
   },
   pageNumberButtonPressed: {
     opacity: 0.7,
   },
   pageNumberText: {
     fontSize: 14,
-    color: palette.primaryText,
   },
   pageNumberTextActive: {
     color: '#FFFFFF',
@@ -1765,7 +1716,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 24,
     width: '100%',
     maxWidth: 600,
@@ -1775,6 +1725,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
     elevation: 10,
+    // Background color applied inline
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1782,7 +1733,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: palette.divider,
+    // Border color applied inline
   },
   modalHeaderLeft: {
     flexDirection: 'row',
@@ -1793,7 +1744,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: palette.primaryText,
   },
   modalCloseButton: {
     width: 36,
@@ -1807,7 +1757,6 @@ const styles = StyleSheet.create({
   },
   modalDescription: {
     fontSize: 14,
-    color: palette.secondaryText,
     paddingHorizontal: 20,
     paddingTop: 12,
   },
@@ -1828,7 +1777,6 @@ const styles = StyleSheet.create({
   },
   formLabel: {
     fontSize: 14,
-    color: palette.primaryText,
   },
   enhanceButton: {
     flexDirection: 'row',
@@ -1838,8 +1786,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: palette.divider,
-    backgroundColor: '#FFFFFF',
+    // Border and background colors applied inline
   },
   enhanceButtonPressed: {
     opacity: 0.7,
@@ -1849,20 +1796,18 @@ const styles = StyleSheet.create({
   },
   enhanceButtonText: {
     fontSize: 12,
-    color: palette.iconAccent,
   },
   enhanceButtonTextDisabled: {
-    color: palette.secondaryText,
+    // Color applied inline
   },
   formInput: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: palette.divider,
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: palette.primaryText,
+    // Border and text colors applied inline
   },
   formTextArea: {
     minHeight: 160,
@@ -1876,22 +1821,19 @@ const styles = StyleSheet.create({
   },
   characterCount: {
     fontSize: 12,
-    color: palette.secondaryText,
   },
   emailPreview: {
-    backgroundColor: '#E0F2FE',
     borderRadius: 12,
     padding: 16,
     gap: 8,
+    // Background color applied inline
   },
   previewTitle: {
     fontSize: 14,
-    color: '#0369A1',
     marginBottom: 4,
   },
   previewText: {
     fontSize: 12,
-    color: '#0369A1',
   },
   modalFooter: {
     flexDirection: 'row',
@@ -1900,7 +1842,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: palette.divider,
+    // Border color applied inline
   },
   modalButton: {
     flexDirection: 'row',
@@ -1913,12 +1855,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalButtonCancel: {
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: palette.divider,
+    // Background and border colors applied inline
   },
   modalButtonSend: {
-    backgroundColor: palette.iconAccent,
+    // Background color applied inline
   },
   modalButtonPressed: {
     opacity: 0.7,
@@ -1928,13 +1869,12 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     fontSize: 14,
-    color: palette.primaryText,
   },
   modalButtonTextSend: {
     color: '#FFFFFF',
   },
   modalButtonTextDisabled: {
-    color: palette.secondaryText,
+    // Color applied inline
   },
 });
 

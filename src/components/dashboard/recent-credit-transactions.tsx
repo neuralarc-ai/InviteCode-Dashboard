@@ -167,6 +167,7 @@ export function RecentCreditTransactions() {
                       <span>
                         {formatDate(transaction.date)}
                       </span>
+
                     </div>
                   </div>
                   <div className={`text-xs font-mono font-semibold ${isUsage ? 'text-red-400' : 'text-green-400'}`}>
@@ -185,4 +186,5 @@ export function RecentCreditTransactions() {
     </Card>
   );
 }
+
 

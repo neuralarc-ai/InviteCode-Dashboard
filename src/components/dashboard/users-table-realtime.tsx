@@ -329,9 +329,9 @@ export function UsersTableRealtime({
       );
     } else {
       return (
-        <Badge variant="outline" className="text-muted-foreground">
+        <span className="text-muted-foreground text-xs font-semibold">
           Not Sent
-        </Badge>
+        </span>
       );
     }
   };

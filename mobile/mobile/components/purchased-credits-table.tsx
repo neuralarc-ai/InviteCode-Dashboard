@@ -12,17 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { getAppConfig } from '@/utils/config';
-
-const palette = {
-  background: '#F5ECE4',
-  cardBackground: '#F6E8DC',
-  headerText: '#1A1A1A',
-  primaryText: '#1F1F1F',
-  secondaryText: '#5C5C5C',
-  divider: '#E4D5CA',
-  highlightText: '#C3473D',
-  iconAccent: '#C3473D',
-} as const;
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type CreditPurchase = {
   readonly id: string;
@@ -42,6 +33,8 @@ type CreditPurchase = {
 
 export function PurchasedCreditsTable(): ReactElement {
   const router = useRouter();
+  const theme = useColorScheme();
+  const colors = Colors[theme];
   const [creditPurchases, setCreditPurchases] = useState<readonly CreditPurchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -179,7 +172,7 @@ export function PurchasedCreditsTable(): ReactElement {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -188,17 +181,17 @@ export function PurchasedCreditsTable(): ReactElement {
             <View style={styles.headerLeft}>
               <Pressable
                 onPress={() => router.back()}
-                style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-                <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+                style={({ pressed }) => [styles.backButton, { backgroundColor: colors.cardBackground }, pressed && styles.backButtonPressed]}>
+                <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
               </Pressable>
-              <ThemedText type="title" style={styles.headerTitle}>
+              <ThemedText type="title" style={styles.headerTitle} lightColor={colors.headerText} darkColor={colors.headerText}>
                 Purchased Credits
               </ThemedText>
             </View>
           </View>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={palette.iconAccent} />
-            <ThemedText type="default" style={styles.loadingText}>
+            <ActivityIndicator size="large" color={colors.highlightText} />
+            <ThemedText type="default" style={styles.loadingText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Loading...
             </ThemedText>
           </View>
@@ -209,7 +202,7 @@ export function PurchasedCreditsTable(): ReactElement {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -218,20 +211,20 @@ export function PurchasedCreditsTable(): ReactElement {
             <View style={styles.headerLeft}>
               <Pressable
                 onPress={() => router.back()}
-                style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-                <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+                style={({ pressed }) => [styles.backButton, { backgroundColor: colors.cardBackground }, pressed && styles.backButtonPressed]}>
+                <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
               </Pressable>
-              <ThemedText type="title" style={styles.headerTitle}>
+              <ThemedText type="title" style={styles.headerTitle} lightColor={colors.headerText} darkColor={colors.headerText}>
                 Purchased Credits
               </ThemedText>
             </View>
           </View>
           <View style={styles.errorContainer}>
-            <ThemedText type="default" style={styles.errorText}>
+            <ThemedText type="default" style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>
               {error}
             </ThemedText>
-            <Pressable onPress={fetchCreditPurchases} style={styles.retryButton}>
-              <ThemedText type="defaultSemiBold" style={styles.retryButtonText}>
+            <Pressable onPress={fetchCreditPurchases} style={[styles.retryButton, { backgroundColor: colors.highlightText }]}>
+              <ThemedText type="defaultSemiBold" style={styles.retryButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                 Retry
               </ThemedText>
             </Pressable>
@@ -242,7 +235,7 @@ export function PurchasedCreditsTable(): ReactElement {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -252,10 +245,10 @@ export function PurchasedCreditsTable(): ReactElement {
           <View style={styles.headerLeft}>
             <Pressable
               onPress={() => router.back()}
-              style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-              <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+              style={({ pressed }) => [styles.backButton, { backgroundColor: colors.cardBackground }, pressed && styles.backButtonPressed]}>
+              <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
             </Pressable>
-            <ThemedText type="title" style={styles.headerTitle}>
+            <ThemedText type="title" style={styles.headerTitle} lightColor={colors.headerText} darkColor={colors.headerText}>
               Purchased Credits
             </ThemedText>
           </View>
@@ -263,48 +256,48 @@ export function PurchasedCreditsTable(): ReactElement {
 
         {/* Stats Cards */}
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <ThemedText type="defaultSemiBold" style={styles.statTitle}>
+          <View style={[styles.statCard, { backgroundColor: colors.cardBackground }]}>
+            <ThemedText type="defaultSemiBold" style={styles.statTitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Total Completed Purchases
             </ThemedText>
-            <ThemedText type="title" style={styles.statValue}>
+            <ThemedText type="title" style={styles.statValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
               {stats.totalPurchases}
             </ThemedText>
-            <ThemedText type="default" style={styles.statSubtitle}>
+            <ThemedText type="default" style={styles.statSubtitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Successfully completed
             </ThemedText>
           </View>
-          <View style={styles.statCard}>
-            <ThemedText type="defaultSemiBold" style={styles.statTitle}>
+          <View style={[styles.statCard, { backgroundColor: colors.cardBackground }]}>
+            <ThemedText type="defaultSemiBold" style={styles.statTitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Total Revenue
             </ThemedText>
-            <ThemedText type="title" style={styles.statValue}>
+            <ThemedText type="title" style={styles.statValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
               ${stats.totalAmount.toFixed(2)}
             </ThemedText>
-            <ThemedText type="default" style={styles.statSubtitle}>
+            <ThemedText type="default" style={styles.statSubtitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               From completed payments
             </ThemedText>
           </View>
-          <View style={styles.statCard}>
-            <ThemedText type="defaultSemiBold" style={styles.statTitle}>
+          <View style={[styles.statCard, { backgroundColor: colors.cardBackground }]}>
+            <ThemedText type="defaultSemiBold" style={styles.statTitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Average Purchase
             </ThemedText>
-            <ThemedText type="title" style={styles.statValue}>
+            <ThemedText type="title" style={styles.statValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
               ${stats.averagePurchase.toFixed(2)}
             </ThemedText>
-            <ThemedText type="default" style={styles.statSubtitle}>
+            <ThemedText type="default" style={styles.statSubtitle} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               Per transaction
             </ThemedText>
           </View>
         </View>
 
         {/* Purchases Table Card */}
-        <View style={styles.tableCard}>
+        <View style={[styles.tableCard, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.tableCardHeader}>
-            <ThemedText type="subtitle" style={styles.tableCardTitle}>
+            <ThemedText type="subtitle" style={styles.tableCardTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
               Completed Credit Purchases
             </ThemedText>
-            <ThemedText type="default" style={styles.tableCardDescription}>
+            <ThemedText type="default" style={styles.tableCardDescription} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
               All successfully completed credit purchases from users ({stats.totalPurchases} total)
             </ThemedText>
           </View>
@@ -312,8 +305,8 @@ export function PurchasedCreditsTable(): ReactElement {
           {/* Purchases List */}
           {currentPurchases.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <RemixIcon name="shopping-cart-line" size={48} color={palette.secondaryText} />
-              <ThemedText type="default" style={styles.emptyText}>
+              <RemixIcon name="shopping-cart-line" size={48} color={colors.textSecondary} />
+              <ThemedText type="default" style={styles.emptyText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 {creditPurchases.length === 0
                   ? 'No completed credit purchases found'
                   : 'No purchases on this page'}
@@ -322,19 +315,19 @@ export function PurchasedCreditsTable(): ReactElement {
           ) : (
             <View style={styles.purchasesList}>
               {currentPurchases.map((purchase) => (
-                <View key={purchase.id} style={styles.purchaseCard}>
+                <View key={purchase.id} style={[styles.purchaseCard, { backgroundColor: colors.rowBackground, borderColor: colors.divider }]}>
                   <View style={styles.purchaseHeader}>
                     <View style={styles.userInfo}>
-                      <View style={styles.avatarContainer}>
-                        <RemixIcon name="user-line" size={20} color={palette.iconAccent} />
+                      <View style={[styles.avatarContainer, { backgroundColor: colors.avatarBackground }]}>
+                        <RemixIcon name="user-line" size={20} color={colors.iconAccent} />
                       </View>
                       <View style={styles.userDetails}>
-                        <ThemedText type="defaultSemiBold" style={styles.userName}>
+                        <ThemedText type="defaultSemiBold" style={styles.userName} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                           {purchase.userName || purchase.userEmail || 'Unknown User'}
                         </ThemedText>
                         <View style={styles.emailRow}>
-                          <RemixIcon name="mail-line" size={14} color={palette.secondaryText} />
-                          <ThemedText type="default" style={styles.userEmail}>
+                          <RemixIcon name="mail-line" size={14} color={colors.textSecondary} />
+                          <ThemedText type="default" style={styles.userEmail} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                             {purchase.userEmail}
                           </ThemedText>
                         </View>
@@ -342,57 +335,57 @@ export function PurchasedCreditsTable(): ReactElement {
                     </View>
                   </View>
 
-                  <View style={styles.purchaseDetails}>
+                  <View style={[styles.purchaseDetails, { borderTopColor: colors.divider }]}>
                     <View style={styles.purchaseRow}>
-                      <ThemedText type="default" style={styles.purchaseLabel}>
+                      <ThemedText type="default" style={styles.purchaseLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         Amount
                       </ThemedText>
-                      <ThemedText type="defaultSemiBold" style={styles.purchaseValue}>
+                      <ThemedText type="defaultSemiBold" style={styles.purchaseValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                         ${purchase.amountDollars.toFixed(2)}
                       </ThemedText>
                     </View>
                     <View style={styles.purchaseRow}>
-                      <ThemedText type="default" style={styles.purchaseLabel}>
+                      <ThemedText type="default" style={styles.purchaseLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         Description
                       </ThemedText>
-                      <ThemedText type="default" style={styles.purchaseValue}>
+                      <ThemedText type="default" style={styles.purchaseValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                         {purchase.description || '-'}
                       </ThemedText>
                     </View>
                     <View style={styles.purchaseRow}>
-                      <ThemedText type="default" style={styles.purchaseLabel}>
+                      <ThemedText type="default" style={styles.purchaseLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         Payment Intent
                       </ThemedText>
                       {purchase.stripePaymentIntentId ? (
-                        <View style={styles.paymentIntentBadge}>
-                          <ThemedText type="default" style={styles.paymentIntentText}>
+                        <View style={[styles.paymentIntentBadge, { backgroundColor: colors.badgeBackground }]}>
+                          <ThemedText type="default" style={styles.paymentIntentText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                             {purchase.stripePaymentIntentId.slice(-8)}
                           </ThemedText>
                         </View>
                       ) : (
-                        <ThemedText type="default" style={styles.purchaseValue}>
+                        <ThemedText type="default" style={styles.purchaseValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                           -
                         </ThemedText>
                       )}
                     </View>
                     <View style={styles.purchaseRow}>
-                      <ThemedText type="default" style={styles.purchaseLabel}>
+                      <ThemedText type="default" style={styles.purchaseLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         Created
                       </ThemedText>
                       <View style={styles.dateRow}>
-                        <RemixIcon name="calendar-line" size={14} color={palette.secondaryText} />
-                        <ThemedText type="default" style={styles.dateText}>
+                        <RemixIcon name="calendar-line" size={14} color={colors.textSecondary} />
+                        <ThemedText type="default" style={styles.dateText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                           {formatDate(purchase.createdAt)}
                         </ThemedText>
                       </View>
                     </View>
                     <View style={styles.purchaseRow}>
-                      <ThemedText type="default" style={styles.purchaseLabel}>
+                      <ThemedText type="default" style={styles.purchaseLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                         Completed
                       </ThemedText>
                       <View style={styles.dateRow}>
-                        <RemixIcon name="calendar-check-line" size={14} color={palette.secondaryText} />
-                        <ThemedText type="default" style={styles.dateText}>
+                        <RemixIcon name="calendar-check-line" size={14} color={colors.textSecondary} />
+                        <ThemedText type="default" style={styles.dateText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                           {formatDate(purchase.completedAt)}
                         </ThemedText>
                       </View>
@@ -405,8 +398,8 @@ export function PurchasedCreditsTable(): ReactElement {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <View style={styles.pagination}>
-              <ThemedText type="default" style={styles.paginationText}>
+            <View style={[styles.pagination, { borderTopColor: colors.divider }]}>
+              <ThemedText type="default" style={styles.paginationText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Showing {startIndex + 1} to {Math.min(endIndex, creditPurchases.length)} of {creditPurchases.length} purchases
               </ThemedText>
               <View style={styles.paginationButtons}>
@@ -415,16 +408,16 @@ export function PurchasedCreditsTable(): ReactElement {
                   disabled={currentPage === 1}
                   style={({ pressed }) => [
                     styles.paginationButton,
+                    { backgroundColor: colors.rowBackground, borderColor: colors.divider },
                     currentPage === 1 && styles.paginationButtonDisabled,
                     pressed && !(currentPage === 1) && styles.paginationButtonPressed,
                   ]}>
-                  <RemixIcon name="arrow-left-s-line" size={16} color={currentPage === 1 ? palette.secondaryText : palette.primaryText} />
+                  <RemixIcon name="arrow-left-s-line" size={16} color={currentPage === 1 ? colors.textSecondary : colors.textPrimary} />
                   <ThemedText
                     type="defaultSemiBold"
-                    style={[
-                      styles.paginationButtonText,
-                      currentPage === 1 && styles.paginationButtonTextDisabled,
-                    ]}>
+                    style={styles.paginationButtonText}
+                    lightColor={currentPage === 1 ? colors.textSecondary : colors.textPrimary}
+                    darkColor={currentPage === 1 ? colors.textSecondary : colors.textPrimary}>
                     Previous
                   </ThemedText>
                 </Pressable>
@@ -447,15 +440,17 @@ export function PurchasedCreditsTable(): ReactElement {
                         onPress={() => goToPage(pageNumber)}
                         style={({ pressed }) => [
                           styles.pageNumberButton,
-                          currentPage === pageNumber && styles.pageNumberButtonActive,
+                          {
+                            backgroundColor: currentPage === pageNumber ? colors.highlightText : colors.rowBackground,
+                            borderColor: currentPage === pageNumber ? colors.highlightText : colors.divider,
+                          },
                           pressed && styles.pageNumberButtonPressed,
                         ]}>
                         <ThemedText
                           type="defaultSemiBold"
-                          style={[
-                            styles.pageNumberText,
-                            currentPage === pageNumber && styles.pageNumberTextActive,
-                          ]}>
+                          style={styles.pageNumberText}
+                          lightColor={currentPage === pageNumber ? colors.iconAccentLight : colors.textPrimary}
+                          darkColor={currentPage === pageNumber ? colors.iconAccentLight : colors.textPrimary}>
                           {pageNumber}
                         </ThemedText>
                       </Pressable>
@@ -467,18 +462,18 @@ export function PurchasedCreditsTable(): ReactElement {
                   disabled={currentPage === totalPages}
                   style={({ pressed }) => [
                     styles.paginationButton,
+                    { backgroundColor: colors.rowBackground, borderColor: colors.divider },
                     currentPage === totalPages && styles.paginationButtonDisabled,
                     pressed && !(currentPage === totalPages) && styles.paginationButtonPressed,
                   ]}>
                   <ThemedText
                     type="defaultSemiBold"
-                    style={[
-                      styles.paginationButtonText,
-                      currentPage === totalPages && styles.paginationButtonTextDisabled,
-                    ]}>
+                    style={styles.paginationButtonText}
+                    lightColor={currentPage === totalPages ? colors.textSecondary : colors.textPrimary}
+                    darkColor={currentPage === totalPages ? colors.textSecondary : colors.textPrimary}>
                     Next
                   </ThemedText>
-                  <RemixIcon name="arrow-right-s-line" size={16} color={currentPage === totalPages ? palette.secondaryText : palette.primaryText} />
+                  <RemixIcon name="arrow-right-s-line" size={16} color={currentPage === totalPages ? colors.textSecondary : colors.textPrimary} />
                 </Pressable>
               </View>
             </View>
@@ -492,7 +487,6 @@ export function PurchasedCreditsTable(): ReactElement {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: palette.background,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -514,7 +508,6 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: palette.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -524,13 +517,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: palette.headerText,
   },
   statsGrid: {
     gap: 16,
   },
   statCard: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 22,
     padding: 20,
     gap: 12,
@@ -539,22 +530,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
     elevation: 5,
+    // Background color applied inline
   },
   statTitle: {
     fontSize: 15,
-    color: palette.secondaryText,
   },
   statValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: palette.primaryText,
   },
   statSubtitle: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   tableCard: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 24,
     padding: 20,
     gap: 18,
@@ -563,6 +551,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
     elevation: 4,
+    // Background color applied inline
   },
   tableCardHeader: {
     gap: 6,
@@ -570,22 +559,19 @@ const styles = StyleSheet.create({
   tableCardTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: palette.primaryText,
   },
   tableCardDescription: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   purchasesList: {
     gap: 12,
   },
   purchaseCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: palette.divider,
     gap: 16,
+    // Background and border colors applied inline
   },
   purchaseHeader: {
     marginBottom: 8,
@@ -599,9 +585,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F0CFC2',
     alignItems: 'center',
     justifyContent: 'center',
+    // Background color applied inline
   },
   userDetails: {
     flex: 1,
@@ -609,7 +595,6 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    color: palette.primaryText,
   },
   emailRow: {
     flexDirection: 'row',
@@ -618,13 +603,12 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   purchaseDetails: {
     gap: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: palette.divider,
+    // Border color applied inline
   },
   purchaseRow: {
     flexDirection: 'row',
@@ -633,25 +617,22 @@ const styles = StyleSheet.create({
   },
   purchaseLabel: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   purchaseValue: {
     fontSize: 14,
-    color: palette.primaryText,
     fontFamily: 'monospace',
     flex: 1,
     textAlign: 'right',
   },
   paymentIntentBadge: {
-    backgroundColor: '#F5F5F5',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
+    // Background color applied inline
   },
   paymentIntentText: {
     fontSize: 12,
     fontFamily: 'monospace',
-    color: palette.primaryText,
   },
   dateRow: {
     flexDirection: 'row',
@@ -660,7 +641,6 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 14,
-    color: palette.secondaryText,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -670,7 +650,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: palette.secondaryText,
     textAlign: 'center',
   },
   loadingContainer: {
@@ -682,7 +661,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: palette.secondaryText,
   },
   errorContainer: {
     flex: 1,
@@ -697,10 +675,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: palette.highlightText,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,
+    // Background color applied inline
   },
   retryButtonText: {
     fontSize: 16,
@@ -711,11 +689,10 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: palette.divider,
+    // Border color applied inline
   },
   paginationText: {
     fontSize: 14,
-    color: palette.secondaryText,
     textAlign: 'center',
   },
   paginationButtons: {
@@ -732,8 +709,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: palette.divider,
-    backgroundColor: '#FFFFFF',
+    // Border and background colors applied inline
   },
   paginationButtonPressed: {
     opacity: 0.7,
@@ -743,10 +719,9 @@ const styles = StyleSheet.create({
   },
   paginationButtonText: {
     fontSize: 14,
-    color: palette.primaryText,
   },
   paginationButtonTextDisabled: {
-    color: palette.secondaryText,
+    // Color applied inline
   },
   pageNumbers: {
     flexDirection: 'row',
@@ -758,21 +733,18 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: palette.divider,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    // Border and background colors applied inline
   },
   pageNumberButtonActive: {
-    backgroundColor: palette.highlightText,
-    borderColor: palette.highlightText,
+    // Background and border colors applied inline
   },
   pageNumberButtonPressed: {
     opacity: 0.7,
   },
   pageNumberText: {
     fontSize: 14,
-    color: palette.primaryText,
   },
   pageNumberTextActive: {
     color: '#FFFFFF',

@@ -13,6 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/providers/auth-context';
 import { useDashboardSummary } from '@/hooks/use-dashboard-summary';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type MetricCard = {
   readonly title: string;
@@ -45,34 +47,10 @@ type RecentTransaction = {
   readonly hasUsage: boolean;
 };
 
-const palette = {
-  background: '#F5ECE4',
-  headerText: '#1A1A1A',
-  primaryText: '#1F1F1F',
-  secondaryText: '#5C5C5C',
-  cardBackground: '#F6E8DC',
-  highlightText: '#C3473D',
-  iconAccent: '#C3473D',
-  divider: '#E4D5CA',
-  badgeBackground: '#EDD5C5',
-  avatarBackground: '#F0CFC2',
-  avatarText: '#643022',
-  transactionNegativeIconBackground: '#FAD9D9',
-  transactionNegativeIcon: '#B2383B',
-  transactionPositiveIconBackground: '#DFF3E3',
-  transactionPositiveIcon: '#2F7A3D',
-  transactionNegativeBadgeBackground: '#F5CFCF',
-  transactionNegativeBadgeText: '#B2383B',
-  transactionPositiveBadgeBackground: '#D6F0DA',
-  transactionPositiveBadgeText: '#2F7A3D',
-  transactionNegativeText: '#B2383B',
-  transactionPositiveText: '#2F7A3D',
-} as const;
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: palette.background,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -100,7 +78,6 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: palette.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -109,21 +86,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 16,
-    backgroundColor: palette.cardBackground,
-  },
-  logoutButtonPressed: {
-    opacity: 0.8,
-  },
-  logoutText: {
-    fontSize: 16,
   },
   metricsGrid: {
     gap: 16,
@@ -138,7 +100,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   metricCard: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 22,
     padding: 20,
     gap: 12,
@@ -152,7 +113,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: palette.badgeBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -167,7 +127,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   section: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 24,
     padding: 20,
     gap: 18,
@@ -192,7 +151,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: palette.badgeBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -207,7 +165,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   errorCard: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 20,
     padding: 18,
     gap: 12,
@@ -232,7 +189,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
   },
   retryButtonPressed: {
     opacity: 0.85,
@@ -246,13 +202,11 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: palette.divider,
   },
   avatarCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: palette.avatarBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -286,7 +240,6 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: palette.divider,
   },
   transactionIconBadge: {
     width: 44,
@@ -296,10 +249,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   transactionIconBadgePositive: {
-    backgroundColor: palette.transactionPositiveIconBackground,
+    // Background color applied inline
   },
   transactionIconBadgeNegative: {
-    backgroundColor: palette.transactionNegativeIconBackground,
+    // Background color applied inline
   },
   transactionDetails: {
     flex: 1,
@@ -320,20 +273,20 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   transactionStatusBadgePositive: {
-    backgroundColor: palette.transactionPositiveBadgeBackground,
+    // Background color applied inline
   },
   transactionStatusBadgeNegative: {
-    backgroundColor: palette.transactionNegativeBadgeBackground,
+    // Background color applied inline
   },
   transactionStatusText: {
     fontSize: 12,
     letterSpacing: 0.3,
   },
   transactionStatusTextPositive: {
-    color: palette.transactionPositiveBadgeText,
+    // Color applied inline
   },
   transactionStatusTextNegative: {
-    color: palette.transactionNegativeBadgeText,
+    // Color applied inline
   },
   transactionAmountLabel: {
     fontSize: 14,
@@ -367,16 +320,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   transactionCreditsDeltaPositive: {
-    color: palette.transactionPositiveText,
+    // Color applied inline
   },
   transactionCreditsDeltaNegative: {
-    color: palette.transactionNegativeText,
+    // Color applied inline
   },
 });
 
 export default function DashboardOverviewScreen(): ReactElement {
   const router = useRouter();
-  const { isAuthenticated, isLoading, signOut } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  const theme = useColorScheme();
+  const colors = Colors[theme];
   const {
     data: summary,
     isLoading: isSummaryLoading,
@@ -511,30 +466,18 @@ export default function DashboardOverviewScreen(): ReactElement {
     });
   }, [formatCount, formatTransactionOccurredAt, summary]);
 
-  const handleLogout = useCallback(async () => {
-    const correlationId = `dashboard-overview-logout-${Date.now()}`;
-
-    console.info('Dashboard overview requested logout', {
-      correlationId,
-      timestamp: new Date().toISOString(),
-    });
-
-    await signOut({ correlationId });
-    router.replace('/login');
-  }, [router, signOut]);
-
   const handleBackToMenu = useCallback(() => {
     router.back();
   }, [router]);
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.safeArea, styles.centerContent]}>
+      <SafeAreaView style={[styles.safeArea, styles.centerContent, { backgroundColor: colors.background }]}>
         <ThemedText
           type="title"
           style={styles.loadingText}
-          lightColor={palette.primaryText}
-          darkColor={palette.primaryText}>
+          lightColor={colors.textPrimary}
+          darkColor={colors.textPrimary}>
           Loading dashboard...
         </ThemedText>
       </SafeAreaView>
@@ -542,7 +485,7 @@ export default function DashboardOverviewScreen(): ReactElement {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -553,99 +496,95 @@ export default function DashboardOverviewScreen(): ReactElement {
               onPress={handleBackToMenu}
               accessibilityRole="button"
               accessibilityLabel="Navigate back to main dashboard menu"
-              style={({ pressed }) => [styles.backButton, pressed ? styles.backButtonPressed : undefined]}>
-              <RemixIcon name="arrow-left-line" size={22} color={palette.primaryText} />
+              style={({ pressed }) => [
+                styles.backButton,
+                { backgroundColor: colors.cardBackground },
+                pressed ? styles.backButtonPressed : undefined,
+              ]}>
+              <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
             </Pressable>
             <ThemedText
               type="title"
               style={styles.headerTitle}
-              lightColor={palette.headerText}
-              darkColor={palette.headerText}>
+              lightColor={colors.headerText}
+              darkColor={colors.headerText}>
               Dashboard
             </ThemedText>
           </View>
-          <Pressable
-            onPress={handleLogout}
-            accessibilityRole="button"
-            accessibilityLabel="Sign out of dashboard"
-            style={({ pressed }) => [styles.logoutButton, pressed ? styles.logoutButtonPressed : undefined]}>
-            <RemixIcon name="logout-box-line" size={18} color={palette.primaryText} />
-            <ThemedText
-              type="defaultSemiBold"
-              style={styles.logoutText}
-              lightColor={palette.primaryText}
-              darkColor={palette.primaryText}>
-              Logout
-            </ThemedText>
-          </Pressable>
         </View>
 
         <View style={styles.metricsGrid}>
           {isSummaryLoading && metrics.length === 0 ? (
             <View style={styles.metricsLoading}>
-              <ActivityIndicator color={palette.iconAccent} />
+              <ActivityIndicator color={colors.iconAccent} />
               <ThemedText
                 style={styles.loadingHint}
-                lightColor={palette.secondaryText}
-                darkColor={palette.secondaryText}>
+                lightColor={colors.textSecondary}
+                darkColor={colors.textSecondary}>
                 Fetching analytics...
               </ThemedText>
             </View>
           ) : (
-            metrics.map((metric) => <MetricCardComponent key={metric.title} metric={metric} />)
+            metrics.map((metric) => (
+              <MetricCardComponent key={metric.title} metric={metric} colors={colors} />
+            ))
           )}
         </View>
 
         {summaryError ? (
-          <View style={styles.errorCard}>
+          <View style={[styles.errorCard, { backgroundColor: colors.cardBackground }]}>
             <ThemedText
               type="defaultSemiBold"
               style={styles.errorTitle}
-              lightColor={palette.highlightText}
-              darkColor={palette.highlightText}>
+              lightColor={colors.highlightText}
+              darkColor={colors.highlightText}>
               Unable to load dashboard data
             </ThemedText>
             <ThemedText
               style={styles.errorSubtitle}
-              lightColor={palette.secondaryText}
-              darkColor={palette.secondaryText}>
+              lightColor={colors.textSecondary}
+              darkColor={colors.textSecondary}>
               {summaryError}
             </ThemedText>
             <Pressable
               onPress={refresh}
               accessibilityRole="button"
               accessibilityLabel="Retry loading dashboard data"
-              style={({ pressed }) => [styles.retryButton, pressed ? styles.retryButtonPressed : undefined]}>
-              <RemixIcon name="refresh-line" size={18} color={palette.iconAccent} />
+              style={({ pressed }) => [
+                styles.retryButton,
+                { backgroundColor: colors.cardBackground },
+                pressed ? styles.retryButtonPressed : undefined,
+              ]}>
+              <RemixIcon name="refresh-line" size={18} color={colors.iconAccent} />
               <ThemedText
                 type="defaultSemiBold"
                 style={styles.retryLabel}
-                lightColor={palette.iconAccent}
-                darkColor={palette.iconAccent}>
+                lightColor={colors.iconAccent}
+                darkColor={colors.iconAccent}>
                 Try Again
               </ThemedText>
             </Pressable>
           </View>
         ) : null}
 
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
-              <View style={styles.sectionIconBadge}>
-                <RemixIcon name="user-follow-line" size={18} color={palette.iconAccent} />
+              <View style={[styles.sectionIconBadge, { backgroundColor: colors.badgeBackground }]}>
+                <RemixIcon name="user-follow-line" size={18} color={colors.iconAccent} />
               </View>
               <ThemedText
                 type="subtitle"
                 style={styles.sectionTitle}
-                lightColor={palette.primaryText}
-                darkColor={palette.primaryText}>
+                lightColor={colors.textPrimary}
+                darkColor={colors.textPrimary}>
                 Recent Users
               </ThemedText>
             </View>
             <ThemedText
               style={styles.sectionSubtitle}
-              lightColor={palette.secondaryText}
-              darkColor={palette.secondaryText}>
+              lightColor={colors.textSecondary}
+              darkColor={colors.textSecondary}>
               Latest 5 registered users
             </ThemedText>
           </View>
@@ -653,45 +592,45 @@ export default function DashboardOverviewScreen(): ReactElement {
           <View style={styles.recentUserList}>
             {isSummaryLoading && recentUsers.length === 0 ? (
               <View style={styles.metricsLoading}>
-                <ActivityIndicator color={palette.iconAccent} />
+                <ActivityIndicator color={colors.iconAccent} />
                 <ThemedText
                   style={styles.loadingHint}
-                  lightColor={palette.secondaryText}
-                  darkColor={palette.secondaryText}>
+                  lightColor={colors.textSecondary}
+                  darkColor={colors.textSecondary}>
                   Loading latest users...
                 </ThemedText>
               </View>
             ) : recentUsers.length > 0 ? (
-              recentUsers.map((user) => <RecentUserRow key={user.id} user={user} />)
+              recentUsers.map((user) => <RecentUserRow key={user.id} user={user} colors={colors} />)
             ) : (
               <ThemedText
                 style={styles.emptyStateText}
-                lightColor={palette.secondaryText}
-                darkColor={palette.secondaryText}>
+                lightColor={colors.textSecondary}
+                darkColor={colors.textSecondary}>
                 No recent users available.
               </ThemedText>
             )}
           </View>
         </View>
 
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
-              <View style={styles.sectionIconBadge}>
-                <RemixIcon name="money-dollar-circle-line" size={18} color={palette.iconAccent} />
+              <View style={[styles.sectionIconBadge, { backgroundColor: colors.badgeBackground }]}>
+                <RemixIcon name="money-dollar-circle-line" size={18} color={colors.iconAccent} />
               </View>
               <ThemedText
                 type="subtitle"
                 style={styles.sectionTitle}
-                lightColor={palette.primaryText}
-                darkColor={palette.primaryText}>
+                lightColor={colors.textPrimary}
+                darkColor={colors.textPrimary}>
                 Recent Credit Transactions
               </ThemedText>
             </View>
             <ThemedText
               style={styles.sectionSubtitle}
-              lightColor={palette.secondaryText}
-              darkColor={palette.secondaryText}>
+              lightColor={colors.textSecondary}
+              darkColor={colors.textSecondary}>
               Latest 5 credit transactions
             </ThemedText>
           </View>
@@ -699,23 +638,23 @@ export default function DashboardOverviewScreen(): ReactElement {
           <View style={styles.transactionList}>
             {isSummaryLoading && recentTransactions.length === 0 ? (
               <View style={styles.metricsLoading}>
-                <ActivityIndicator color={palette.iconAccent} />
+                <ActivityIndicator color={colors.iconAccent} />
                 <ThemedText
                   style={styles.loadingHint}
-                  lightColor={palette.secondaryText}
-                  darkColor={palette.secondaryText}>
+                  lightColor={colors.textSecondary}
+                  darkColor={colors.textSecondary}>
                   Loading recent transactions...
                 </ThemedText>
               </View>
             ) : recentTransactions.length > 0 ? (
               recentTransactions.map((transaction) => (
-                <RecentTransactionRow key={transaction.id} transaction={transaction} />
+                <RecentTransactionRow key={transaction.id} transaction={transaction} colors={colors} />
               ))
             ) : (
               <ThemedText
                 style={styles.emptyStateText}
-                lightColor={palette.secondaryText}
-                darkColor={palette.secondaryText}>
+                lightColor={colors.textSecondary}
+                darkColor={colors.textSecondary}>
                 No recent credit transactions available.
               </ThemedText>
             )}
@@ -726,32 +665,32 @@ export default function DashboardOverviewScreen(): ReactElement {
   );
 }
 
-const MetricCardComponent = memo(({ metric }: { readonly metric: MetricCard }): ReactElement => {
+const MetricCardComponent = memo(({ metric, colors }: { readonly metric: MetricCard; colors: typeof Colors.light }): ReactElement => {
   const { title, value, subtitle, icon } = metric;
 
   return (
-    <View style={styles.metricCard}>
-      <View style={styles.metricIconBadge}>
-        <RemixIcon name={icon} size={22} color={palette.iconAccent} />
+    <View style={[styles.metricCard, { backgroundColor: colors.cardBackground }]}>
+      <View style={[styles.metricIconBadge, { backgroundColor: colors.badgeBackground }]}>
+        <RemixIcon name={icon} size={22} color={colors.iconAccent} />
       </View>
       <ThemedText
         type="defaultSemiBold"
         style={styles.metricTitle}
-        lightColor={palette.secondaryText}
-        darkColor={palette.secondaryText}>
+        lightColor={colors.textSecondary}
+        darkColor={colors.textSecondary}>
         {title}
       </ThemedText>
       <ThemedText
         type="title"
         style={styles.metricValue}
-        lightColor={title === 'Total Users' ? palette.highlightText : palette.primaryText}
-        darkColor={title === 'Total Users' ? palette.highlightText : palette.primaryText}>
+        lightColor={title === 'Total Users' ? colors.highlightText : colors.textPrimary}
+        darkColor={title === 'Total Users' ? colors.highlightText : colors.textPrimary}>
         {value}
       </ThemedText>
       <ThemedText
         style={styles.metricSubtitle}
-        lightColor={palette.secondaryText}
-        darkColor={palette.secondaryText}>
+        lightColor={colors.textSecondary}
+        darkColor={colors.textSecondary}>
         {subtitle}
       </ThemedText>
     </View>
@@ -759,18 +698,18 @@ const MetricCardComponent = memo(({ metric }: { readonly metric: MetricCard }): 
 });
 MetricCardComponent.displayName = 'MetricCardComponent';
 
-const RecentUserRow = memo(({ user }: { readonly user: RecentUser }): ReactElement => {
+const RecentUserRow = memo(({ user, colors }: { readonly user: RecentUser; colors: typeof Colors.light }): ReactElement => {
   const displayName = user.preferredName && user.preferredName.trim().length > 0 ? user.preferredName : user.name;
   const avatarLabel = displayName.trim().length > 0 ? displayName.trim().charAt(0).toUpperCase() : '?';
 
   return (
-    <View style={styles.recentUserRow}>
-      <View style={styles.avatarCircle}>
+    <View style={[styles.recentUserRow, { borderBottomColor: colors.divider }]}>
+      <View style={[styles.avatarCircle, { backgroundColor: colors.avatarBackground }]}>
         <ThemedText
           type="defaultSemiBold"
           style={styles.avatarLabel}
-          lightColor={palette.avatarText}
-          darkColor={palette.avatarText}>
+          lightColor={colors.avatarText}
+          darkColor={colors.avatarText}>
           {avatarLabel}
         </ThemedText>
       </View>
@@ -778,25 +717,25 @@ const RecentUserRow = memo(({ user }: { readonly user: RecentUser }): ReactEleme
         <ThemedText
           type="defaultSemiBold"
           style={styles.userName}
-          lightColor={palette.primaryText}
-          darkColor={palette.primaryText}>
+          lightColor={colors.textPrimary}
+          darkColor={colors.textPrimary}>
           {displayName}
         </ThemedText>
         <View style={styles.userMetaRow}>
-          <RemixIcon name="mail-line" size={16} color={palette.secondaryText} style={styles.userMetaIcon} />
+          <RemixIcon name="mail-line" size={16} color={colors.textSecondary} style={styles.userMetaIcon} />
           <ThemedText
             style={styles.userMetaText}
-            lightColor={palette.secondaryText}
-            darkColor={palette.secondaryText}>
+            lightColor={colors.textSecondary}
+            darkColor={colors.textSecondary}>
             {user.email}
           </ThemedText>
         </View>
         <View style={styles.userMetaRow}>
-          <RemixIcon name="calendar-line" size={16} color={palette.secondaryText} style={styles.userMetaIcon} />
+          <RemixIcon name="calendar-line" size={16} color={colors.textSecondary} style={styles.userMetaIcon} />
           <ThemedText
             style={styles.userMetaText}
-            lightColor={palette.secondaryText}
-            darkColor={palette.secondaryText}>
+            lightColor={colors.textSecondary}
+            darkColor={colors.textSecondary}>
             {user.joinedAt}
           </ThemedText>
         </View>
@@ -806,21 +745,23 @@ const RecentUserRow = memo(({ user }: { readonly user: RecentUser }): ReactEleme
 });
 RecentUserRow.displayName = 'RecentUserRow';
 
-const RecentTransactionRow = memo(({ transaction }: { readonly transaction: RecentTransaction }): ReactElement => {
+const RecentTransactionRow = memo(({ transaction, colors }: { readonly transaction: RecentTransaction; colors: typeof Colors.light }): ReactElement => {
   const isIncoming = transaction.direction === 'in';
   const iconName = isIncoming ? 'arrow-up-line' : 'arrow-down-line';
 
   return (
-    <View style={styles.transactionRow}>
+    <View style={[styles.transactionRow, { borderBottomColor: colors.divider }]}>
       <View
         style={[
           styles.transactionIconBadge,
-          isIncoming ? styles.transactionIconBadgePositive : styles.transactionIconBadgeNegative,
+          {
+            backgroundColor: isIncoming ? colors.transactionPositiveIconBackground : colors.transactionNegativeIconBackground,
+          },
         ]}>
         <RemixIcon
           name={iconName}
           size={20}
-          color={isIncoming ? palette.transactionPositiveIcon : palette.transactionNegativeIcon}
+          color={isIncoming ? colors.transactionPositiveIcon : colors.transactionNegativeIcon}
         />
       </View>
       <View style={styles.transactionDetails}>
@@ -828,23 +769,22 @@ const RecentTransactionRow = memo(({ transaction }: { readonly transaction: Rece
           <ThemedText
             type="defaultSemiBold"
             style={styles.transactionUserName}
-            lightColor={palette.primaryText}
-            darkColor={palette.primaryText}>
+            lightColor={colors.textPrimary}
+            darkColor={colors.textPrimary}>
             {transaction.userName}
           </ThemedText>
           <View
             style={[
               styles.transactionStatusBadge,
-              isIncoming ? styles.transactionStatusBadgePositive : styles.transactionStatusBadgeNegative,
+              {
+                backgroundColor: isIncoming ? colors.transactionPositiveBadgeBackground : colors.transactionNegativeBadgeBackground,
+              },
             ]}>
             <ThemedText
               type="defaultSemiBold"
-              style={[
-                styles.transactionStatusText,
-                isIncoming ? styles.transactionStatusTextPositive : styles.transactionStatusTextNegative,
-              ]}
-              lightColor={isIncoming ? palette.transactionPositiveBadgeText : palette.transactionNegativeBadgeText}
-              darkColor={isIncoming ? palette.transactionPositiveBadgeText : palette.transactionNegativeBadgeText}>
+              style={styles.transactionStatusText}
+              lightColor={isIncoming ? colors.transactionPositiveBadgeText : colors.transactionNegativeBadgeText}
+              darkColor={isIncoming ? colors.transactionPositiveBadgeText : colors.transactionNegativeBadgeText}>
               {transaction.status}
             </ThemedText>
           </View>
@@ -852,17 +792,17 @@ const RecentTransactionRow = memo(({ transaction }: { readonly transaction: Rece
 
         <ThemedText
           style={styles.transactionAmountLabel}
-          lightColor={palette.secondaryText}
-          darkColor={palette.secondaryText}>
+          lightColor={colors.textSecondary}
+          darkColor={colors.textSecondary}>
           {transaction.netAmountLabel}
         </ThemedText>
 
         <View style={styles.transactionMetaRow}>
-          <RemixIcon name="calendar-line" size={16} color={palette.secondaryText} style={styles.transactionMetaIcon} />
+          <RemixIcon name="calendar-line" size={16} color={colors.textSecondary} style={styles.transactionMetaIcon} />
           <ThemedText
             style={styles.transactionMetaText}
-            lightColor={palette.secondaryText}
-            darkColor={palette.secondaryText}>
+            lightColor={colors.textSecondary}
+            darkColor={colors.textSecondary}>
             {transaction.occurredAtLabel}
           </ThemedText>
         </View>
@@ -870,22 +810,22 @@ const RecentTransactionRow = memo(({ transaction }: { readonly transaction: Rece
         <View style={styles.transactionBreakdownRow}>
           {transaction.hasPurchases ? (
             <View style={styles.transactionBreakdownItem}>
-              <RemixIcon name="arrow-up-circle-line" size={14} color={palette.transactionPositiveText} />
+              <RemixIcon name="arrow-up-circle-line" size={14} color={colors.transactionPositiveText} />
               <ThemedText
                 style={styles.transactionBreakdownText}
-                lightColor={palette.transactionPositiveText}
-                darkColor={palette.transactionPositiveText}>
+                lightColor={colors.transactionPositiveText}
+                darkColor={colors.transactionPositiveText}>
                 {`+${transaction.purchasedCreditsLabel} credits purchased`}
               </ThemedText>
             </View>
           ) : null}
           {transaction.hasUsage ? (
             <View style={styles.transactionBreakdownItem}>
-              <RemixIcon name="arrow-down-circle-line" size={14} color={palette.transactionNegativeText} />
+              <RemixIcon name="arrow-down-circle-line" size={14} color={colors.transactionNegativeText} />
               <ThemedText
                 style={styles.transactionBreakdownText}
-                lightColor={palette.transactionNegativeText}
-                darkColor={palette.transactionNegativeText}>
+                lightColor={colors.transactionNegativeText}
+                darkColor={colors.transactionNegativeText}>
                 {`-${transaction.usedCreditsLabel} credits used`}
               </ThemedText>
             </View>
@@ -895,12 +835,9 @@ const RecentTransactionRow = memo(({ transaction }: { readonly transaction: Rece
 
       <ThemedText
         type="defaultSemiBold"
-        style={[
-          styles.transactionCreditsDelta,
-          isIncoming ? styles.transactionCreditsDeltaPositive : styles.transactionCreditsDeltaNegative,
-        ]}
-        lightColor={isIncoming ? palette.transactionPositiveText : palette.transactionNegativeText}
-        darkColor={isIncoming ? palette.transactionPositiveText : palette.transactionNegativeText}>
+        style={styles.transactionCreditsDelta}
+        lightColor={isIncoming ? colors.transactionPositiveText : colors.transactionNegativeText}
+        darkColor={isIncoming ? colors.transactionPositiveText : colors.transactionNegativeText}>
         {transaction.netCreditsLabel}
       </ThemedText>
     </View>

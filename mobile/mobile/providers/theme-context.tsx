@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -39,36 +39,56 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!mounted) return;
 
-    const updateColorScheme = async () => {
-      if (theme === 'system') {
-        // Use system preference (would need react-native-appearance or similar)
-        // For now, default to light
-        setColorScheme('light');
-      } else {
-        setColorScheme(theme);
-      }
-    };
-
-    updateColorScheme();
+    // Update colorScheme synchronously when theme changes
+    if (theme === 'system') {
+      // Use system preference (would need react-native-appearance or similar)
+      // For now, default to light
+      setColorScheme('light');
+    } else {
+      setColorScheme(theme);
+    }
   }, [theme, mounted]);
 
-  const setTheme = async (newTheme: Theme) => {
+  const setTheme = useCallback(async (newTheme: Theme) => {
     try {
-      await AsyncStorage.setItem('theme', newTheme);
+      // Update state immediately for responsive UI
       setThemeState(newTheme);
+      // Save to storage asynchronously
+      await AsyncStorage.setItem('theme', newTheme);
     } catch (error) {
       console.error('Error saving theme:', error);
+      // Revert on error
+      try {
+        const storedTheme = await AsyncStorage.getItem('theme');
+        if (storedTheme && (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system')) {
+          setThemeState(storedTheme as Theme);
+        }
+      } catch (revertError) {
+        console.error('Error reverting theme:', revertError);
+      }
     }
-  };
+  }, []);
 
-  const toggleTheme = async () => {
+  const toggleTheme = useCallback(async () => {
     // Toggle between light and dark (skip system for toggle)
-    const newTheme = colorScheme === 'light' ? 'dark' : 'light';
+    // Use current colorScheme to determine next theme
+    const currentScheme = colorScheme;
+    const newTheme: Theme = currentScheme === 'light' ? 'dark' : 'light';
     await setTheme(newTheme);
-  };
+  }, [colorScheme]);
+
+  const contextValue = useMemo(
+    () => ({
+      theme,
+      colorScheme,
+      setTheme,
+      toggleTheme,
+    }),
+    [theme, colorScheme, setTheme, toggleTheme]
+  );
 
   return (
-    <ThemeContext.Provider value={{ theme, colorScheme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

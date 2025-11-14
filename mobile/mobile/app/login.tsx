@@ -15,23 +15,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/providers/auth-context';
-
-const palette = {
-  background: '#050505',
-  cardBackground: '#F6E8DC',
-  accent: '#D04940',
-  accentPressed: '#B63D36',
-  textPrimary: '#1F1F1F',
-  textSecondary: '#4E4E4E',
-  inputBackground: '#FFFFFF',
-  inputBorder: '#E2D1C3',
-  error: '#B3261E',
-  iconAccent: '#FFFFFF',
-} as const;
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function LoginScreen(): ReactElement {
   const router = useRouter();
   const { isAuthenticated, isLoading: isAuthLoading, signIn } = useAuth();
+  const theme = useColorScheme();
+  const colors = Colors[theme];
   const [password, setPassword] = useState<string>('');
   const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -97,7 +88,7 @@ export default function LoginScreen(): ReactElement {
   }, [correlationId, isAuthLoading, isSubmitting, password, router, signIn]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -105,17 +96,17 @@ export default function LoginScreen(): ReactElement {
           contentContainerStyle={styles.contentContainer}
           keyboardShouldPersistTaps="handled"
           bounces={false}>
-          <View style={styles.card}>
-            <View style={styles.iconContainer}>
-              <RemixIcon name="lock-fill" size={32} color={palette.iconAccent} />
+          <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.accent }]}>
+              <RemixIcon name="lock-fill" size={32} color={colors.iconAccentLight} />
             </View>
-            <ThemedText type="subtitle" style={styles.title} lightColor={palette.textPrimary} darkColor={palette.textPrimary}>
+            <ThemedText type="subtitle" style={styles.title} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
               Admin Login
             </ThemedText>
             <ThemedText
               style={styles.subtitle}
-              lightColor={palette.textSecondary}
-              darkColor={palette.textSecondary}>
+              lightColor={colors.textSecondary}
+              darkColor={colors.textSecondary}>
               Enter your password to access the dashboard
             </ThemedText>
 
@@ -123,22 +114,22 @@ export default function LoginScreen(): ReactElement {
               <ThemedText
                 type="defaultSemiBold"
                 style={styles.label}
-                lightColor={palette.textPrimary}
-                darkColor={palette.textPrimary}>
+                lightColor={colors.textPrimary}
+                darkColor={colors.textPrimary}>
                 Password
               </ThemedText>
-              <View style={styles.inputWrapper}>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
                 <TextInput
                   value={password}
                   onChangeText={handlePasswordChange}
                   placeholder="Enter admin password"
-                  placeholderTextColor="#9F9F9F"
+                  placeholderTextColor={colors.textSecondary}
                   secureTextEntry={!isPasswordVisible}
                   autoCapitalize="none"
                   autoCorrect={false}
                   textContentType="password"
                   accessibilityLabel="Admin password"
-                  style={styles.input}
+                  style={[styles.input, { color: colors.textPrimary }]}
                   onSubmitEditing={handleSubmit}
                   returnKeyType="done"
                   editable={!isSubmitting && !isAuthLoading}
@@ -152,7 +143,7 @@ export default function LoginScreen(): ReactElement {
                   <RemixIcon
                     name={isPasswordVisible ? 'eye-off-line' : 'eye-line'}
                     size={22}
-                    color={palette.textSecondary}
+                    color={colors.textSecondary}
                   />
                 </Pressable>
               </View>
@@ -161,8 +152,8 @@ export default function LoginScreen(): ReactElement {
             {errorMessage ? (
               <ThemedText
                 style={styles.errorText}
-                lightColor={palette.error}
-                darkColor={palette.error}
+                lightColor={colors.error}
+                darkColor={colors.error}
                 accessibilityRole="alert">
                 {errorMessage}
               </ThemedText>
@@ -175,13 +166,13 @@ export default function LoginScreen(): ReactElement {
               disabled={isSubmitting || isAuthLoading}
               style={({ pressed }) => [
                 styles.signInButton,
-                pressed ? styles.signInButtonPressed : null,
+                { backgroundColor: pressed ? colors.accentPressed : colors.accent },
                 isSubmitting ? styles.signInButtonDisabled : null,
               ]}>
               {isSubmitting || isAuthLoading ? (
-                <ActivityIndicator color={palette.iconAccent} />
+                <ActivityIndicator color={colors.iconAccentLight} />
               ) : (
-                <ThemedText type="defaultSemiBold" style={styles.signInText} lightColor={palette.iconAccent} darkColor={palette.iconAccent}>
+                <ThemedText type="defaultSemiBold" style={styles.signInText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                   Sign In
                 </ThemedText>
               )}
@@ -196,7 +187,6 @@ export default function LoginScreen(): ReactElement {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: palette.background,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -211,7 +201,6 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: palette.cardBackground,
     borderRadius: 20,
     paddingHorizontal: 24,
     paddingVertical: 32,
@@ -225,7 +214,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: palette.accent,
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
@@ -234,13 +222,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     textAlign: 'center',
-    color: palette.textPrimary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: palette.textSecondary,
     marginBottom: 24,
   },
   inputGroup: {
@@ -249,22 +235,18 @@ const styles = StyleSheet.create({
   label: {
     marginBottom: 8,
     fontSize: 15,
-    color: palette.textPrimary,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 12,
-    backgroundColor: palette.inputBackground,
     borderWidth: 1,
-    borderColor: palette.inputBorder,
     paddingHorizontal: 12,
     height: 52,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: palette.textPrimary,
   },
   visibilityToggle: {
     marginLeft: 8,
@@ -273,25 +255,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
     fontSize: 14,
-    color: palette.error,
     textAlign: 'center',
   },
   signInButton: {
     marginTop: 16,
     height: 52,
     borderRadius: 14,
-    backgroundColor: palette.accent,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  signInButtonPressed: {
-    backgroundColor: palette.accentPressed,
   },
   signInButtonDisabled: {
     opacity: 0.7,
   },
   signInText: {
-    color: palette.iconAccent,
     fontSize: 17,
   },
 });

@@ -11,21 +11,8 @@ import {
 import RemixIcon from 'react-native-remix-icon';
 import { ThemedText } from '@/components/themed-text';
 import { getAppConfig } from '@/utils/config';
-
-const palette = {
-  background: '#F5ECE4',
-  cardBackground: '#FFFFFF',
-  primaryText: '#1F1F1F',
-  secondaryText: '#5C5C5C',
-  buttonPrimary: '#C3473D',
-  buttonSecondary: '#E4D5CA',
-  inputBackground: '#FFFFFF',
-  inputBorder: '#E4D5CA',
-  error: '#DC2626',
-  divider: '#E4D5CA',
-  tabActive: '#C3473D',
-  tabInactive: '#E4D5CA',
-} as const;
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export type EmailSectionKey = 'uptime' | 'downtime' | 'creditsAdded' | 'activity';
 
@@ -152,6 +139,8 @@ export function EmailCustomizationDialog({
   selectedCount = 0,
   isSending = false,
 }: EmailCustomizationDialogProps): ReactElement {
+  const theme = useColorScheme();
+  const colors = Colors[theme];
   const [emailData, setEmailData] = useState<EmailData>(createDefaultEmailData());
   const [individualEmail, setIndividualEmail] = useState('');
   const [activeTab, setActiveTab] = useState<EmailSectionKey>('uptime');
@@ -300,23 +289,23 @@ export function EmailCustomizationDialog({
       animationType="fade"
       onRequestClose={handleCancel}>
       <View style={styles.overlay}>
-        <View style={styles.dialog}>
-          <View style={styles.dialogHeader}>
+        <View style={[styles.dialog, { backgroundColor: colors.cardBackground }]}>
+          <View style={[styles.dialogHeader, { borderBottomColor: colors.divider }]}>
             <View style={styles.dialogHeaderLeft}>
-              <RemixIcon name="mail-line" size={24} color={palette.buttonPrimary} />
+              <RemixIcon name="mail-line" size={24} color={colors.buttonPrimary} />
               <View style={styles.dialogTitleContainer}>
-                <ThemedText type="title" style={styles.dialogTitle}>
+                <ThemedText type="title" style={styles.dialogTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Customize Email Content
                 </ThemedText>
                 {selectedCount > 0 && (
-                  <ThemedText type="default" style={styles.selectedCountText}>
+                  <ThemedText type="default" style={styles.selectedCountText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                     {selectedCount} user{selectedCount !== 1 ? 's' : ''} currently selected
                   </ThemedText>
                 )}
               </View>
             </View>
             <Pressable onPress={handleCancel} style={styles.closeButton}>
-              <RemixIcon name="close-line" size={24} color={palette.primaryText} />
+              <RemixIcon name="close-line" size={24} color={colors.textPrimary} />
             </Pressable>
           </View>
 
@@ -328,30 +317,30 @@ export function EmailCustomizationDialog({
             <View style={styles.form}>
               {/* Subject Line */}
               <View style={styles.inputGroup}>
-                <ThemedText type="defaultSemiBold" style={styles.label}>
+                <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Email Subject
                 </ThemedText>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.searchBackground, borderColor: colors.inputBorder, color: colors.textPrimary }]}
                   value={emailData.subject}
                   onChangeText={handleSubjectChange}
                   placeholder="Enter email subject..."
-                  placeholderTextColor={palette.secondaryText}
+                  placeholderTextColor={colors.textSecondary}
                   editable={!isSending}
                 />
               </View>
 
               {/* Individual Email Input */}
               <View style={styles.inputGroup}>
-                <ThemedText type="defaultSemiBold" style={styles.label}>
+                <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                   Individual Email Address (for testing)
                 </ThemedText>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.searchBackground, borderColor: colors.inputBorder, color: colors.textPrimary }]}
                   value={individualEmail}
                   onChangeText={setIndividualEmail}
                   placeholder="Enter email address for individual testing..."
-                  placeholderTextColor={palette.secondaryText}
+                  placeholderTextColor={colors.textSecondary}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -364,8 +353,8 @@ export function EmailCustomizationDialog({
                 <Pressable
                   onPress={handleResetAll}
                   disabled={isSending}
-                  style={[styles.resetAllButton, isSending && styles.buttonDisabled]}>
-                  <ThemedText type="defaultSemiBold" style={styles.resetAllButtonText}>
+                  style={[styles.resetAllButton, { backgroundColor: colors.buttonSecondary }, isSending && styles.buttonDisabled]}>
+                  <ThemedText type="defaultSemiBold" style={styles.resetAllButtonText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Reset All to Default
                   </ThemedText>
                 </Pressable>
@@ -373,21 +362,20 @@ export function EmailCustomizationDialog({
 
               {/* Email Sections Tabs */}
               <View style={styles.tabsContainer}>
-                <View style={styles.tabsList}>
+                <View style={[styles.tabsList, { backgroundColor: colors.inactiveTabBackground }]}>
                   {(['uptime', 'downtime', 'creditsAdded', 'activity'] as EmailSectionKey[]).map((tab) => (
                     <Pressable
                       key={tab}
                       onPress={() => setActiveTab(tab)}
                       style={[
                         styles.tab,
-                        activeTab === tab ? styles.tabActive : styles.tabInactive,
+                        { backgroundColor: activeTab === tab ? colors.activeTabBackground : 'transparent' },
                       ]}>
                       <ThemedText
                         type="defaultSemiBold"
-                        style={[
-                          styles.tabText,
-                          activeTab === tab ? styles.tabTextActive : styles.tabTextInactive,
-                        ]}>
+                        style={styles.tabText}
+                        lightColor={activeTab === tab ? colors.activeTabText : colors.inactiveTabText}
+                        darkColor={activeTab === tab ? colors.activeTabText : colors.inactiveTabText}>
                         {sectionLabels[tab]}
                       </ThemedText>
                     </Pressable>
@@ -397,25 +385,24 @@ export function EmailCustomizationDialog({
                 {/* Active Tab Content */}
                 <View style={styles.sectionContainer}>
                   <View style={styles.sectionHeader}>
-                    <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                    <ThemedText type="defaultSemiBold" style={styles.sectionTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                       {sectionLabels[activeTab]}
                     </ThemedText>
                   </View>
 
                   {/* Content View Mode Tabs */}
-                  <View style={styles.contentViewTabs}>
+                  <View style={[styles.contentViewTabs, { backgroundColor: colors.inactiveTabBackground }]}>
                     <Pressable
                       onPress={() => setContentViewMode('text')}
                       style={[
                         styles.contentViewTab,
-                        contentViewMode === 'text' ? styles.contentViewTabActive : styles.contentViewTabInactive,
+                        { backgroundColor: contentViewMode === 'text' ? colors.activeTabBackground : 'transparent' },
                       ]}>
                       <ThemedText
                         type="defaultSemiBold"
-                        style={[
-                          styles.contentViewTabText,
-                          contentViewMode === 'text' ? styles.contentViewTabTextActive : styles.contentViewTabTextInactive,
-                        ]}>
+                        style={styles.contentViewTabText}
+                        lightColor={contentViewMode === 'text' ? colors.activeTabText : colors.inactiveTabText}
+                        darkColor={contentViewMode === 'text' ? colors.activeTabText : colors.inactiveTabText}>
                         Plain Text
                       </ThemedText>
                     </Pressable>
@@ -423,14 +410,13 @@ export function EmailCustomizationDialog({
                       onPress={() => setContentViewMode('preview')}
                       style={[
                         styles.contentViewTab,
-                        contentViewMode === 'preview' ? styles.contentViewTabActive : styles.contentViewTabInactive,
+                        { backgroundColor: contentViewMode === 'preview' ? colors.activeTabBackground : 'transparent' },
                       ]}>
                       <ThemedText
                         type="defaultSemiBold"
-                        style={[
-                          styles.contentViewTabText,
-                          contentViewMode === 'preview' ? styles.contentViewTabTextActive : styles.contentViewTabTextInactive,
-                        ]}>
+                        style={styles.contentViewTabText}
+                        lightColor={contentViewMode === 'preview' ? colors.activeTabText : colors.inactiveTabText}
+                        darkColor={contentViewMode === 'preview' ? colors.activeTabText : colors.inactiveTabText}>
                         Preview
                       </ThemedText>
                     </Pressable>
@@ -441,8 +427,8 @@ export function EmailCustomizationDialog({
                     <Pressable
                       onPress={() => handleResetSection(activeTab)}
                       disabled={isSending}
-                      style={[styles.sectionActionButton, isSending && styles.buttonDisabled]}>
-                      <ThemedText type="defaultSemiBold" style={styles.sectionActionButtonText}>
+                      style={[styles.sectionActionButton, { backgroundColor: colors.buttonSecondary }, isSending && styles.buttonDisabled]}>
+                      <ThemedText type="defaultSemiBold" style={styles.sectionActionButtonText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                         Reset to Default
                       </ThemedText>
                     </Pressable>
@@ -451,14 +437,15 @@ export function EmailCustomizationDialog({
                       disabled={isEnhancing[activeTab] || isSending || !activeSection.textContent.trim()}
                       style={[
                         styles.sectionActionButton,
+                        { backgroundColor: colors.buttonSecondary },
                         (isEnhancing[activeTab] || isSending || !activeSection.textContent.trim()) && styles.buttonDisabled,
                       ]}>
                       {isEnhancing[activeTab] ? (
-                        <ActivityIndicator size="small" color={palette.primaryText} />
+                        <ActivityIndicator size="small" color={colors.textPrimary} />
                       ) : (
                         <>
-                          <RemixIcon name="magic-line" size={16} color={palette.primaryText} />
-                          <ThemedText type="defaultSemiBold" style={styles.sectionActionButtonText}>
+                          <RemixIcon name="magic-line" size={16} color={colors.textPrimary} />
+                          <ThemedText type="defaultSemiBold" style={styles.sectionActionButtonText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                             Enhance
                           </ThemedText>
                         </>
@@ -469,15 +456,15 @@ export function EmailCustomizationDialog({
                   {/* Content Area */}
                   {contentViewMode === 'text' ? (
                     <View style={styles.inputGroup}>
-                      <ThemedText type="defaultSemiBold" style={styles.label}>
+                      <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                         Plain Text Content
                       </ThemedText>
                       <TextInput
-                        style={styles.textArea}
+                        style={[styles.textArea, { backgroundColor: colors.searchBackground, borderColor: colors.inputBorder, color: colors.textPrimary }]}
                         value={activeSection.textContent}
                         onChangeText={(value) => handleSectionContentChange(activeTab, value)}
                         placeholder="Enter plain text content..."
-                        placeholderTextColor={palette.secondaryText}
+                        placeholderTextColor={colors.textSecondary}
                         multiline
                         numberOfLines={15}
                         textAlignVertical="top"
@@ -487,24 +474,24 @@ export function EmailCustomizationDialog({
                   ) : (
                     <View style={styles.previewContainer}>
                       <View style={styles.previewSection}>
-                        <ThemedText type="defaultSemiBold" style={styles.label}>
+                        <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                           Email Preview (HTML Template)
                         </ThemedText>
-                        <View style={styles.previewBox}>
+                        <View style={[styles.previewBox, { backgroundColor: colors.badgeBackground }]}>
                           <ScrollView style={styles.previewScroll}>
-                            <ThemedText type="default" style={styles.previewText}>
+                            <ThemedText type="default" style={styles.previewText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                               {activeSection.textContent || '(No content)'}
                             </ThemedText>
                           </ScrollView>
                         </View>
                       </View>
                       <View style={styles.previewSection}>
-                        <ThemedText type="defaultSemiBold" style={styles.label}>
+                        <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                           Plain Text Content (as it will appear in the email)
                         </ThemedText>
-                        <View style={styles.previewBox}>
+                        <View style={[styles.previewBox, { backgroundColor: colors.badgeBackground }]}>
                           <ScrollView style={styles.previewScroll}>
-                            <ThemedText type="default" style={styles.previewText}>
+                            <ThemedText type="default" style={styles.previewText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                               {activeSection.textContent || '(No content)'}
                             </ThemedText>
                           </ScrollView>
@@ -517,20 +504,19 @@ export function EmailCustomizationDialog({
             </View>
           </ScrollView>
 
-          <View style={styles.dialogFooter}>
+          <View style={[styles.dialogFooter, { borderTopColor: colors.divider }]}>
             <Pressable
               onPress={handleCancel}
               disabled={isSending}
               style={({ pressed }) => [
                 styles.button,
                 styles.cancelButton,
+                { backgroundColor: colors.buttonSecondary },
                 pressed && styles.buttonPressed,
               ]}>
-              {({ pressed }) => (
-                <ThemedText type="defaultSemiBold" style={[styles.cancelButtonText, pressed && styles.buttonPressedText]}>
-                  Cancel
-                </ThemedText>
-              )}
+              <ThemedText type="defaultSemiBold" style={styles.cancelButtonText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                Cancel
+              </ThemedText>
             </Pressable>
             <View style={styles.footerActions}>
               <Pressable
@@ -539,15 +525,16 @@ export function EmailCustomizationDialog({
                 style={({ pressed }) => [
                   styles.button,
                   styles.secondaryButton,
+                  { backgroundColor: colors.buttonSecondary },
                   (isSending || !emailData.subject.trim() || !hasContent() || !individualEmail.trim()) && styles.buttonDisabled,
                   pressed && !(isSending || !emailData.subject.trim() || !hasContent() || !individualEmail.trim()) && styles.buttonPressed,
                 ]}>
                 {isSending ? (
-                  <ActivityIndicator size="small" color={palette.primaryText} />
+                  <ActivityIndicator size="small" color={colors.textPrimary} />
                 ) : (
                   <>
-                    <RemixIcon name="mail-line" size={16} color={palette.primaryText} />
-                    <ThemedText type="defaultSemiBold" style={styles.secondaryButtonText}>
+                    <RemixIcon name="mail-line" size={16} color={colors.textPrimary} />
+                    <ThemedText type="defaultSemiBold" style={styles.secondaryButtonText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                       Send to Individual
                     </ThemedText>
                   </>
@@ -560,15 +547,16 @@ export function EmailCustomizationDialog({
                   style={({ pressed }) => [
                     styles.button,
                     styles.submitButton,
+                    { backgroundColor: colors.buttonPrimary },
                     (isSending || !emailData.subject.trim() || !hasContent()) && styles.buttonDisabled,
                     pressed && !(isSending || !emailData.subject.trim() || !hasContent()) && styles.buttonPressed,
                   ]}>
                   {isSending ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.iconAccentLight} />
                   ) : (
                     <>
-                      <RemixIcon name="mail-line" size={16} color="#FFFFFF" />
-                      <ThemedText type="defaultSemiBold" style={styles.submitButtonText}>
+                      <RemixIcon name="mail-line" size={16} color={colors.iconAccentLight} />
+                      <ThemedText type="defaultSemiBold" style={styles.submitButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                         Send to Selected ({selectedCount})
                       </ThemedText>
                     </>
@@ -581,21 +569,18 @@ export function EmailCustomizationDialog({
                 style={({ pressed }) => [
                   styles.button,
                   styles.submitButton,
+                  { backgroundColor: colors.buttonPrimary },
                   (isSending || !emailData.subject.trim() || !hasContent()) && styles.buttonDisabled,
                   pressed && !(isSending || !emailData.subject.trim() || !hasContent()) && styles.buttonPressed,
                 ]}>
-                {({ pressed }) => (
+                {isSending ? (
+                  <ActivityIndicator size="small" color={colors.iconAccentLight} />
+                ) : (
                   <>
-                    {isSending ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <>
-                        <RemixIcon name="mail-line" size={16} color="#FFFFFF" />
-                        <ThemedText type="defaultSemiBold" style={[styles.submitButtonText, pressed && styles.buttonPressedText]}>
-                          Send to All
-                        </ThemedText>
-                      </>
-                    )}
+                    <RemixIcon name="mail-line" size={16} color={colors.iconAccentLight} />
+                    <ThemedText type="defaultSemiBold" style={styles.submitButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                      Send to All
+                    </ThemedText>
                   </>
                 )}
               </Pressable>
@@ -616,7 +601,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   dialog: {
-    backgroundColor: palette.cardBackground,
     borderRadius: 16,
     width: '100%',
     maxWidth: 500,
@@ -624,6 +608,7 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
     overflow: 'hidden',
     flexDirection: 'column',
+    // Background color applied inline
   },
   dialogHeader: {
     flexDirection: 'row',
@@ -632,9 +617,9 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: palette.divider,
     gap: 12,
     flexShrink: 0,
+    // Border color applied inline
   },
   dialogHeaderLeft: {
     flexDirection: 'row',
@@ -647,16 +632,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   dialogTitle: {
-    color: palette.primaryText,
     fontSize: 20,
   },
   dialogDescription: {
-    color: palette.secondaryText,
     fontSize: 14,
     marginTop: 4,
   },
   selectedCountText: {
-    color: palette.buttonPrimary,
     fontWeight: '500',
   },
   closeButton: {
@@ -677,18 +659,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   input: {
-    backgroundColor: palette.inputBackground,
     borderWidth: 1,
-    borderColor: palette.inputBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
-    color: palette.primaryText,
+    // Background, border, and text colors applied inline
   },
   resetAllContainer: {
     alignItems: 'flex-end',
@@ -697,12 +676,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.inputBorder,
-    backgroundColor: palette.inputBackground,
+    // Background color applied inline
   },
   resetAllButtonText: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   tabsContainer: {
@@ -712,6 +688,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     flexWrap: 'wrap',
+    // Background color applied inline
   },
   tab: {
     flex: 1,
@@ -720,12 +697,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     alignItems: 'center',
+    // Background color applied inline
   },
   tabActive: {
-    backgroundColor: palette.tabActive,
+    // Background color applied inline
   },
   tabInactive: {
-    backgroundColor: palette.tabInactive,
+    // Background color applied inline
   },
   tabText: {
     fontSize: 14,
@@ -734,25 +712,25 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   tabTextInactive: {
-    color: palette.primaryText,
+    // Color applied inline
   },
   sectionContainer: {
     borderWidth: 1,
-    borderColor: palette.inputBorder,
     borderRadius: 8,
     padding: 16,
     gap: 16,
+    // Border color applied inline
   },
   sectionHeader: {
     marginBottom: 8,
   },
   sectionTitle: {
-    color: palette.primaryText,
     fontSize: 18,
   },
   contentViewTabs: {
     flexDirection: 'row',
     gap: 8,
+    // Background color applied inline
   },
   contentViewTab: {
     flex: 1,
@@ -761,23 +739,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
+    // Background and border colors applied inline
   },
   contentViewTabActive: {
-    backgroundColor: palette.cardBackground,
-    borderColor: palette.tabActive,
+    // Background and border colors applied inline
   },
   contentViewTabInactive: {
-    backgroundColor: palette.tabInactive,
-    borderColor: palette.inputBorder,
+    // Background and border colors applied inline
   },
   contentViewTabText: {
     fontSize: 14,
   },
   contentViewTabTextActive: {
-    color: palette.tabActive,
+    // Color applied inline
   },
   contentViewTabTextInactive: {
-    color: palette.primaryText,
+    // Color applied inline
   },
   sectionActions: {
     flexDirection: 'row',
@@ -792,24 +769,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: palette.inputBorder,
-    backgroundColor: palette.inputBackground,
+    // Border and background colors applied inline
   },
   sectionActionButtonText: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   textArea: {
-    backgroundColor: palette.inputBackground,
     borderWidth: 1,
-    borderColor: palette.inputBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: palette.primaryText,
     minHeight: 250,
     fontFamily: 'monospace',
+    // Background, border, and text colors applied inline
   },
   previewContainer: {
     gap: 16,
@@ -819,17 +792,15 @@ const styles = StyleSheet.create({
   },
   previewBox: {
     borderWidth: 1,
-    borderColor: palette.inputBorder,
     borderRadius: 8,
     minHeight: 150,
-    backgroundColor: '#F9F9F9',
     maxHeight: 200,
+    // Border and background colors applied inline
   },
   previewScroll: {
     padding: 12,
   },
   previewText: {
-    color: palette.primaryText,
     fontSize: 14,
     fontFamily: 'monospace',
   },
@@ -841,9 +812,9 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: palette.divider,
     flexShrink: 0,
     flexWrap: 'wrap',
+    // Border color applied inline
   },
   footerActions: {
     flexDirection: 'row',
@@ -863,23 +834,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: palette.buttonSecondary,
+    // Background color applied inline
   },
   cancelButtonText: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   secondaryButton: {
-    backgroundColor: palette.buttonSecondary,
     borderWidth: 1,
-    borderColor: palette.inputBorder,
+    // Background and border colors applied inline
   },
   secondaryButtonText: {
-    color: palette.primaryText,
     fontSize: 14,
   },
   submitButton: {
-    backgroundColor: palette.buttonPrimary,
+    // Background color applied inline
   },
   submitButtonText: {
     color: '#FFFFFF',
