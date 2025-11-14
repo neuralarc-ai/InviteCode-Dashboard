@@ -1075,7 +1075,7 @@ export function useUsageLogs() {
     }
   };
 
-  // Send custom reminder email
+  // image.png reminder email
   const sendCustomReminder = async (userEmail: string, userName: string, activityLevel: string, customSubject: string, customMessage: string) => {
     try {
       console.log(`Sending custom reminder to ${userName} (${userEmail}) - Activity Level: ${activityLevel}`);
