@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { createEmailAttachments, EMAIL_IMAGES } from '@/lib/email-utils';
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -44,12 +45,15 @@ export async function POST(request: NextRequest) {
             subject: "We miss you on Helium! ",
             text: `Hi ${userName},\n\n${baseMessage}\n\nWe'd love to see you back and help you get the most out of our AI platform.\n\nBest regards,\nThe Helium Team`,
             html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #D4EB9D; padding: 20px;">
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #000000;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <img src="cid:reminder" alt="Reminder" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+                </div>
                 <h2 style="color: #000000;">We miss you on Helium! </h2>
-                <p>Hi ${userName},</p>
-                <p>${baseMessage}</p>
-                <p>We'd love to see you back and help you get the most out of our AI platform.</p>
-                <p>Best regards,<br>The Helium Team</p>
+                <p style="color: #000000;">Hi ${userName},</p>
+                <p style="color: #000000;">${baseMessage}</p>
+                <p style="color: #000000;">We'd love to see you back and help you get the most out of our AI platform.</p>
+                <p style="color: #000000;">Best regards,<br>The Helium Team</p>
                 <div style="text-align: center; margin-top: 20px;">
                   <a href="http://he2.ai" style="background-color: #004116; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                     Go back to Using Helium OS
@@ -63,12 +67,15 @@ export async function POST(request: NextRequest) {
             subject: "Let's get you back on track with Helium! 🚀",
             text: `Hi ${userName},\n\n${baseMessage}\n\nWe understand that sometimes life gets busy, but we're here to support you whenever you're ready to continue your AI journey.\n\nBest regards,\nThe Helium Team`,
             html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2563eb;">Let's get you back on track with Helium! 🚀</h2>
-                <p>Hi ${userName},</p>
-                <p>${baseMessage}</p>
-                <p>We understand that sometimes life gets busy, but we're here to support you whenever you're ready to continue your AI journey.</p>
-                <p>Best regards,<br>The Helium Team</p>
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #000000;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <img src="cid:reminder" alt="Reminder" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+                </div>
+                <h2 style="color: #000000;">Let's get you back on track with Helium! 🚀</h2>
+                <p style="color: #000000;">Hi ${userName},</p>
+                <p style="color: #000000;">${baseMessage}</p>
+                <p style="color: #000000;">We understand that sometimes life gets busy, but we're here to support you whenever you're ready to continue your AI journey.</p>
+                <p style="color: #000000;">Best regards,<br>The Helium Team</p>
               </div>
             `
           };
@@ -77,11 +84,14 @@ export async function POST(request: NextRequest) {
             subject: "We're here to help with Helium! 💙",
             text: `Hi ${userName},\n\n${baseMessage}\n\nBest regards,\nThe Helium Team`,
             html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2563eb;">We're here to help with Helium! 💙</h2>
-                <p>Hi ${userName},</p>
-                <p>${baseMessage}</p>
-                <p>Best regards,<br>The Helium Team</p>
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #000000;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <img src="cid:reminder" alt="Reminder" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+                </div>
+                <h2 style="color: #000000;">We're here to help with Helium! 💙</h2>
+                <p style="color: #000000;">Hi ${userName},</p>
+                <p style="color: #000000;">${baseMessage}</p>
+                <p style="color: #000000;">Best regards,<br>The Helium Team</p>
               </div>
             `
           };
@@ -90,6 +100,9 @@ export async function POST(request: NextRequest) {
 
     const emailContent = getEmailContent(activityLevel);
 
+    // Get attachments for Reminder.png
+    const attachments = createEmailAttachments([EMAIL_IMAGES.reminder]);
+
     // Send email
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
@@ -97,6 +110,7 @@ export async function POST(request: NextRequest) {
       subject: emailContent.subject,
       text: emailContent.text,
       html: emailContent.html,
+      attachments: attachments.length > 0 ? attachments : undefined,
     };
 
     console.log('Attempting to send email with options:', {

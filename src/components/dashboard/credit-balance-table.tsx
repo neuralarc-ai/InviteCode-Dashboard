@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, RefreshCw, User, Mail, DollarSign, Calendar, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react';
+import { Search, RefreshCw, User, DollarSign, Calendar, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react';
 import { useCreditBalances } from '@/hooks/use-realtime-data';
 import { useToast } from '@/hooks/use-toast';
 import { CreditAssignmentDialog } from './credit-assignment-dialog';
@@ -201,9 +201,7 @@ export function CreditBalanceTable() {
                 <TableHead>User</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead>Credits</TableHead>
-                <TableHead>Total Purchased</TableHead>
                 <TableHead>Purchased Credits</TableHead>
-                <TableHead>Total Used</TableHead>
                 <TableHead>Used Credits</TableHead>
                 <TableHead>Last Updated</TableHead>
                 <TableHead>Actions</TableHead>
@@ -212,7 +210,7 @@ export function CreditBalanceTable() {
             <TableBody>
               {paginatedBalances.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
@@ -231,10 +229,6 @@ export function CreditBalanceTable() {
                         </div>
                         <div>
                           <div className="font-medium">{balance.userName}</div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {balance.userEmail}
-                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -249,18 +243,8 @@ export function CreditBalanceTable() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono text-foreground">
-                        {formatCurrency(balance.totalPurchased)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
                       <span className="font-mono font-semibold text-foreground">
                         {formatCredits(balance.totalPurchased)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-foreground">
-                        {formatCurrency(balance.totalUsed)}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -279,10 +263,10 @@ export function CreditBalanceTable() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleAssignCredits(balance)}
-                        className="flex items-center gap-2"
+                        className="p-2"
+                        aria-label="Assign Credits"
                       >
                         <CreditCard className="h-4 w-4" />
-                        Assign Credits
                       </Button>
                     </TableCell>
                   </TableRow>

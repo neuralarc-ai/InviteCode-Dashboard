@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, RefreshCw, User, Mail, Calendar, CreditCard, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
+import { Search, RefreshCw, User, Mail, CreditCard, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 import { useUserProfiles } from '@/hooks/use-realtime-data';
 import { useToast } from '@/hooks/use-toast';
@@ -276,6 +276,14 @@ export function UsersTableRealtime({
     }).format(date);
   };
 
+  const formatDateOnly = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(date);
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -462,9 +470,9 @@ export function UsersTableRealtime({
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Referral Source</TableHead>
                 <TableHead>User ID</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Updated</TableHead>
+                <TableHead className="text-right">Created</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -523,21 +531,21 @@ export function UsersTableRealtime({
                       {getStatusBadge(profile)}
                     </TableCell>
                     <TableCell>
+                      <span className="text-sm">
+                        {profile.referralSource || (
+                          <span className="text-muted-foreground">N/A</span>
+                        )}
+                      </span>
+                    </TableCell>
+                    <TableCell>
                       <code className="text-xs bg-muted px-2 py-1 rounded">
                         {profile.userId.slice(0, 8)}...
                       </code>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{formatDate(profile.createdAt)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{formatDate(profile.updatedAt)}</span>
-                      </div>
+                    <TableCell className="text-right">
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        {formatDateOnly(profile.createdAt)}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -546,21 +554,21 @@ export function UsersTableRealtime({
                           variant="outline"
                           size="sm"
                           onClick={() => onAssignCredits(profile)}
-                          className="flex items-center gap-2"
+                          className="p-2"
+                          aria-label="Assign Credits"
                         >
                           <CreditCard className="h-4 w-4" />
-                          Assign Credits
                         </Button>
                       )}
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDeleteClick(profile)}
-                          className="flex items-center gap-2 text-destructive hover:text-destructive"
+                          className="p-2 text-destructive hover:text-destructive"
                           disabled={isDeleting}
+                          aria-label="Delete"
                         >
                           <Trash2 className="h-4 w-4" />
-                          Delete
                         </Button>
                       </div>
                     </TableCell>

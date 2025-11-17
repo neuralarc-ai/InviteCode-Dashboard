@@ -76,7 +76,7 @@ export function SharedSidebar() {
             <SidebarMenuButton asChild>
               <Link href="/purchased-credits">
                 <ShoppingCart />
-                Purchased Credits
+                Paid Users
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

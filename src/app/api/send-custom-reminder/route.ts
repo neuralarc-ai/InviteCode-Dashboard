@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { createEmailAttachments, EMAIL_IMAGES } from '@/lib/email-utils';
 
 export async function POST(request: Request) {
   try {
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
       },
     });
 
+    // Get attachments for Reminder.png
+    const attachments = createEmailAttachments([EMAIL_IMAGES.reminder]);
+
     // Email content
     const emailContent = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
@@ -31,15 +35,16 @@ export async function POST(request: Request) {
       subject: customSubject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: ; #FEF9E6; padding: 30px; text-align: center;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="cid:reminder" alt="Reminder" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+          </div>
+          <div style="padding: 30px; text-align: center;">
             <h1 style="color: #000000; margin: 0; font-size: 28px;">Welcome Back!</h1>
           </div>
           
-          <div style="background-color: #CFEBD5; padding: 20px; border-radius: 8px; margin: 20px 0">
+          <div style="padding: 20px; margin: 20px 0; color: #000000;">
               ${customMessage.replace(/\n/g, '<br>')}
             </div>
-            
-           
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://he2.ai'}" 
@@ -56,6 +61,7 @@ export async function POST(request: Request) {
           </div>
         </div>
       `,
+      attachments: attachments.length > 0 ? attachments : undefined,
     };
 
     // Debug email configuration

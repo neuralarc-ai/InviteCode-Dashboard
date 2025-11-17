@@ -70,6 +70,12 @@ export default function UsageLogsPage() {
   const [sendingCustomEmail, setSendingCustomEmail] = useState(false);
   const [enhancingEmail, setEnhancingEmail] = useState(false);
   const [overallTotalCost, setOverallTotalCost] = useState<number>(0);
+  
+  // Quick reminder preview dialog state
+  const [quickReminderPreview, setQuickReminderPreview] = useState<{
+    isOpen: boolean;
+    user: { email: string; name: string; activityLevel: string; userId: string } | null;
+  }>({ isOpen: false, user: null });
 
   // Fetch overall total cost for both external and internal users
   useEffect(() => {
@@ -203,6 +209,110 @@ export default function UsageLogsPage() {
   const clearSearch = () => {
     setLocalSearchQuery('');
     handleSearch('');
+  };
+
+  // Generate quick reminder email preview HTML
+  const getQuickReminderPreview = (userName: string, activityLevel: string) => {
+    const baseMessage = "Looks like your activity on Helium has slowed down. Is everything okay? We're here to help if you need any assistance.";
+    const reminderImageUrl = '/images/Reminder.png';
+    
+    let subject = '';
+    let html = '';
+    
+    switch (activityLevel) {
+      case 'medium':
+        subject = "We miss you on Helium! ";
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #000000;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <img src="${reminderImageUrl}" alt="Reminder" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+            </div>
+            <h2 style="color: #000000;">We miss you on Helium! </h2>
+            <p style="color: #000000;">Hi ${userName},</p>
+            <p style="color: #000000;">${baseMessage}</p>
+            <p style="color: #000000;">We'd love to see you back and help you get the most out of our AI platform.</p>
+            <p style="color: #000000;">Best regards,<br>The Helium Team</p>
+            <div style="text-align: center; margin-top: 20px;">
+              <a href="http://he2.ai" style="background-color: #004116; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Go back to Using Helium OS
+              </a>
+            </div>
+          </div>
+        `;
+        break;
+      case 'low':
+        subject = "Let's get you back on track with Helium! 🚀";
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #000000;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <img src="${reminderImageUrl}" alt="Reminder" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+            </div>
+            <h2 style="color: #000000;">Let's get you back on track with Helium! 🚀</h2>
+            <p style="color: #000000;">Hi ${userName},</p>
+            <p style="color: #000000;">${baseMessage}</p>
+            <p style="color: #000000;">We understand that sometimes life gets busy, but we're here to support you whenever you're ready to continue your AI journey.</p>
+            <p style="color: #000000;">Best regards,<br>The Helium Team</p>
+          </div>
+        `;
+        break;
+      default:
+        subject = "We're here to help with Helium! 💙";
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #000000;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <img src="${reminderImageUrl}" alt="Reminder" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+            </div>
+            <h2 style="color: #000000;">We're here to help with Helium! 💙</h2>
+            <p style="color: #000000;">Hi ${userName},</p>
+            <p style="color: #000000;">${baseMessage}</p>
+            <p style="color: #000000;">Best regards,<br>The Helium Team</p>
+          </div>
+        `;
+    }
+    
+    return { subject, html };
+  };
+
+  // Generate custom email preview HTML
+  const getCustomEmailPreview = (userName: string, subject: string, message: string) => {
+    const reminderImageUrl = '/images/Reminder.png';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="${reminderImageUrl}" alt="Reminder" style="max-width: 100%; height: auto; display: block; margin: 0 auto;">
+        </div>
+        <div style="padding: 30px; text-align: center;">
+          <h1 style="color: #000000; margin: 0; font-size: 28px;">Welcome Back!</h1>
+        </div>
+        
+        <div style="padding: 20px; margin: 20px 0; color: #000000;">
+            ${message.replace(/\n/g, '<br>')}
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://he2.ai'}" 
+               style="background: #004116; 
+                      color: #FFFFFF; 
+                      padding: 15px 30px; 
+                      text-decoration: none; 
+                      border-radius: 25px; 
+                      display: inline-block; 
+                      font-weight: bold;">
+              Get Back to Using Helium OS
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+    return { subject, html };
+  };
+
+  // Handle opening quick reminder preview
+  const handleOpenQuickReminderPreview = (userEmail: string, userName: string, activityLevel: string, userId: string) => {
+    setQuickReminderPreview({
+      isOpen: true,
+      user: { email: userEmail, name: userName, activityLevel, userId }
+    });
   };
 
   // Handle sending preset activity reminder email
@@ -845,16 +955,12 @@ The AI Team`);
                                            <Button
                                              size="sm"
                                              variant="outline"
-                                             onClick={() => handleSendReminder(log.userEmail, log.userName, log.activityLevel, log.userId)}
+                                             onClick={() => handleOpenQuickReminderPreview(log.userEmail, log.userName, log.activityLevel, log.userId)}
                                              disabled={sendingEmails.has(log.userId)}
                                              className="text-xs h-6 px-2"
                                            >
-                                             {sendingEmails.has(log.userId) ? (
-                                               <RefreshCw className="h-3 w-3 animate-spin mr-1" />
-                                             ) : (
-                                               <Mail className="h-3 w-3 mr-1" />
-                                             )}
-                                             {sendingEmails.has(log.userId) ? 'Sending...' : 'Quick Reminder'}
+                                             <Mail className="h-3 w-3 mr-1" />
+                                             Quick Reminder
                                            </Button>
                                            <Button
                                              size="sm"
@@ -958,6 +1064,85 @@ The AI Team`);
         </main>
       </SidebarInset>
 
+      {/* Quick Reminder Preview Dialog */}
+      <Dialog open={quickReminderPreview.isOpen} onOpenChange={(open) => setQuickReminderPreview({ isOpen: open, user: quickReminderPreview.user })}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Quick Reminder Email Preview
+            </DialogTitle>
+            <DialogDescription>
+              Preview the reminder email for {quickReminderPreview.user?.name} ({quickReminderPreview.user?.email})
+            </DialogDescription>
+          </DialogHeader>
+          
+          {quickReminderPreview.user && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium mb-2">Email Details</h4>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p><strong>To:</strong> {quickReminderPreview.user.email}</p>
+                  <p><strong>Subject:</strong> {getQuickReminderPreview(quickReminderPreview.user.name, quickReminderPreview.user.activityLevel).subject}</p>
+                  <p><strong>Activity Level:</strong> {quickReminderPreview.user.activityLevel}</p>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium mb-2">Email Preview</h4>
+                <div className="border rounded-lg p-4 bg-muted/50 max-h-[400px] overflow-y-auto">
+                  <div 
+                    className="bg-white p-4 rounded border"
+                    dangerouslySetInnerHTML={{ 
+                      __html: getQuickReminderPreview(
+                        quickReminderPreview.user.name,
+                        quickReminderPreview.user.activityLevel
+                      ).html 
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setQuickReminderPreview({ isOpen: false, user: null })}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (quickReminderPreview.user) {
+                  setQuickReminderPreview({ isOpen: false, user: null });
+                  await handleSendReminder(
+                    quickReminderPreview.user.email,
+                    quickReminderPreview.user.name,
+                    quickReminderPreview.user.activityLevel,
+                    quickReminderPreview.user.userId
+                  );
+                }
+              }}
+              disabled={sendingEmails.has(quickReminderPreview.user?.userId || '')}
+              className="flex items-center gap-2"
+            >
+              {sendingEmails.has(quickReminderPreview.user?.userId || '') ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Send Email
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Custom Email Dialog */}
       <Dialog open={customEmailDialog.isOpen} onOpenChange={handleCloseCustomEmail}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -1018,14 +1203,23 @@ The AI Team`);
               </div>
             </div>
             
-            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-              <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                Email Preview
-              </h4>
-              <div className="text-xs text-blue-700 dark:text-blue-300">
-                <p><strong>To:</strong> {customEmailDialog.user?.email}</p>
-                <p><strong>Subject:</strong> {customSubject || 'No subject'}</p>
-                <p><strong>Activity Level:</strong> {customEmailDialog.user?.activityLevel}</p>
+            <div>
+              <h4 className="text-sm font-medium mb-2">Email Preview</h4>
+              <div className="border rounded-lg p-4 bg-muted/50 max-h-[400px] overflow-y-auto">
+                <div className="text-xs text-muted-foreground mb-2 space-y-1">
+                  <p><strong>To:</strong> {customEmailDialog.user?.email}</p>
+                  <p><strong>Subject:</strong> {customSubject || 'No subject'}</p>
+                </div>
+                <div 
+                  className="mt-4 bg-white p-4 rounded border"
+                  dangerouslySetInnerHTML={{ 
+                    __html: getCustomEmailPreview(
+                      customEmailDialog.user?.name || '',
+                      customSubject,
+                      customMessage
+                    ).html 
+                  }}
+                />
               </div>
             </div>
           </div>
