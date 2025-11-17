@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "4ae525c3-8f28-4430-8cb2-379f8dda4355"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.ankita02.nextn",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

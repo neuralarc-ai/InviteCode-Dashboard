@@ -106,13 +106,15 @@ export default function DashboardScreen(): ReactElement {
               onPress={toggleTheme}
               accessibilityRole="button"
               accessibilityLabel={colorScheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={({ pressed }) => [
                 styles.themeToggle,
+                { backgroundColor: colors.themeToggleBackground },
                 pressed ? styles.themeTogglePressed : undefined,
               ]}>
               <RemixIcon
                 name={colorScheme === 'dark' ? 'sun-line' : 'moon-line'}
-                size={22}
+                size={24}
                 color={colors.footerIcon}
               />
             </Pressable>
@@ -259,14 +261,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   themeToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 48,
+    minHeight: 48,
   },
   themeTogglePressed: {
     opacity: 0.7,
+    transform: [{ scale: 0.95 }],
   },
   logoutButton: {
     flexDirection: 'row',
