@@ -8,6 +8,7 @@ interface CreditsTemplateOptions {
   defaultGreeting?: string;
   defaultParagraphs?: string[];
   defaultSignoff?: string;
+  useCustomImage?: boolean; // If true, use credits-custom CID instead of credits-body
 }
 
 export function createCreditsHtmlTemplate(
@@ -17,7 +18,28 @@ export function createCreditsHtmlTemplate(
     logoBase64,
     creditsBodyBase64,
     useCid = true, // Default to CID for SMTP compatibility
+    useCustomImage = false,
+    textContent,
+    defaultGreeting = "Greetings from Helium,",
+    defaultParagraphs = [
+      "We're excited to inform you that credits have been added to your Helium account. These credits are now available for you to use across all platform features.",
+      "You can check your credit balance in your account dashboard at any time. If you have any questions about your credits or how to use them, please feel free to reach out to our support team.",
+      "Thank you for being a valued member of the Helium community.",
+    ],
+    defaultSignoff = "Thanks,<br>The Helium Team",
   } = options;
+
+  // Parse text content
+  const parsed = parseEmailText(textContent || "");
+  const greetingText = parsed.greeting || defaultGreeting;
+  const paragraphs =
+    parsed.paragraphs.length > 0 ? parsed.paragraphs : defaultParagraphs;
+  const signoffText = parsed.signoff || defaultSignoff;
+
+  // Distribute paragraphs - use first paragraph as main text, second as secondary, rest as closing
+  const mainText = paragraphs[0] || "";
+  const secondaryText = paragraphs[1] || "";
+  const closingText = paragraphs.slice(2).join(" ") || "";
 
   // Use CID references for SMTP (default), or base64 data URIs for Resend API
   const logoImg = useCid
@@ -26,10 +48,12 @@ export function createCreditsHtmlTemplate(
     ? `<img src="${logoBase64}" width="56" height="57" style="display:block;width:100%;height:auto;max-width:100%" alt="Helium Logo">`
     : "";
 
+  // Use custom image CID if useCustomImage is true, otherwise use default credits-body CID
+  const creditsCid = useCustomImage ? 'credits-custom' : 'credits-body';
   const creditsBodyImg = useCid
-    ? `<img src="cid:credits-body" width="600" height="auto" style="display:block;width:100%;height:auto;max-width:100%;border-radius:8px" alt="Credits Added">`
+    ? `<img src="cid:${creditsCid}" width="560" height="220" style="display:block;width:100%;height:auto;max-width:100%" alt="Credits Added">`
     : creditsBodyBase64
-    ? `<img src="${creditsBodyBase64}" width="600" height="auto" style="display:block;width:100%;height:auto;max-width:100%;border-radius:8px" alt="Credits Added">`
+    ? `<img src="${creditsBodyBase64}" width="560" height="220" style="display:block;width:100%;height:auto;max-width:100%" alt="Credits Added">`
     : "";
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -52,19 +76,19 @@ export function createCreditsHtmlTemplate(
 }
 </style>
 </head>
-<body style="width:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;background-color:#ffffff;margin:0;padding:0">
-<table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="background-color:#ffffff">
+<body style="width:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;background-color:#f0f1f5;margin:0;padding:0">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f0f1f5" style="background-color:#f0f1f5">
 <tbody>
 <tr>
-<td style="background-color:#ffffff;padding:20px 0">
+<td style="background-color:#f0f1f5">
 <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;background-color:#ffffff">
 <tbody>
 <tr>
-<td style="padding:0">
+<td style="padding:10px 0px 0px 0px">
 <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
 <tbody>
 <tr>
-<td style="padding:0">
+<td style="padding:10px 0 10px 0">
 <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="color:#000;font-style:normal;font-weight:normal;font-size:16px;line-height:1.4;letter-spacing:0;text-align:left;direction:ltr;border-collapse:collapse;font-family:Arial, Helvetica, sans-serif;white-space:normal;word-wrap:break-word;word-break:break-word">
 <tbody>
 <tr>
@@ -89,15 +113,15 @@ ${logoImg}
 </td>
 </tr>
 <tr>
-<td style="font-size:0;height:24px" height="24">&nbsp;</td>
+<td style="font-size:0;height:16px" height="16">&nbsp;</td>
 </tr>
 <tr>
-<td style="padding:0">
+<td style="padding:0px 20px">
 <table cellpadding="0" cellspacing="0" border="0" style="width:100%">
 <tbody>
 <tr>
-<td align="center" style="padding:0">
-<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px">
+<td align="center">
+<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px">
 <tbody>
 <tr>
 <td style="width:100%;padding:0">
@@ -113,10 +137,53 @@ ${creditsBodyImg}
 </td>
 </tr>
 <tr>
-<td style="font-size:0;height:24px" height="24">&nbsp;</td>
+<td style="font-size:0;height:8px" height="8">&nbsp;</td>
 </tr>
 <tr>
-<td style="padding:0">
+<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
+<span style="white-space:pre-wrap">${greetingText.replace(
+    "Greetings from Helium,",
+    'Greetings from <span style="font-weight:700">Helium</span>,'
+  )}</span><span style="white-space:pre-wrap"><br></span>
+</td>
+</tr>
+<tr>
+<td style="font-size:0;height:8px" height="8">&nbsp;</td>
+</tr>
+${mainText ? `<tr>
+<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
+<span style="white-space:pre-wrap">${mainText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span><span style="white-space:pre-wrap"><br></span>
+</td>
+</tr>
+<tr>
+<td style="font-size:0;height:8px" height="8">&nbsp;</td>
+</tr>` : ''}
+${secondaryText ? `<tr>
+<td dir="ltr" style="color:#333333;font-size:18.6667px;white-space:pre-wrap;line-height:1.84;text-align:left;padding:0px 20px">
+${secondaryText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}<br>
+</td>
+</tr>
+<tr>
+<td style="font-size:0;height:8px" height="8">&nbsp;</td>
+</tr>` : ''}
+${closingText ? `<tr>
+<td dir="ltr" style="color:#333333;font-size:18.6667px;white-space:pre-wrap;line-height:1.84;text-align:left;padding:0px 20px">
+${closingText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}<br>
+</td>
+</tr>
+<tr>
+<td style="font-size:0;height:8px" height="8">&nbsp;</td>
+</tr>` : ''}
+<tr>
+<td dir="ltr" style="color:#333333;font-size:18.6667px;white-space:pre-wrap;line-height:1.84;text-align:left;padding:0px 20px">
+${signoffText}<br>
+</td>
+</tr>
+<tr>
+<td style="font-size:0;height:8px" height="8">&nbsp;</td>
+</tr>
+<tr>
+<td style="padding:0px 20px">
 <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
 <tbody>
 <tr>

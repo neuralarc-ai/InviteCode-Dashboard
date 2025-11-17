@@ -12,8 +12,10 @@ import { EmailCustomizationDialog, type EmailData } from '@/components/dashboard
 import { CreditAssignmentDialog } from '@/components/dashboard/credit-assignment-dialog';
 import { CreateUserDialog } from '@/components/dashboard/create-user-dialog';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
-import { Mail, Loader2, Users, Building2, UserPlus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useState, useEffect } from 'react';
+import { Mail, Loader2, Users, Building2, UserPlus, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/types';
 
@@ -25,7 +27,16 @@ export default function UsersPage() {
   const [creditDialogOpen, setCreditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [bulkCreditsInput, setBulkCreditsInput] = useState('');
+  const [isAssigningCredits, setIsAssigningCredits] = useState(false);
   const { toast } = useToast();
+
+  // Clear bulk credits input when selection is cleared or user type filter changes
+  useEffect(() => {
+    if (selectedUserIds.size === 0) {
+      setBulkCreditsInput('');
+    }
+  }, [selectedUserIds.size, userTypeFilter]);
 
   const handleSendEmail = async (emailData: EmailData, selectedOnly: boolean = false) => {
     setIsSending(true);
@@ -157,6 +168,105 @@ export default function UsersPage() {
     // when a new user_profiles entry is created
   };
 
+  const handleBulkAssignCredits = async () => {
+    // Validation
+    if (selectedUserIds.size === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select at least one user to assign credits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const creditsValue = parseFloat(bulkCreditsInput);
+    if (isNaN(creditsValue) || creditsValue <= 0) {
+      toast({
+        title: "Invalid Input",
+        description: "Please enter a valid positive number of credits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Conversion rate: $1 = 100 credits
+    const CREDITS_PER_DOLLAR = 100;
+    const dollarsToAdd = creditsValue / CREDITS_PER_DOLLAR;
+
+    setIsAssigningCredits(true);
+
+    try {
+      const userIds = Array.from(selectedUserIds);
+      const results = await Promise.allSettled(
+        userIds.map(async (userId) => {
+          const response = await fetch('/api/credit-balance', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId,
+              creditsToAdd: dollarsToAdd,
+              notes: `Bulk assignment: ${creditsValue} credits`,
+              sendCustomEmail: creditsValue !== 1000, // Auto-send custom email for non-1000 credits
+              creditsAmount: creditsValue,
+            }),
+          });
+
+          const result = await response.json();
+          if (!result.success) {
+            throw new Error(result.message || 'Failed to assign credits');
+          }
+          return { userId, success: true };
+        })
+      );
+
+      const successful = results.filter((r) => r.status === 'fulfilled').length;
+      const failed = results.filter((r) => r.status === 'rejected').length;
+
+      if (failed === 0) {
+        toast({
+          title: "Success",
+          description: `Successfully assigned ${creditsValue} credits to ${successful} user${successful !== 1 ? 's' : ''}!`,
+        });
+        // Clear selection and input after successful assignment
+        setSelectedUserIds(new Set());
+        setBulkCreditsInput('');
+      } else if (successful > 0) {
+        toast({
+          title: "Partial Success",
+          description: `Assigned credits to ${successful} user${successful !== 1 ? 's' : ''}, but ${failed} assignment${failed !== 1 ? 's' : ''} failed.`,
+          variant: "destructive",
+        });
+        // Clear selection for successful assignments
+        setSelectedUserIds(new Set());
+        setBulkCreditsInput('');
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to assign credits to all ${userIds.length} selected user${userIds.length !== 1 ? 's' : ''}. Please try again.`,
+          variant: "destructive",
+        });
+      }
+
+      // Log errors for debugging
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(`Failed to assign credits to user ${userIds[index]}:`, result.reason);
+        }
+      });
+    } catch (error) {
+      console.error('Error in bulk credit assignment:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while assigning credits",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAssigningCredits(false);
+    }
+  };
+
   return (
     <>
       <SidebarProvider>
@@ -214,6 +324,55 @@ export default function UsersPage() {
                 Internal Users
               </Button>
             </div>
+
+            {/* Bulk Credit Assignment Controls */}
+            {selectedUserIds.size > 0 && (
+              <div className="flex items-end gap-3 p-4 bg-muted/50 rounded-lg border">
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="bulk-credits" className="text-sm font-medium">
+                    Assign Credits to {selectedUserIds.size} Selected User{selectedUserIds.size !== 1 ? 's' : ''}
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="bulk-credits"
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="Enter number of credits"
+                      value={bulkCreditsInput}
+                      onChange={(e) => setBulkCreditsInput(e.target.value)}
+                      disabled={isAssigningCredits}
+                      className="max-w-xs"
+                    />
+                    {bulkCreditsInput && !isNaN(parseFloat(bulkCreditsInput)) && parseFloat(bulkCreditsInput) > 0 && (
+                      <span className="text-sm text-muted-foreground">
+                        = ${(parseFloat(bulkCreditsInput) / 100).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Enter the number of credits to add to all selected users' accounts (100 credits = $1.00)
+                  </p>
+                </div>
+                <Button
+                  onClick={handleBulkAssignCredits}
+                  disabled={isAssigningCredits || !bulkCreditsInput || parseFloat(bulkCreditsInput) <= 0}
+                  className="flex items-center gap-2"
+                >
+                  {isAssigningCredits ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Assigning...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4" />
+                      Assign Credits
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
 
             <UsersTableRealtime 
               userTypeFilter={userTypeFilter}

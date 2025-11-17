@@ -21,9 +21,23 @@ The Helium Team`;
 // Default email subject for credits added
 const defaultCreditsAddedSubject = 'Credits Added to Your Account';
 
+// Custom credits email content
+const customCreditsAddedContent = `Credits Added to Your Account
+
+Greetings from Helium,
+
+We're excited to inform you that credits have been added to your Helium account. These credits are now available for you to use across all platform features.
+
+You can check your credit balance in your account dashboard at any time. If you have any questions about your credits or how to use them, please feel free to reach out to our support team.
+
+Thank you for being a valued member of the Helium community.
+
+Thanks,
+The Helium Team`;
+
 export async function POST(request: NextRequest) {
   try {
-    const { userId, creditsToAdd, notes } = await request.json();
+    const { userId, creditsToAdd, notes, sendCustomEmail, creditsAmount, customEmailText } = await request.json();
 
     // Validate required fields
     if (!userId || creditsToAdd === undefined) {
@@ -190,28 +204,41 @@ export async function POST(request: NextRequest) {
             },
           });
 
+          // Determine if we should use custom email (when credits != 1000 and sendCustomEmail is true)
+          const creditsValue = creditsAmount || (creditsToAdd * 100); // Convert dollars to credits if needed
+          const useCustomEmail = sendCustomEmail && creditsValue !== 1000;
+
           // Get images as base64 for email (for template generation, but we'll use CID for sending)
           const logoBase64 = getImageBase64('email-logo.png');
-          const creditsBodyBase64 = getImageBase64('1Kcredits.png');
+          const creditsBodyBase64 = useCustomEmail 
+            ? getImageBase64('Credits.png')
+            : getImageBase64('1Kcredits.png');
+
+          // Choose email content based on whether it's custom or default
+          // Use customEmailText if provided, otherwise fall back to default custom content
+          const emailTextContent = useCustomEmail 
+            ? (customEmailText || customCreditsAddedContent)
+            : defaultCreditsAddedContent;
 
           // Create credits email template using the same default content as email customization dialog
           // Use CID references for SMTP attachments
           const emailContent = createCreditsHtmlTemplate({
             logoBase64: logoBase64, // Used for template generation, but CID will be used in final HTML
             creditsBodyBase64: creditsBodyBase64, // Used for template generation, but CID will be used in final HTML
-            textContent: defaultCreditsAddedContent,
+            textContent: emailTextContent,
             useCid: true, // Use CID references for SMTP
+            useCustomImage: useCustomEmail, // Use custom image CID when custom email is enabled
           });
 
-          // Get attachments for CID references
+          // Get attachments for CID references - use custom image if needed
           const attachments = createEmailAttachments([
             EMAIL_IMAGES.logo,
-            EMAIL_IMAGES.creditsBody,
+            useCustomEmail ? EMAIL_IMAGES.creditsCustom : EMAIL_IMAGES.creditsBody,
           ]);
 
           // Use the default subject from email customization dialog
           const emailSubject = defaultCreditsAddedSubject;
-          const textContent = defaultCreditsAddedContent;
+          const textContent = emailTextContent;
 
           await transporter.sendMail({
             from: `"${process.env.SMTP_FROM}" <${process.env.SENDER_EMAIL}>`,
