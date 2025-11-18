@@ -208,7 +208,7 @@ export default function UsersPage() {
               userId,
               creditsToAdd: dollarsToAdd,
               notes: `Bulk assignment: ${creditsValue} credits`,
-              sendCustomEmail: creditsValue !== 1000, // Auto-send custom email for non-1000 credits
+              sendCustomEmail: true, // Always send email (use custom template for non-1000 credits)
               creditsAmount: creditsValue,
             }),
           });
@@ -227,15 +227,16 @@ export default function UsersPage() {
       if (failed === 0) {
         toast({
           title: "Success",
-          description: `Successfully assigned ${creditsValue} credits to ${successful} user${successful !== 1 ? 's' : ''}!`,
+          description: `Successfully assigned ${creditsValue} credits to ${successful} user${successful !== 1 ? 's' : ''}! Credits email sent and status updated.`,
         });
         // Clear selection and input after successful assignment
         setSelectedUserIds(new Set());
         setBulkCreditsInput('');
+        // Status will update automatically via real-time subscription
       } else if (successful > 0) {
         toast({
           title: "Partial Success",
-          description: `Assigned credits to ${successful} user${successful !== 1 ? 's' : ''}, but ${failed} assignment${failed !== 1 ? 's' : ''} failed.`,
+          description: `Assigned credits to ${successful} user${successful !== 1 ? 's' : ''} (emails sent), but ${failed} assignment${failed !== 1 ? 's' : ''} failed.`,
           variant: "destructive",
         });
         // Clear selection for successful assignments
