@@ -46,17 +46,51 @@ async def get_user_profiles() -> List[UserProfileResponse]:
         # Get user IDs
         user_ids = [profile["user_id"] for profile in profiles_response.data]
         
-        # Get emails from auth.users
-        auth_users_response = supabase.auth.admin.list_users()
-        # Handle both response object with .users attribute and direct list
-        users_list = auth_users_response.users if hasattr(auth_users_response, 'users') else auth_users_response
+        # Get emails from auth.users with pagination (like web app)
+        all_auth_users = []
+        page = 1
+        per_page = 1000  # Supabase default is 1000
+        
+        while True:
+            logger.info(f"Fetching auth users page {page}...")
+            try:
+                auth_users_response = supabase.auth.admin.list_users(page=page, per_page=per_page)
+            except Exception as e:
+                logger.error(f"Error fetching auth users page {page}: {e}")
+                # Fallback: try without pagination parameters
+                if page == 1:
+                    auth_users_response = supabase.auth.admin.list_users()
+                else:
+                    break
+            
+            # Handle both response object with .users attribute and direct list
+            users_list = auth_users_response.users if hasattr(auth_users_response, 'users') else auth_users_response
+            
+            if not users_list or len(users_list) == 0:
+                logger.info(f"No more users found on page {page}")
+                break
+            
+            all_auth_users.extend(users_list)
+            logger.info(f"Fetched {len(users_list)} users on page {page}, total so far: {len(all_auth_users)}")
+            
+            # If we got fewer users than per_page, we've reached the end
+            if len(users_list) < per_page:
+                logger.info("Reached end of users list")
+                break
+            
+            page += 1
+        
+        logger.info(f"Total auth users found: {len(all_auth_users)}")
+        
         # Handle both user objects and dictionaries
         user_id_to_email = {}
-        for user in users_list:
+        for user in all_auth_users:
             user_id = user.id if hasattr(user, 'id') else user.get('id')
             user_email = user.email if hasattr(user, 'email') else user.get('email')
             if user_id and user_email:
                 user_id_to_email[user_id] = user_email
+        
+        logger.info(f"Mapped {len(user_id_to_email)} emails from {len(all_auth_users)} auth users")
         
         # Transform profiles with emails
         profiles = []

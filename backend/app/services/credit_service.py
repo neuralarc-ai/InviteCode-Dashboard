@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def transform_credit_balance(row: dict) -> CreditBalanceResponse:
+def transform_credit_balance(row: dict, user_email: Optional[str] = None, user_name: Optional[str] = None) -> CreditBalanceResponse:
     """Transform database row to CreditBalanceResponse."""
     return CreditBalanceResponse(
         user_id=row["user_id"],
@@ -19,6 +19,8 @@ def transform_credit_balance(row: dict) -> CreditBalanceResponse:
         total_used=float(row["total_used"]),
         last_updated=datetime.fromisoformat(row["last_updated"]),
         metadata=row.get("metadata", {}),
+        user_email=user_email,
+        user_name=user_name,
     )
 
 
@@ -33,9 +35,84 @@ async def get_credit_balances(user_id: Optional[str] = None) -> List[CreditBalan
         
         response = query.execute()
         
-        if response.data:
-            return [transform_credit_balance(row) for row in response.data]
-        return []
+        if not response.data:
+            return []
+        
+        # Get user IDs to fetch emails and names
+        user_ids = [row["user_id"] for row in response.data]
+        user_id_to_email: Dict[str, str] = {}
+        user_id_to_name: Dict[str, str] = {}
+        
+        # Try to fetch user emails from auth.users
+        try:
+            # Use admin client to list users with pagination
+            all_auth_users = []
+            page = 1
+            per_page = 1000
+            
+            while True:
+                auth_response = supabase.auth.admin.list_users(page=page, per_page=per_page)
+                # Handle both response object with .users attribute and direct list
+                users_list = auth_response.users if hasattr(auth_response, 'users') else auth_response
+                
+                if not users_list or len(users_list) == 0:
+                    break
+                
+                all_auth_users.extend(users_list)
+                
+                if len(users_list) < per_page:
+                    break
+                
+                page += 1
+            
+            # Process users
+            for user in all_auth_users:
+                # Handle both user objects and dictionaries
+                user_id = user.id if hasattr(user, 'id') else user.get('id')
+                if user_id and user_id in user_ids:
+                    # Get email
+                    email = user.email if hasattr(user, 'email') else user.get('email')
+                    if email:
+                        user_id_to_email[user_id] = email
+                    
+                    # Try to get name from user_metadata
+                    user_metadata = user.user_metadata if hasattr(user, 'user_metadata') else user.get('user_metadata', {})
+                    if user_metadata:
+                        name = (
+                            user_metadata.get("full_name") or
+                            user_metadata.get("name") or
+                            user_metadata.get("preferred_name") or
+                            user_metadata.get("display_name")
+                        )
+                        if name:
+                            user_id_to_name[user_id] = name
+        except Exception as auth_error:
+            logger.warning(f"Failed to fetch user emails from auth: {auth_error}")
+        
+        # Try to fetch user names from user_profiles table
+        try:
+            profiles_response = supabase.table("user_profiles").select("user_id, full_name, preferred_name").in_("user_id", user_ids).execute()
+            if profiles_response.data:
+                for profile in profiles_response.data:
+                    user_id = profile["user_id"]
+                    name = profile.get("preferred_name") or profile.get("full_name")
+                    if name:
+                        user_id_to_name[user_id] = name
+        except Exception as profile_error:
+            logger.warning(f"Failed to fetch user profiles: {profile_error}")
+        
+        # Transform balances with user data
+        balances = []
+        for row in response.data:
+            user_id = row["user_id"]
+            balance = transform_credit_balance(
+                row,
+                user_email=user_id_to_email.get(user_id),
+                user_name=user_id_to_name.get(user_id),
+            )
+            balances.append(balance)
+        
+        return balances
     except Exception as e:
         logger.error(f"Error fetching credit balances: {e}")
         raise
@@ -74,7 +151,30 @@ async def assign_credits(
                 "metadata": updated_metadata,
             }).eq("user_id", user_id).select().single().execute()
             
-            return transform_credit_balance(update_response.data)
+            # Fetch user email and name for response
+            user_email = None
+            user_name = None
+            try:
+                auth_user = supabase.auth.admin.get_user_by_id(user_id)
+                if hasattr(auth_user, 'user'):
+                    user = auth_user.user
+                else:
+                    user = auth_user
+                
+                if user:
+                    user_email = user.email if hasattr(user, 'email') else user.get('email')
+                    user_metadata = user.user_metadata if hasattr(user, 'user_metadata') else user.get('user_metadata', {})
+                    if user_metadata:
+                        user_name = (
+                            user_metadata.get("full_name") or
+                            user_metadata.get("name") or
+                            user_metadata.get("preferred_name") or
+                            user_metadata.get("display_name")
+                        )
+            except Exception:
+                pass
+            
+            return transform_credit_balance(update_response.data, user_email=user_email, user_name=user_name)
         else:
             # Create new balance record
             insert_data = {
@@ -94,7 +194,30 @@ async def assign_credits(
             
             insert_response = supabase.table("credit_balance").insert(insert_data).select().single().execute()
             
-            return transform_credit_balance(insert_response.data)
+            # Fetch user email and name for response
+            user_email = None
+            user_name = None
+            try:
+                auth_user = supabase.auth.admin.get_user_by_id(user_id)
+                if hasattr(auth_user, 'user'):
+                    user = auth_user.user
+                else:
+                    user = auth_user
+                
+                if user:
+                    user_email = user.email if hasattr(user, 'email') else user.get('email')
+                    user_metadata = user.user_metadata if hasattr(user, 'user_metadata') else user.get('user_metadata', {})
+                    if user_metadata:
+                        user_name = (
+                            user_metadata.get("full_name") or
+                            user_metadata.get("name") or
+                            user_metadata.get("preferred_name") or
+                            user_metadata.get("display_name")
+                        )
+            except Exception:
+                pass
+            
+            return transform_credit_balance(insert_response.data, user_email=user_email, user_name=user_name)
     except Exception as e:
         logger.error(f"Error assigning credits: {e}")
         raise

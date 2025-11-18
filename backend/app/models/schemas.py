@@ -155,6 +155,8 @@ class CreditBalanceResponse(BaseModel):
     total_used: float
     last_updated: datetime
     metadata: Dict[str, Any]
+    user_email: Optional[str] = None
+    user_name: Optional[str] = None
 
 
 class AssignCreditsRequest(BaseModel):

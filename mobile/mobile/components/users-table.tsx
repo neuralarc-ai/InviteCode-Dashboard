@@ -61,16 +61,47 @@ export function UsersTable(): ReactElement {
       const users = await usersApi.getAll();
       
       // Transform API response to match component's expected format
-      const transformedUsers: UserProfile[] = users.map((user) => ({
-        id: user.id,
-        userId: user.user_id,
-        fullName: user.full_name,
-        preferredName: user.preferred_name,
-        email: user.email || '',
-        createdAt: user.created_at,
-        updatedAt: user.updated_at,
-        metadata: user.metadata || null,
-      }));
+      // Match web app exactly: handle null/undefined emails properly
+      const transformedUsers: UserProfile[] = users.map((user) => {
+        // Ensure email is a string - handle null/undefined
+        let email: string;
+        if (user.email && typeof user.email === 'string' && user.email.trim() !== '') {
+          email = user.email;
+        } else {
+          email = 'Email not available';
+        }
+        
+        return {
+          id: user.id,
+          userId: user.user_id,
+          fullName: user.full_name,
+          preferredName: user.preferred_name,
+          email: email,
+          createdAt: user.created_at,
+          updatedAt: user.updated_at,
+          metadata: user.metadata || null,
+        };
+      });
+
+      // Debug logging to verify data and filtering
+      if (__DEV__) {
+        const internalUsers = transformedUsers.filter(u => {
+          const email = u.email?.toLowerCase() || '';
+          return email.endsWith('@he2.ai') || email.endsWith('@neuralarc.ai');
+        });
+        const externalUsers = transformedUsers.filter(u => {
+          const email = u.email?.toLowerCase() || '';
+          return !email.endsWith('@he2.ai') && !email.endsWith('@neuralarc.ai');
+        });
+        
+        console.log('[UsersTable] Loaded users:', {
+          total: transformedUsers.length,
+          internal: internalUsers.length,
+          external: externalUsers.length,
+          internalEmails: internalUsers.slice(0, 5).map(u => u.email),
+          externalEmails: externalUsers.slice(0, 5).map(u => u.email),
+        });
+      }
 
       setUserProfiles(transformedUsers);
     } catch (err) {
@@ -86,16 +117,20 @@ export function UsersTable(): ReactElement {
     fetchUserProfiles();
   }, [fetchUserProfiles]);
 
-  // Reset page when filter or search changes
+  // Reset page and clear selections when filter or search changes
   useEffect(() => {
     setPage(0);
+    setSelectedUserIds(new Set());
   }, [userTypeFilter, searchQuery]);
 
-  const getUserType = useCallback((email: string | undefined): 'internal' | 'external' => {
-    if (!email || typeof email !== 'string') {
-      return 'external';
+  const getUserType = useCallback((email: string | undefined | null): 'internal' | 'external' => {
+    // Match web app logic EXACTLY - no extra checks
+    // Handle null, undefined, or empty string
+    if (!email || typeof email !== 'string' || email.trim() === '') {
+      return 'external'; // Default to external if email is missing
     }
-    const emailLower = email.toLowerCase();
+    const emailLower = email.toLowerCase().trim();
+    // Check for internal email domains - EXACT match with web app
     if (emailLower.endsWith('@he2.ai') || emailLower.endsWith('@neuralarc.ai')) {
       return 'internal';
     }
@@ -103,12 +138,17 @@ export function UsersTable(): ReactElement {
   }, []);
 
   const filteredProfiles = useMemo(() => {
-    return userProfiles.filter((profile) => {
+    // Filter by user type (internal/external) - EXACT match with web app
+    const filtered = userProfiles.filter((profile) => {
+      // Get user type based on email domain - EXACTLY like web app
       const profileUserType = getUserType(profile.email);
+      
+      // CRITICAL: Only include if user type matches the current filter
       if (profileUserType !== userTypeFilter) {
         return false;
       }
 
+      // Filter by text search (only if filter is provided)
       if (searchQuery.trim()) {
         const matchesText = Object.values(profile).some(
           (value) =>
@@ -123,6 +163,36 @@ export function UsersTable(): ReactElement {
       }
       return true;
     });
+
+    // Debug logging to verify filtering is working correctly
+    if (__DEV__) {
+      const allInternal = userProfiles.filter(p => getUserType(p.email) === 'internal');
+      const allExternal = userProfiles.filter(p => getUserType(p.email) === 'external');
+      
+      // Verify filtered results match the filter
+      const filteredInternal = filtered.filter(p => getUserType(p.email) === 'internal');
+      const filteredExternal = filtered.filter(p => getUserType(p.email) === 'external');
+      
+      console.log('[UsersTable] Filtering Results:', {
+        totalUsers: userProfiles.length,
+        allInternal: allInternal.length,
+        allExternal: allExternal.length,
+        currentFilter: userTypeFilter,
+        filteredCount: filtered.length,
+        filteredInternal: filteredInternal.length,
+        filteredExternal: filteredExternal.length,
+        verification: userTypeFilter === 'internal' 
+          ? `Should show ${allInternal.length} internal, showing ${filtered.length}` 
+          : `Should show ${allExternal.length} external, showing ${filtered.length}`,
+        sampleFiltered: filtered.slice(0, 3).map(p => ({
+          email: p.email,
+          type: getUserType(p.email),
+          matchesFilter: getUserType(p.email) === userTypeFilter
+        }))
+      });
+    }
+
+    return filtered;
   }, [userProfiles, userTypeFilter, searchQuery, getUserType]);
 
   // Paginate profiles
@@ -437,6 +507,7 @@ export function UsersTable(): ReactElement {
             </View>
           ) : (
             <FlatList
+              key={`users-list-${userTypeFilter}-${page}`}
               data={paginatedProfiles}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}

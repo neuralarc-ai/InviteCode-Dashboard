@@ -17,6 +17,7 @@ import { creditsApi } from '@/services/api-client';
 import { CreditAssignmentDialog } from '@/components/credit-assignment-dialog';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { supabase } from '@/lib/supabase';
 
 type CreditBalance = {
   readonly userId: string;
@@ -41,11 +42,14 @@ export function CreditBalanceTable(): ReactElement {
   const [selectedBalance, setSelectedBalance] = useState<{ userId: string; userName: string; userEmail: string } | null>(null);
   const rowsPerPage = 10;
 
-  const fetchCreditBalances = useCallback(async () => {
+  const fetchCreditBalances = useCallback(async (silent: boolean = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) {
+        setIsLoading(true);
+      }
       setError(null);
 
+      console.log('Fetching credit balances via API...');
       const balances = await creditsApi.getBalances();
 
       const transformedBalances: CreditBalance[] = balances.map((balance) => ({
@@ -58,17 +62,48 @@ export function CreditBalanceTable(): ReactElement {
         userName: balance.user_name || `User ${balance.user_id.slice(0, 8)}`,
       }));
 
+      console.log(`Fetched ${transformedBalances.length} credit balances`);
       setCreditBalances(transformedBalances);
     } catch (err) {
       console.error('Error fetching credit balances:', err);
       setError(err instanceof Error ? err.message : 'Failed to load credit balances');
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
+  // Initial fetch
   useEffect(() => {
-    fetchCreditBalances();
+    fetchCreditBalances(false);
+  }, [fetchCreditBalances]);
+
+  // Set up real-time subscription for credit_balance table changes
+  useEffect(() => {
+    console.log('Setting up real-time subscription for credit_balance table...');
+    
+    const subscription = supabase
+      .channel('credit_balance_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events: INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'credit_balance',
+        },
+        (payload) => {
+          console.log('Real-time credit balance update:', payload);
+          // Refetch on any change (silent mode to avoid loading spinner)
+          fetchCreditBalances(true);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up real-time subscription...');
+      subscription.unsubscribe();
+    };
   }, [fetchCreditBalances]);
 
   // Format currency
@@ -137,7 +172,7 @@ export function CreditBalanceTable(): ReactElement {
   }, []);
 
   const handleCreditAssignmentSuccess = useCallback(() => {
-    fetchCreditBalances();
+    fetchCreditBalances(false);
     setCreditDialogOpen(false);
   }, [fetchCreditBalances]);
 
@@ -194,7 +229,7 @@ export function CreditBalanceTable(): ReactElement {
             <ThemedText type="default" style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>
               {error}
             </ThemedText>
-            <Pressable onPress={fetchCreditBalances} style={[styles.retryButton, { backgroundColor: colors.buttonPrimary }]}>
+            <Pressable onPress={() => fetchCreditBalances(false)} style={[styles.retryButton, { backgroundColor: colors.buttonPrimary }]}>
               <ThemedText type="defaultSemiBold" style={styles.retryButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                 Retry
               </ThemedText>
@@ -237,7 +272,7 @@ export function CreditBalanceTable(): ReactElement {
             />
           </View>
           <Pressable
-            onPress={fetchCreditBalances}
+            onPress={() => fetchCreditBalances(false)}
               disabled={isLoading}
               style={({ pressed }) => [styles.refreshButton, { backgroundColor: colors.cardBackground }, pressed && styles.refreshButtonPressed, isLoading && styles.refreshButtonDisabled]}>
               <RemixIcon name="refresh-line" size={20} color={isLoading ? colors.textSecondary : colors.textPrimary} />
