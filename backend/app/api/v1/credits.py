@@ -51,7 +51,7 @@ async def assign_credits(
         try:
             await email_service.send_credits_email(request.user_id, request.credits_to_add)
         except Exception as email_error:
-            logger.warning(f"Failed to send credits email: {email_error}")
+            logger.warning(f"Failed to send credits email for user {request.user_id}: {email_error}", exc_info=True)
             # Don't fail the entire operation if email fails
         
         return SuccessResponse(
@@ -65,7 +65,7 @@ async def assign_credits(
             },
         )
     except Exception as e:
-        logger.error(f"Error assigning credits: {e}")
+        logger.error(f"Error assigning credits: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to assign credits",

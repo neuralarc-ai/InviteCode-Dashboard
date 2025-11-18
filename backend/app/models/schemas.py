@@ -75,7 +75,7 @@ class UserProfileResponse(BaseModel):
 class CreateUserRequest(BaseModel):
     """Request to create user."""
     email: EmailStr
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=6)
     full_name: str
     preferred_name: Optional[str] = None
     work_description: Optional[str] = None

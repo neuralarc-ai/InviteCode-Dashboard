@@ -631,4 +631,3 @@ async def send_email(
         error_msg = f"Failed to send email: {str(e)}"
         logger.error(f"Failed to send email to {to_email}: {error_msg}")
         raise Exception(error_msg) from e
-

@@ -163,12 +163,22 @@ async def send_credits_email(user_id: str, credits_amount: float) -> bool:
     try:
         supabase = get_supabase_admin()
         
-        # Get user email
+        # Get user email - handle different response structures
         auth_user_response = supabase.auth.admin.get_user_by_id(user_id)
-        if not auth_user_response.user or not auth_user_response.user.email:
-            raise ValueError(f"User {user_id} not found or has no email")
         
-        email = auth_user_response.user.email
+        # Handle both response object with .user attribute and direct user object
+        if hasattr(auth_user_response, 'user'):
+            user = auth_user_response.user
+        else:
+            user = auth_user_response
+        
+        if not user:
+            raise ValueError(f"User {user_id} not found")
+        
+        # Get email - handle both object attributes and dictionary access
+        email = user.email if hasattr(user, 'email') else user.get('email')
+        if not email:
+            raise ValueError(f"User {user_id} has no email")
         
         # Default credits email content
         subject = "Credits Added to Your Account"
