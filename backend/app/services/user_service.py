@@ -27,8 +27,8 @@ def transform_user_profile(row: dict, email: Optional[str] = None) -> UserProfil
         consent_date=datetime.fromisoformat(row["consent_date"]) if row.get("consent_date") else None,
         email=email or "Email not available",
         metadata=row.get("metadata"),
-        plan_type=row.get("plan_type", "seed"),
-        account_type=row.get("account_type", "individual"),
+        plan_type=row.get("plan_type") or "seed",
+        account_type=row.get("account_type") or "individual",
     )
 
 
@@ -48,7 +48,15 @@ async def get_user_profiles() -> List[UserProfileResponse]:
         
         # Get emails from auth.users
         auth_users_response = supabase.auth.admin.list_users()
-        user_id_to_email = {user.id: user.email for user in auth_users_response.users if user.email}
+        # Handle both response object with .users attribute and direct list
+        users_list = auth_users_response.users if hasattr(auth_users_response, 'users') else auth_users_response
+        # Handle both user objects and dictionaries
+        user_id_to_email = {}
+        for user in users_list:
+            user_id = user.id if hasattr(user, 'id') else user.get('id')
+            user_email = user.email if hasattr(user, 'email') else user.get('email')
+            if user_id and user_email:
+                user_id_to_email[user_id] = user_email
         
         # Transform profiles with emails
         profiles = []
@@ -144,14 +152,22 @@ async def get_user_emails(user_ids: List[str]) -> List[Dict[str, str]]:
     try:
         supabase = get_supabase_admin()
         auth_users_response = supabase.auth.admin.list_users()
+        # Handle both response object with .users attribute and direct list
+        users_list = auth_users_response.users if hasattr(auth_users_response, 'users') else auth_users_response
         
         result = []
-        for user in auth_users_response.users:
-            if user.id in user_ids and user.email:
+        for user in users_list:
+            # Handle both user objects and dictionaries
+            user_id = user.id if hasattr(user, 'id') else user.get('id')
+            user_email = user.email if hasattr(user, 'email') else user.get('email')
+            user_metadata = user.user_metadata if hasattr(user, 'user_metadata') else user.get('user_metadata', {})
+            
+            if user_id and user_id in user_ids and user_email:
+                full_name = user_metadata.get("full_name", "") if user_metadata else ""
                 result.append({
-                    "id": user.id,
-                    "email": user.email,
-                    "full_name": user.user_metadata.get("full_name", "") if user.user_metadata else "",
+                    "id": user_id,
+                    "email": user_email,
+                    "full_name": full_name,
                 })
         
         return result

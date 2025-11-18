@@ -22,10 +22,12 @@ type AuthContextValue = {
   readonly isLoading: boolean;
   readonly signIn: (password: string, options?: AuthSignInOptions) => Promise<AuthResult>;
   readonly signOut: (options?: AuthSignInOptions) => Promise<void>;
+  readonly getAuthToken: () => Promise<string | null>;
 };
 
 const AUTH_FLAG_KEY = 'invitecode_admin_is_authenticated';
 const AUTH_LOGIN_TIMESTAMP_KEY = 'invitecode_admin_login_timestamp';
+const ADMIN_PASSWORD_KEY = 'admin_password';
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -52,7 +54,6 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): JS
 
         if (isStorageAvailable) {
           const storedFlag = await SecureStore.getItemAsync(AUTH_FLAG_KEY);
-
           if (storedFlag === 'true' && isMounted) {
             setIsAuthenticated(true);
           }
@@ -78,16 +79,6 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): JS
     };
   }, []);
 
-  useEffect(() => {
-    if (!adminPassword) {
-      console.error('Missing EXPO_PUBLIC_ADMIN_PASSWORD environment variable.', {
-        event: 'auth-configuration-missing',
-        platform: Platform.OS,
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }, [adminPassword]);
-
   const signIn = useCallback(
     async (password: string, options?: AuthSignInOptions): Promise<AuthResult> => {
       const correlationId = options?.correlationId ?? `auth-sign-in-${Date.now()}`;
@@ -100,19 +91,19 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): JS
 
       const trimmedPassword = password.trim();
 
-      if (!adminPassword) {
-        console.error('Authentication failed due to missing configuration.', context);
-        return {
-          success: false,
-          errorMessage: 'Authentication is temporarily unavailable. Please contact support.',
-        };
-      }
-
       if (trimmedPassword.length === 0) {
         console.warn('Authentication attempt blocked: empty password provided.', context);
         return {
           success: false,
           errorMessage: 'Password is required.',
+        };
+      }
+
+      if (!adminPassword) {
+        console.error('Authentication failed due to missing configuration.', context);
+        return {
+          success: false,
+          errorMessage: 'Authentication is temporarily unavailable. Please contact support.',
         };
       }
 
@@ -130,6 +121,8 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): JS
         if (isStorageAvailable) {
           await SecureStore.setItemAsync(AUTH_FLAG_KEY, 'true');
           await SecureStore.setItemAsync(AUTH_LOGIN_TIMESTAMP_KEY, new Date().toISOString());
+          // Store password for API calls
+          await SecureStore.setItemAsync(ADMIN_PASSWORD_KEY, adminPassword);
         } else {
           console.warn('Secure storage unavailable. Authentication state will not persist across sessions.', {
             ...context,
@@ -161,6 +154,30 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): JS
     [adminPassword],
   );
 
+  const getAuthToken = useCallback(async (): Promise<string | null> => {
+    try {
+      // Get password from env or SecureStore
+      const password = process.env.EXPO_PUBLIC_ADMIN_PASSWORD;
+      if (password) {
+        return password;
+      }
+      
+      // Fallback: try to get from secure store
+      const isStorageAvailable = await SecureStore.isAvailableAsync();
+      if (isStorageAvailable) {
+        const storedPassword = await SecureStore.getItemAsync(ADMIN_PASSWORD_KEY);
+        if (storedPassword) {
+          return storedPassword;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return null;
+    }
+  }, []);
+
   const signOut = useCallback(
     async (options?: AuthSignInOptions): Promise<void> => {
       const correlationId = options?.correlationId ?? `auth-sign-out-${Date.now()}`;
@@ -177,6 +194,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): JS
         if (isStorageAvailable) {
           await SecureStore.deleteItemAsync(AUTH_FLAG_KEY);
           await SecureStore.deleteItemAsync(AUTH_LOGIN_TIMESTAMP_KEY);
+          await SecureStore.deleteItemAsync(ADMIN_PASSWORD_KEY);
         } else {
           console.warn('Secure storage unavailable while signing out.', {
             ...context,
@@ -205,6 +223,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): JS
     isLoading,
     signIn,
     signOut,
+    getAuthToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

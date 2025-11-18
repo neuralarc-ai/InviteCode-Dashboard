@@ -52,64 +52,28 @@ FastAPI backend service for the Invite Code Dashboard application. This service 
 
 ## Running the Application
 
-### Quick Start (Recommended)
+### Development Mode
 
-**Development Mode:**
-```bash
-./run-server.sh
-```
-
-**Production Mode:**
-```bash
-./start-production.sh
-```
-
-The script will automatically:
-- Check for `.env` file
-- Create virtual environment if needed
-- Install/update dependencies
-- Start the server with appropriate configuration
-
-### Manual Start
-
-**Development Mode:**
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Or using Python directly:
+
 ```bash
 python -m app.main
 ```
 
-**Production Mode:**
+The API will be available at:
+- API: http://localhost:8000
+- Docs: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+### Production Mode
+
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
-
-### Using Docker
-
-**Build and run with Docker Compose (Recommended):**
-```bash
-docker-compose up -d
-```
-
-**Or using Docker directly:**
-```bash
-# Build image
-docker build -t invite-code-api .
-
-# Run container
-docker run -p 8000:8000 --env-file .env invite-code-api
-```
-
-### Server Endpoints
-
-Once the server is running, the API will be available at:
-- API: http://localhost:8000
-- Health Check: http://localhost:8000/health
-- API Documentation: http://localhost:8000/docs
-- ReDoc Documentation: http://localhost:8000/redoc
 
 ## API Endpoints
 

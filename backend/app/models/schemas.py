@@ -164,6 +164,23 @@ class AssignCreditsRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class CreditPurchaseResponse(BaseModel):
+    """Credit purchase response model."""
+    id: str
+    user_id: str
+    amount_dollars: float
+    stripe_payment_intent_id: Optional[str] = None
+    stripe_charge_id: Optional[str] = None
+    status: str
+    description: Optional[str] = None
+    metadata: Dict[str, Any]
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+    user_email: Optional[str] = None
+    user_name: Optional[str] = None
+
+
 class CreditBalanceQueryParams(BaseModel):
     """Query parameters for credit balance."""
     user_id: Optional[str] = None

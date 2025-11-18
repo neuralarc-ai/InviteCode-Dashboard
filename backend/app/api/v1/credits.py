@@ -7,9 +7,10 @@ from app.models.schemas import (
     CreditBalanceResponse,
     AssignCreditsRequest,
     SuccessResponse,
+    CreditPurchaseResponse,
 )
 from app.services import credit_service, email_service
-from app.core.auth import get_current_user
+from app.core.auth import verify_admin_password
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/credits", tags=["credits"])
 @router.get("/balances", response_model=List[CreditBalanceResponse])
 async def get_credit_balances(
     user_id: Optional[str] = Query(None),
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Get credit balances, optionally filtered by user_id."""
     try:
@@ -36,7 +37,7 @@ async def get_credit_balances(
 @router.post("/assign", response_model=SuccessResponse)
 async def assign_credits(
     request: AssignCreditsRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Assign credits to user."""
     try:
@@ -68,5 +69,21 @@ async def assign_credits(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to assign credits",
+        )
+
+
+@router.get("/purchases", response_model=List[CreditPurchaseResponse])
+async def get_credit_purchases(
+    status: Optional[str] = Query(None, description="Filter by status (e.g., 'completed', 'pending', 'failed', 'refunded')"),
+    _: None = Depends(verify_admin_password),
+):
+    """Get credit purchases, optionally filtered by status."""
+    try:
+        return await credit_service.get_credit_purchases(status=status)
+    except Exception as e:
+        logger.error(f"Error getting credit purchases: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch credit purchases",
         )
 

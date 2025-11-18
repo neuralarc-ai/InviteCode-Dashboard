@@ -41,7 +41,15 @@ async def send_bulk_email(
         # Get user IDs and fetch emails
         user_ids = [profile["user_id"] for profile in profiles_response.data]
         auth_users_response = supabase.auth.admin.list_users()
-        user_id_to_email = {user.id: user.email for user in auth_users_response.users if user.email and user.id in user_ids}
+        # Handle both response object with .users attribute and direct list
+        users_list = auth_users_response.users if hasattr(auth_users_response, 'users') else auth_users_response
+        # Handle both user objects and dictionaries
+        user_id_to_email = {}
+        for user in users_list:
+            user_id = user.id if hasattr(user, 'id') else user.get('id')
+            user_email = user.email if hasattr(user, 'email') else user.get('email')
+            if user_id and user_id in user_ids and user_email:
+                user_id_to_email[user_id] = user_email
         
         # Prepare email content
         if custom_email:

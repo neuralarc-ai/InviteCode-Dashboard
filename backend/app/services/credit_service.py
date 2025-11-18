@@ -4,7 +4,7 @@ Credit balance service for business logic.
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from app.core.database import get_supabase_admin
-from app.models.schemas import CreditBalanceResponse
+from app.models.schemas import CreditBalanceResponse, CreditPurchaseResponse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -97,5 +97,128 @@ async def assign_credits(
             return transform_credit_balance(insert_response.data)
     except Exception as e:
         logger.error(f"Error assigning credits: {e}")
+        raise
+
+
+def transform_credit_purchase(row: dict, user_email: Optional[str] = None, user_name: Optional[str] = None) -> CreditPurchaseResponse:
+    """Transform database row to CreditPurchaseResponse."""
+    # Helper function to parse datetime strings
+    def parse_datetime(dt_str: Optional[str]) -> Optional[datetime]:
+        if not dt_str:
+            return None
+        if isinstance(dt_str, datetime):
+            return dt_str
+        # Handle ISO format with or without Z
+        dt_str = dt_str.replace("Z", "+00:00") if dt_str.endswith("Z") else dt_str
+        return datetime.fromisoformat(dt_str)
+    
+    return CreditPurchaseResponse(
+        id=row["id"],
+        user_id=row["user_id"],
+        amount_dollars=float(row["amount_dollars"]),
+        stripe_payment_intent_id=row.get("stripe_payment_intent_id"),
+        stripe_charge_id=row.get("stripe_charge_id"),
+        status=row["status"],
+        description=row.get("description"),
+        metadata=row.get("metadata", {}),
+        created_at=parse_datetime(row["created_at"]),
+        completed_at=parse_datetime(row.get("completed_at")),
+        expires_at=parse_datetime(row.get("expires_at")),
+        user_email=user_email,
+        user_name=user_name,
+    )
+
+
+async def get_credit_purchases(status: Optional[str] = None) -> List[CreditPurchaseResponse]:
+    """Get credit purchases, optionally filtered by status."""
+    try:
+        supabase = get_supabase_admin()
+        query = supabase.table("credit_purchases").select("*").order("created_at", desc=True)
+        
+        if status:
+            query = query.eq("status", status)
+        
+        response = query.execute()
+        
+        if not response.data:
+            return []
+        
+        # Get user IDs to fetch emails and names
+        user_ids = [row["user_id"] for row in response.data]
+        user_id_to_email: Dict[str, str] = {}
+        user_id_to_name: Dict[str, str] = {}
+        
+        # Try to fetch user emails from auth.users
+        try:
+            # Use admin client to list users with pagination
+            all_auth_users = []
+            page = 1
+            per_page = 1000
+            
+            while True:
+                auth_response = supabase.auth.admin.list_users(page=page, per_page=per_page)
+                # Handle both response object with .users attribute and direct list
+                users_list = auth_response.users if hasattr(auth_response, 'users') else auth_response
+                
+                if not users_list or len(users_list) == 0:
+                    break
+                
+                all_auth_users.extend(users_list)
+                
+                if len(users_list) < per_page:
+                    break
+                
+                page += 1
+            
+            # Process users
+            for user in all_auth_users:
+                # Handle both user objects and dictionaries
+                user_id = user.id if hasattr(user, 'id') else user.get('id')
+                if user_id and user_id in user_ids:
+                    # Get email
+                    email = user.email if hasattr(user, 'email') else user.get('email')
+                    if email:
+                        user_id_to_email[user_id] = email
+                    
+                    # Try to get name from user_metadata
+                    user_metadata = user.user_metadata if hasattr(user, 'user_metadata') else user.get('user_metadata', {})
+                    if user_metadata:
+                        name = (
+                            user_metadata.get("full_name") or
+                            user_metadata.get("name") or
+                            user_metadata.get("preferred_name") or
+                            user_metadata.get("display_name")
+                        )
+                        if name:
+                            user_id_to_name[user_id] = name
+        except Exception as auth_error:
+            logger.warning(f"Failed to fetch user emails from auth: {auth_error}")
+        
+        # Try to fetch user names from user_profiles table
+        try:
+            profiles_response = supabase.table("user_profiles").select("user_id, full_name, preferred_name").in_("user_id", user_ids).execute()
+            if profiles_response.data:
+                for profile in profiles_response.data:
+                    user_id = profile["user_id"]
+                    name = profile.get("preferred_name") or profile.get("full_name")
+                    if name:
+                        user_id_to_name[user_id] = name
+        except Exception as profile_error:
+            logger.warning(f"Failed to fetch user profiles: {profile_error}")
+        
+        # Transform purchases with user data
+        purchases = []
+        for row in response.data:
+            user_id = row["user_id"]
+            purchase = transform_credit_purchase(
+                row,
+                user_email=user_id_to_email.get(user_id),
+                user_name=user_id_to_name.get(user_id),
+            )
+            purchases.append(purchase)
+        
+        return purchases
+    except Exception as e:
+        logger.error(f"Error fetching credit purchases: {e}")
         raise
 

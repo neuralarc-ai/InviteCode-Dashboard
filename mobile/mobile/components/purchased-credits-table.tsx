@@ -11,9 +11,9 @@ import RemixIcon from 'react-native-remix-icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { getAppConfig } from '@/utils/config';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { creditsApi } from '@/services/api-client';
 
 type CreditPurchase = {
   readonly id: string;
@@ -46,61 +46,25 @@ export function PurchasedCreditsTable(): ReactElement {
       setIsLoading(true);
       setError(null);
 
-      const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(`${apiBaseUrl}/api/credit-purchases`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-
-      const payload = await response.json();
-
-      if (!payload.success) {
-        throw new Error(payload.message ?? 'Failed to load credit purchases');
-      }
-
-      console.log('Mobile: Received credit purchases data:', payload.data?.length || 0);
-      if (payload.data && payload.data.length > 0) {
-        console.log('Mobile: Sample purchase data:', {
-          id: payload.data[0].id,
-          userEmail: payload.data[0].userEmail,
-          userName: payload.data[0].userName,
-          userId: payload.data[0].userId,
-        });
-      }
-
-      const transformedPurchases = (payload.data || []).map((purchase: any) => {
-        const email = purchase.userEmail || 'Email not available';
-        const name = purchase.userName || 'Unknown User';
-        
-        // Log if we're missing data
-        if (email === 'Email not available' || name === 'Unknown User') {
-          console.log(`Mobile: Missing data for purchase ${purchase.id}, userId: ${purchase.userId}, email: ${email}, name: ${name}`);
-        }
-        
-        return {
-          id: purchase.id,
-          userId: purchase.userId,
-          amountDollars: parseFloat(purchase.amountDollars) || 0,
-          stripePaymentIntentId: purchase.stripePaymentIntentId,
-          stripeChargeId: purchase.stripeChargeId,
-          status: purchase.status,
-          description: purchase.description,
-          metadata: purchase.metadata || {},
-          createdAt: purchase.createdAt,
-          completedAt: purchase.completedAt,
-          expiresAt: purchase.expiresAt,
-          userEmail: email,
-          userName: name,
-        };
-      });
-
-      console.log(`Mobile: Transformed ${transformedPurchases.length} purchases`);
+      // Fetch only completed purchases (matching web version behavior)
+      const purchases = await creditsApi.getPurchases('completed');
+      
+      const transformedPurchases = purchases.map((purchase) => ({
+        id: purchase.id,
+        userId: purchase.user_id,
+        amountDollars: parseFloat(String(purchase.amount_dollars)) || 0,
+        stripePaymentIntentId: purchase.stripe_payment_intent_id,
+        stripeChargeId: purchase.stripe_charge_id,
+        status: purchase.status,
+        description: purchase.description,
+        metadata: purchase.metadata || {},
+        createdAt: purchase.created_at,
+        completedAt: purchase.completed_at,
+        expiresAt: purchase.expires_at,
+        userEmail: purchase.user_email || 'Email not available',
+        userName: purchase.user_name || 'Unknown User',
+      }));
+      
       setCreditPurchases(transformedPurchases);
     } catch (err) {
       console.error('Error fetching credit purchases:', err);

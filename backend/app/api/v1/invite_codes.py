@@ -13,7 +13,7 @@ from app.models.schemas import (
     ErrorResponse,
 )
 from app.services import invite_code_service
-from app.core.auth import get_current_user
+from app.core.auth import verify_admin_password
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/invite-codes", tags=["invite-codes"])
 
 
 @router.get("", response_model=List[InviteCodeResponse])
-async def get_invite_codes(user: dict = Depends(get_current_user)):
+async def get_invite_codes(_: None = Depends(verify_admin_password)):
     """Get all invite codes."""
     try:
         return await invite_code_service.get_invite_codes()
@@ -37,7 +37,7 @@ async def get_invite_codes(user: dict = Depends(get_current_user)):
 @router.post("/generate", response_model=SuccessResponse)
 async def generate_invite_code(
     request: GenerateInviteCodeRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Generate a single invite code."""
     try:
@@ -62,7 +62,7 @@ async def generate_invite_code(
 @router.delete("/{code_id}", response_model=SuccessResponse)
 async def delete_invite_code(
     code_id: str,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Delete invite code by ID."""
     try:
@@ -82,7 +82,7 @@ async def delete_invite_code(
 @router.post("/bulk-delete", response_model=SuccessResponse)
 async def bulk_delete_invite_codes(
     request: BulkDeleteInviteCodesRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Bulk delete invite codes."""
     try:
@@ -103,7 +103,7 @@ async def bulk_delete_invite_codes(
 @router.post("/archive", response_model=SuccessResponse)
 async def archive_invite_code(
     request: ArchiveInviteCodeRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Archive invite code."""
     try:
@@ -123,7 +123,7 @@ async def archive_invite_code(
 @router.post("/unarchive", response_model=SuccessResponse)
 async def unarchive_invite_code(
     request: UnarchiveInviteCodeRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Unarchive invite code."""
     try:
@@ -141,7 +141,7 @@ async def unarchive_invite_code(
 
 
 @router.post("/bulk-archive-used", response_model=SuccessResponse)
-async def bulk_archive_used_codes(user: dict = Depends(get_current_user)):
+async def bulk_archive_used_codes(_: None = Depends(verify_admin_password)):
     """Bulk archive used invite codes."""
     try:
         count = await invite_code_service.bulk_archive_used_codes()

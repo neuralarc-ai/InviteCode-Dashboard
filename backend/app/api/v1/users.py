@@ -11,7 +11,7 @@ from app.models.schemas import (
     SuccessResponse,
 )
 from app.services import user_service
-from app.core.auth import get_current_user
+from app.core.auth import verify_admin_password
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("", response_model=List[UserProfileResponse])
-async def get_users(user: dict = Depends(get_current_user)):
+async def get_users(_: None = Depends(verify_admin_password)):
     """Get all user profiles."""
     try:
         return await user_service.get_user_profiles()
@@ -35,7 +35,7 @@ async def get_users(user: dict = Depends(get_current_user)):
 @router.post("", response_model=UserProfileResponse)
 async def create_user(
     request: CreateUserRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Create new user and profile."""
     try:
@@ -58,7 +58,7 @@ async def create_user(
 @router.delete("/{user_id}", response_model=SuccessResponse)
 async def delete_user(
     user_id: str,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Delete user and profile."""
     try:
@@ -78,7 +78,7 @@ async def delete_user(
 @router.post("/bulk-delete", response_model=SuccessResponse)
 async def bulk_delete_users(
     request: BulkDeleteUsersRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Bulk delete users."""
     try:
@@ -99,7 +99,7 @@ async def bulk_delete_users(
 @router.post("/fetch-emails", response_model=List[dict])
 async def fetch_user_emails(
     request: dict,  # {"userIds": List[str]}
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Fetch user emails by user IDs."""
     try:

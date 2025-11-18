@@ -14,7 +14,7 @@ import RemixIcon from 'react-native-remix-icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { getAppConfig } from '@/utils/config';
+import { usersApi, emailsApi } from '@/services/api-client';
 import { CreditAssignmentDialog } from '@/components/credit-assignment-dialog';
 import { CreateUserDialog } from '@/components/create-user-dialog';
 import { EmailCustomizationDialog } from '@/components/email-customization-dialog';
@@ -58,25 +58,21 @@ export function UsersTable(): ReactElement {
       setIsLoading(true);
       setError(null);
 
-      const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(`${apiBaseUrl}/api/user-profiles`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const users = await usersApi.getAll();
+      
+      // Transform API response to match component's expected format
+      const transformedUsers: UserProfile[] = users.map((user) => ({
+        id: user.id,
+        userId: user.user_id,
+        fullName: user.full_name,
+        preferredName: user.preferred_name,
+        email: user.email || '',
+        createdAt: user.created_at,
+        updatedAt: user.updated_at,
+        metadata: user.metadata || null,
+      }));
 
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-
-      const payload = await response.json();
-
-      if (!payload.success) {
-        throw new Error(payload.message ?? 'Failed to load user profiles');
-      }
-
-      setUserProfiles(payload.data || []);
+      setUserProfiles(transformedUsers);
     } catch (err) {
       console.error('Failed to load user profiles', err);
       setError(err instanceof Error ? err.message : 'Unable to load user profiles');
@@ -205,27 +201,15 @@ export function UsersTable(): ReactElement {
 
     setIsDeleting(true);
     try {
-      const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(
-        `${apiBaseUrl}/api/delete-user-profile?profileId=${userToDelete.id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to delete user profile: ${response.status}`);
-      }
+      await usersApi.delete(userToDelete.userId);
 
       setDeleteDialogOpen(false);
       setUserToDelete(null);
       await fetchUserProfiles();
     } catch (err) {
       console.error('Error deleting user:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete user profile';
+      setError(errorMessage);
     } finally {
       setIsDeleting(false);
     }
@@ -743,26 +727,26 @@ export function UsersTable(): ReactElement {
           onSendEmail={async (emailData, selectedOnly) => {
             setIsSendingEmail(true);
             try {
-              const { apiBaseUrl } = getAppConfig();
-              const requestBody: any = {
+              const requestBody: {
+                custom_email?: {
+                  subject: string;
+                  text_content: string;
+                  html_content: string;
+                };
+                selected_user_ids?: string[];
+              } = {
+                custom_email: {
                 subject: emailData.subject,
-                textContent: emailData.textContent || '',
-                htmlContent: emailData.htmlContent || '',
+                  text_content: emailData.textContent || '',
+                  html_content: emailData.htmlContent || '',
+                },
               };
 
               if (selectedOnly && selectedUserIds.size > 0) {
-                requestBody.selectedUserIds = Array.from(selectedUserIds);
+                requestBody.selected_user_ids = Array.from(selectedUserIds);
               }
 
-              const response = await fetch(`${apiBaseUrl}/api/send-bulk-email`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody),
-              });
-
-              const result = await response.json();
+              const result = await emailsApi.sendBulk(requestBody);
 
               if (result.success) {
                 setEmailDialogOpen(false);
@@ -772,9 +756,11 @@ export function UsersTable(): ReactElement {
                 fetchUserProfiles();
               } else {
                 console.error('Failed to send email:', result.message);
+                setError(result.message || 'Failed to send email');
               }
             } catch (err) {
               console.error('Error sending email:', err);
+              setError(err instanceof Error ? err.message : 'Failed to send email');
             } finally {
               setIsSendingEmail(false);
             }
@@ -782,32 +768,23 @@ export function UsersTable(): ReactElement {
           onSendToIndividual={async (emailData, emailAddress) => {
             setIsSendingEmail(true);
             try {
-              const { apiBaseUrl } = getAppConfig();
-              const requestBody = {
+              const result = await emailsApi.sendIndividual({
+                individual_email: emailAddress,
                 subject: emailData.subject,
-                textContent: emailData.textContent || '',
-                htmlContent: emailData.htmlContent || '',
-                individualEmail: emailAddress,
-              };
-
-              const response = await fetch(`${apiBaseUrl}/api/send-individual-email`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestBody),
+                text_content: emailData.textContent || '',
+                html_content: emailData.htmlContent || '',
               });
-
-              const result = await response.json();
 
               if (result.success) {
                 setEmailDialogOpen(false);
                 fetchUserProfiles();
               } else {
                 console.error('Failed to send email:', result.message);
+                setError(result.message || 'Failed to send email');
               }
             } catch (err) {
               console.error('Error sending email:', err);
+              setError(err instanceof Error ? err.message : 'Failed to send email');
             } finally {
               setIsSendingEmail(false);
             }

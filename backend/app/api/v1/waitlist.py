@@ -9,7 +9,7 @@ from app.models.schemas import (
     SuccessResponse,
 )
 from app.core.database import get_supabase_admin
-from app.core.auth import get_current_user
+from app.core.auth import verify_admin_password
 from datetime import datetime
 import logging
 
@@ -40,7 +40,7 @@ def transform_waitlist_user(row: dict) -> WaitlistUserResponse:
 
 
 @router.get("", response_model=List[WaitlistUserResponse])
-async def get_waitlist_users(user: dict = Depends(get_current_user)):
+async def get_waitlist_users(_: None = Depends(verify_admin_password)):
     """Get all waitlist users."""
     try:
         supabase = get_supabase_admin()
@@ -60,7 +60,7 @@ async def get_waitlist_users(user: dict = Depends(get_current_user)):
 @router.post("/archive", response_model=SuccessResponse)
 async def archive_waitlist_users(
     request: ArchiveWaitlistUsersRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Archive waitlist users."""
     try:

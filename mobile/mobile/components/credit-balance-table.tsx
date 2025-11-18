@@ -13,7 +13,7 @@ import RemixIcon from 'react-native-remix-icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { getAppConfig } from '@/utils/config';
+import { creditsApi } from '@/services/api-client';
 import { CreditAssignmentDialog } from '@/components/credit-assignment-dialog';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -46,32 +46,16 @@ export function CreditBalanceTable(): ReactElement {
       setIsLoading(true);
       setError(null);
 
-      const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(`${apiBaseUrl}/api/credit-balances`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const balances = await creditsApi.getBalances();
 
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-
-      const payload = await response.json();
-
-      if (!payload.success) {
-        throw new Error(payload.message ?? 'Failed to load credit balances');
-      }
-
-      const transformedBalances = (payload.data || []).map((balance: any) => ({
-        userId: balance.userId,
-        balanceDollars: parseFloat(balance.balanceDollars) || 0,
-        totalPurchased: parseFloat(balance.totalPurchased) || 0,
-        totalUsed: parseFloat(balance.totalUsed) || 0,
-        lastUpdated: balance.lastUpdated ? new Date(balance.lastUpdated) : new Date(),
-        userEmail: balance.userEmail || 'Email not available',
-        userName: balance.userName || `User ${balance.userId.slice(0, 8)}`,
+      const transformedBalances: CreditBalance[] = balances.map((balance) => ({
+        userId: balance.user_id,
+        balanceDollars: parseFloat(String(balance.balance_dollars || 0)) || 0,
+        totalPurchased: parseFloat(String(balance.total_purchased || 0)) || 0,
+        totalUsed: parseFloat(String(balance.total_used || 0)) || 0,
+        lastUpdated: balance.last_updated ? new Date(balance.last_updated) : new Date(),
+        userEmail: balance.user_email || 'Email not available',
+        userName: balance.user_name || `User ${balance.user_id.slice(0, 8)}`,
       }));
 
       setCreditBalances(transformedBalances);
@@ -254,8 +238,9 @@ export function CreditBalanceTable(): ReactElement {
           </View>
           <Pressable
             onPress={fetchCreditBalances}
-            style={({ pressed }) => [styles.refreshButton, { backgroundColor: colors.cardBackground }, pressed && styles.refreshButtonPressed]}>
-            <RemixIcon name="refresh-line" size={20} color={colors.textPrimary} />
+              disabled={isLoading}
+              style={({ pressed }) => [styles.refreshButton, { backgroundColor: colors.cardBackground }, pressed && styles.refreshButtonPressed, isLoading && styles.refreshButtonDisabled]}>
+              <RemixIcon name="refresh-line" size={20} color={isLoading ? colors.textSecondary : colors.textPrimary} />
           </Pressable>
         </View>
 
@@ -484,6 +469,9 @@ const styles = StyleSheet.create({
   },
   refreshButtonPressed: {
     opacity: 0.7,
+  },
+  refreshButtonDisabled: {
+    opacity: 0.5,
   },
   searchContainer: {
     marginBottom: 8,

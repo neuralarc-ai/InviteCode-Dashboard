@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import RemixIcon from 'react-native-remix-icon';
 import { ThemedText } from '@/components/themed-text';
-import { getAppConfig } from '@/utils/config';
+import { creditsApi } from '@/services/api-client';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -77,33 +77,24 @@ export function CreditAssignmentDialog({
     setError(null);
 
     try {
-      const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(`${apiBaseUrl}/api/credit-balance`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.userId,
-          creditsToAdd: dollarsToAdd,
-          notes: notes.trim() || null,
-        }),
-      });
+      await creditsApi.assign(
+        user.userId,
+        dollarsToAdd,
+        notes.trim() || undefined
+      );
 
-      const result = await response.json();
-
-      if (result.success) {
         onOpenChange(false);
         onSuccess?.();
         // Reset form
         setCreditsInput('');
         setNotes('');
-      } else {
-        setError(result.message || 'Failed to assign credits');
-      }
     } catch (err) {
       console.error('Error assigning credits:', err);
-      setError('An unexpected error occurred while assigning credits');
+      let errorMessage = 'An unexpected error occurred while assigning credits';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

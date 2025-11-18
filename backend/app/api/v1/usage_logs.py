@@ -7,7 +7,7 @@ from app.models.schemas import (
     UsageLogsAggregatedResponse,
 )
 from app.core.database import get_supabase_admin
-from app.core.auth import get_current_user
+from app.core.auth import verify_admin_password
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/usage-logs", tags=["usage-logs"])
 @router.post("/aggregated", response_model=UsageLogsAggregatedResponse)
 async def get_aggregated_usage_logs(
     request: UsageLogsAggregatedRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Get aggregated usage logs using RPC function."""
     try:

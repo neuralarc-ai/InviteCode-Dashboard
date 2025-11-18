@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import RemixIcon from 'react-native-remix-icon';
 import { ThemedText } from '@/components/themed-text';
-import { getAppConfig } from '@/utils/config';
+import { usersApi } from '@/services/api-client';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -197,47 +197,31 @@ export function CreateUserDialog({
         }
       }
 
-      const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(`${apiBaseUrl}/api/create-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      await usersApi.create({
           email: email.trim().toLowerCase(),
           password: password,
-          fullName: fullName.trim(),
-          preferredName: preferredName.trim() || fullName.trim(),
-          workDescription: workDescription.trim(),
-          personalReferences: personalReferences.trim() || null,
-          avatarUrl: avatarUrl.trim() || null,
-          referralSource: referralSource.trim() || null,
-          consentGiven: consentGiven || null,
-          consentDate: consentGiven && consentDate ? consentDate : null,
-          planType: planType as 'seed' | 'edge' | 'quantum',
-          accountType: accountType as 'individual' | 'business',
-          metadata: parsedMetadata,
-          emailConfirm: true,
-        }),
+        full_name: fullName.trim(),
+        preferred_name: preferredName.trim() || fullName.trim(),
+        work_description: workDescription.trim(),
+        metadata: parsedMetadata || undefined,
       });
 
-      const result = await response.json();
-
-      if (result.success) {
+      // If successful, the API returns the created user
         onOpenChange(false);
         onSuccess?.();
-      } else {
-        let errorMessage = result.message || 'Failed to create user';
-        if (response.status === 409) {
-          errorMessage = 'A user with this email address already exists';
-        } else if (response.status === 400) {
-          errorMessage = result.message || 'Invalid input data';
-        }
-        setErrors({ email: errorMessage });
-      }
     } catch (err) {
       console.error('Error creating user:', err);
-      setErrors({ email: 'An unexpected error occurred while creating the user' });
+      let errorMessage = 'An unexpected error occurred while creating the user';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        // Handle specific error cases
+        if (errorMessage.includes('already exists') || errorMessage.includes('409')) {
+          errorMessage = 'A user with this email address already exists';
+        } else if (errorMessage.includes('400') || errorMessage.includes('Invalid')) {
+          errorMessage = 'Invalid input data. Please check your entries.';
+        }
+      }
+      setErrors({ email: errorMessage });
     } finally {
       setIsSubmitting(false);
     }

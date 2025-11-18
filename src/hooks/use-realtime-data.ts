@@ -538,7 +538,7 @@ export function useUserProfiles() {
   };
 
   // Bulk delete user profiles
-  const bulkDeleteUserProfiles = async (profileIds: string[]): Promise<{ success: boolean; message: string; deletedCount?: number }> => {
+  const bulkDeleteUserProfiles = async (profileIds: string[]): Promise<{ success: boolean; message: string; deletedCount?: number; authDeleteErrors?: string[]; failedUserIds?: string[] }> => {
     try {
       if (!profileIds || profileIds.length === 0) {
         return { success: false, message: 'No profiles selected for deletion' };
@@ -1385,7 +1385,7 @@ The Helium Team 🌟`
 
   // Set up real-time subscription for usage_logs and credit_purchases changes
   useEffect(() => {
-    let updateTimeout: NodeJS.Timeout | null = null;
+    let updateTimeout: ReturnType<typeof setTimeout> | null = null;
 
     // Debounced update function for smooth real-time updates
     const debouncedUpdate = () => {

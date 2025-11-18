@@ -14,7 +14,7 @@ import RemixIcon from 'react-native-remix-icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { getAppConfig } from '@/utils/config';
+import { usageLogsApi, emailsApi } from '@/services/api-client';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -71,41 +71,25 @@ export function UsageLogsTable(): ReactElement {
   useEffect(() => {
     const fetchOverallTotalCost = async () => {
       try {
-        const { apiBaseUrl } = getAppConfig();
         const [externalResponse, internalResponse] = await Promise.all([
-          fetch(`${apiBaseUrl}/api/usage-logs-aggregated`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              page: 1,
-              limit: 1,
-              searchQuery: '',
-              activityFilter: 'all',
-              userTypeFilter: 'external',
-            }),
+          usageLogsApi.getAggregated({
+            page: 1,
+            limit: 1,
+            search_query: '',
+            activity_filter: 'all',
+            user_type_filter: 'external',
           }),
-          fetch(`${apiBaseUrl}/api/usage-logs-aggregated`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              page: 1,
-              limit: 1,
-              searchQuery: '',
-              activityFilter: 'all',
-              userTypeFilter: 'internal',
-            }),
+          usageLogsApi.getAggregated({
+            page: 1,
+            limit: 1,
+            search_query: '',
+            activity_filter: 'all',
+            user_type_filter: 'internal',
           }),
         ]);
 
-        const externalData = await externalResponse.json();
-        const internalData = await internalResponse.json();
-
-        const externalCost = externalData.success ? (externalData.grandTotalCost || 0) : 0;
-        const internalCost = internalData.success ? (internalData.grandTotalCost || 0) : 0;
+        const externalCost = externalResponse.success ? (externalResponse.grand_total_cost || 0) : 0;
+        const internalCost = internalResponse.success ? (internalResponse.grand_total_cost || 0) : 0;
 
         setOverallTotalCost(externalCost + internalCost);
       } catch (error) {
@@ -136,29 +120,16 @@ export function UsageLogsTable(): ReactElement {
       setIsLoading(true);
       setError(null);
 
-      const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(`${apiBaseUrl}/api/usage-logs-aggregated`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          page: currentPage,
-          limit: itemsPerPage,
-          searchQuery,
-          activityFilter,
-          userTypeFilter,
-        }),
+      const payload = await usageLogsApi.getAggregated({
+        page: currentPage,
+        limit: itemsPerPage,
+        search_query: searchQuery,
+        activity_filter: activityFilter,
+        user_type_filter: userTypeFilter,
       });
 
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-
-      const payload = await response.json();
-
       if (!payload.success) {
-        throw new Error(payload.message ?? 'Failed to load usage logs');
+        throw new Error('Failed to load usage logs');
       }
 
       // Transform the data from snake_case to camelCase
@@ -181,9 +152,9 @@ export function UsageLogsTable(): ReactElement {
       }));
 
       setUsageLogs(transformedLogs);
-      setTotalCount(payload.totalCount || 0);
-      setGrandTotalTokens(payload.grandTotalTokens || 0);
-      setGrandTotalCost(payload.grandTotalCost || 0);
+      setTotalCount(payload.total_count || 0);
+      setGrandTotalTokens(payload.grand_total_tokens || 0);
+      setGrandTotalCost(payload.grand_total_cost || 0);
       setLastUpdateTime(new Date());
     } catch (err) {
       console.error('Error fetching usage logs:', err);
@@ -292,7 +263,7 @@ export function UsageLogsTable(): ReactElement {
       case 'medium': return colors.badgeMedium;
       case 'low': return colors.badgeLow;
       case 'inactive': return colors.badgeInactive;
-      default: return colors.secondaryText;
+      default: return colors.textSecondary;
     }
   }, []);
 
@@ -305,24 +276,28 @@ export function UsageLogsTable(): ReactElement {
     setSendingEmails((prev) => new Set(prev).add(userId));
 
     try {
-      const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(`${apiBaseUrl}/api/send-activity-reminder`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userEmail,
-          userName,
-          activityLevel,
-        }),
+      // Generate activity reminder email content
+      const subject = `We miss you, ${userName}! Come back to our AI platform`;
+      const textContent = `Hi ${userName},
+
+We noticed you haven't been as active on our platform recently. Your current activity level is ${activityLevel}, and we'd love to have you back!
+
+Feel free to reach out if you have any questions or need assistance getting started again.
+
+Best regards,
+The AI Team`;
+      const htmlContent = `<p>Hi ${userName},</p>
+<p>We noticed you haven't been as active on our platform recently. Your current activity level is ${activityLevel}, and we'd love to have you back!</p>
+<p>Feel free to reach out if you have any questions or need assistance getting started again.</p>
+<p>Best regards,<br>The AI Team</p>`;
+
+      const result = await emailsApi.sendIndividual({
+        individual_email: userEmail,
+        subject,
+        text_content: textContent,
+        html_content: htmlContent,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to send email');
-      }
-
-      const result = await response.json();
       const emailResult = {
         success: result.success || false,
         message: result.message || 'Email sent successfully',
@@ -382,26 +357,12 @@ The AI Team`);
 
     setSendingCustomEmail(true);
     try {
-      const { apiBaseUrl } = getAppConfig();
-      const response = await fetch(`${apiBaseUrl}/api/send-custom-reminder`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userEmail: customEmailDialog.user.email,
-          userName: customEmailDialog.user.name,
-          activityLevel: customEmailDialog.user.activityLevel,
-          customSubject: customSubject.trim(),
-          customMessage: customMessage.trim(),
-        }),
+      const result = await emailsApi.sendIndividual({
+        individual_email: customEmailDialog.user.email,
+        subject: customSubject.trim(),
+        text_content: customMessage.trim(),
+        html_content: customMessage.trim().replace(/\n/g, '<br>'),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to send email');
-      }
-
-      const result = await response.json();
 
       if (result.success) {
         // Close dialog and show success
@@ -412,7 +373,7 @@ The AI Team`);
         // Show success message in the table
         const emailResult = {
           success: true,
-          message: 'Custom email sent successfully!',
+          message: result.message || 'Custom email sent successfully!',
           timestamp: Date.now(),
         };
         
@@ -423,7 +384,7 @@ The AI Team`);
         });
       } else {
         // Show error in dialog (matching web version)
-        const errorMessage = result.error || 'Failed to send email';
+        const errorMessage = result.message || 'Failed to send email';
         console.error('Failed to send custom email:', errorMessage);
         Alert.alert('Error', `Failed to send custom email: ${errorMessage}`);
       }
@@ -614,7 +575,7 @@ The Helium Team 🌟`
               <Pressable
                 onPress={() => router.back()}
                 style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}>
-                <RemixIcon name="arrow-left-line" size={22} color={colors.primaryText} />
+                <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
               </Pressable>
               <ThemedText type="title" style={styles.headerTitle}>
                 Usage Logs

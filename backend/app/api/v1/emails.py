@@ -8,7 +8,7 @@ from app.models.schemas import (
     SuccessResponse,
 )
 from app.services import email_service
-from app.core.auth import get_current_user
+from app.core.auth import verify_admin_password
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/emails", tags=["emails"])
 @router.post("/bulk", response_model=SuccessResponse)
 async def send_bulk_email(
     request: SendBulkEmailRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Send bulk email to users."""
     try:
@@ -43,7 +43,7 @@ async def send_bulk_email(
 @router.post("/individual", response_model=SuccessResponse)
 async def send_individual_email(
     request: SendIndividualEmailRequest,
-    user: dict = Depends(get_current_user),
+    _: None = Depends(verify_admin_password),
 ):
     """Send individual email."""
     try:
@@ -73,7 +73,7 @@ async def send_individual_email(
 
 
 @router.get("/images", response_model=dict)
-async def get_email_images(user: dict = Depends(get_current_user)):
+async def get_email_images(_: None = Depends(verify_admin_password)):
     """Get email images as base64."""
     try:
         from app.core.email import get_image_base64

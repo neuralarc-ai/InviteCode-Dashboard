@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     environment: str = Field(default="development", description="Environment (development, staging, production)")
     cors_origins: str = Field(default="http://localhost:3000", description="Comma-separated list of allowed CORS origins")
     api_prefix: str = Field(default="/api/v1", description="API route prefix")
+    admin_password: str = Field(..., description="Admin password for API authentication")
     
     # Optional serverless configuration
     aws_region: str | None = Field(default=None, description="AWS region for serverless deployment")
@@ -57,6 +58,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra fields in .env file (e.g., EXPO_PUBLIC_* variables)
 
 
 # Global settings instance
