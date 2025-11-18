@@ -104,7 +104,24 @@ async function apiRequest<T>(
       try {
         errorData = await response.json();
         // FastAPI returns errors in 'detail' field
-        errorMessage = errorData.detail || errorData.message || errorMessage;
+        // Handle different detail formats (string, array, object)
+        if (errorData.detail) {
+          if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else if (Array.isArray(errorData.detail)) {
+            // Validation errors are arrays of objects with 'msg' and 'loc' fields
+            const messages = errorData.detail.map((err: any) => {
+              if (typeof err === 'string') return err;
+              if (err.msg) return `${err.loc?.join('.') || 'field'}: ${err.msg}`;
+              return JSON.stringify(err);
+            });
+            errorMessage = messages.join(', ') || errorMessage;
+          } else if (typeof errorData.detail === 'object') {
+            errorMessage = JSON.stringify(errorData.detail);
+          }
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
       } catch {
         // If JSON parsing fails, use status text
         errorMessage = response.statusText || errorMessage;
@@ -116,6 +133,7 @@ async function apiRequest<T>(
           status: response.status,
           statusText: response.statusText,
           errorData,
+          errorMessage,
         });
       }
       

@@ -29,6 +29,20 @@ interface CreditAssignmentDialogProps {
   readonly onSuccess?: () => void;
 }
 
+// Default email content for credits added (matching web version)
+const defaultCreditsEmailContent = `Credits Added to Your Account
+
+Greetings from Helium,
+
+We're excited to inform you that credits have been added to your Helium account. These credits are now available for you to use across all platform features.
+
+You can check your credit balance in your account dashboard at any time. If you have any questions about your credits or how to use them, please feel free to reach out to our support team.
+
+Thank you for being a valued member of the Helium community.
+
+Thanks,
+The Helium Team`;
+
 export function CreditAssignmentDialog({
   open,
   onOpenChange,
@@ -41,6 +55,9 @@ export function CreditAssignmentDialog({
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sendEmailNotification, setSendEmailNotification] = useState(false);
+  const [emailContent, setEmailContent] = useState(defaultCreditsEmailContent);
+  const [emailViewMode, setEmailViewMode] = useState<'edit' | 'preview'>('edit');
 
   // Conversion rate: $1 = 100 credits
   const CREDITS_PER_DOLLAR = 100;
@@ -55,6 +72,9 @@ export function CreditAssignmentDialog({
       setCreditsInput('');
       setNotes('');
       setError(null);
+      setSendEmailNotification(false);
+      setEmailContent(defaultCreditsEmailContent);
+      setEmailViewMode('edit');
     }
   }, [open, user]);
 
@@ -65,8 +85,8 @@ export function CreditAssignmentDialog({
     }
 
     const creditsValue = parseFloat(creditsInput);
-    if (isNaN(creditsValue) || creditsValue <= 0) {
-      setError('Please enter a valid number of credits');
+    if (isNaN(creditsValue) || creditsValue < 1) {
+      setError('Please enter a valid number of credits (minimum 1)');
       return;
     }
 
@@ -166,21 +186,68 @@ export function CreditAssignmentDialog({
               <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                 Credits <ThemedText style={styles.required} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>*</ThemedText>
               </ThemedText>
-              <TextInput
-                style={[
-                  styles.input,
-                  { borderColor: colors.inputBorder, color: colors.textPrimary },
-                  isSubmitting && { backgroundColor: colors.badgeBackground },
-                  isSubmitting && styles.inputDisabled,
-                ]}
-                placeholder="Enter number of credits"
-                placeholderTextColor={colors.textSecondary}
-                value={creditsInput}
-                onChangeText={setCreditsInput}
-                keyboardType="numeric"
-                editable={!isSubmitting}
-                autoFocus={false}
-              />
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.inputWithSpinner,
+                    { borderColor: colors.inputBorder, color: colors.textPrimary },
+                    isSubmitting && { backgroundColor: colors.badgeBackground },
+                    isSubmitting && styles.inputDisabled,
+                  ]}
+                  placeholder="Enter number of credits"
+                  placeholderTextColor={colors.textSecondary}
+                  value={creditsInput}
+                  onChangeText={setCreditsInput}
+                  keyboardType="numeric"
+                  editable={!isSubmitting}
+                  autoFocus={false}
+                />
+                <View style={styles.spinnerContainer}>
+                  <Pressable
+                    onPress={() => {
+                      if (!isSubmitting) {
+                        // If empty, start from 1; otherwise increment
+                        if (!creditsInput || isNaN(parseFloat(creditsInput))) {
+                          setCreditsInput('1');
+                        } else {
+                          const current = parseFloat(creditsInput);
+                          setCreditsInput(String(current + 1));
+                        }
+                      }
+                    }}
+                    disabled={isSubmitting}
+                    style={styles.spinnerButton}>
+                    <RemixIcon name="arrow-up-s-line" size={16} color={colors.textSecondary} />
+                  </Pressable>
+                  <View style={[styles.spinnerDivider, { backgroundColor: colors.divider }]} />
+                  <Pressable
+                    onPress={() => {
+                      if (!isSubmitting) {
+                        // If empty, start from 1; otherwise decrement (min 1)
+                        if (!creditsInput || isNaN(parseFloat(creditsInput))) {
+                          setCreditsInput('1');
+                        } else {
+                          const current = parseFloat(creditsInput);
+                          if (current > 1) {
+                            setCreditsInput(String(current - 1));
+                          }
+                        }
+                      }
+                    }}
+                    disabled={isSubmitting || (!creditsInput || parseFloat(creditsInput) <= 1)}
+                    style={[
+                      styles.spinnerButton,
+                      (!creditsInput || (creditsInput && parseFloat(creditsInput) <= 1)) && styles.spinnerButtonDisabled,
+                    ]}>
+                    <RemixIcon 
+                      name="arrow-down-s-line" 
+                      size={16} 
+                      color={(!creditsInput || (creditsInput && parseFloat(creditsInput) <= 1)) ? colors.textSecondary + '40' : colors.textSecondary} 
+                    />
+                  </Pressable>
+                </View>
+              </View>
               <ThemedText type="default" style={styles.helperText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                 Enter the number of credits to add to this user's credit balance.
               </ThemedText>
@@ -229,6 +296,117 @@ export function CreditAssignmentDialog({
               </ThemedText>
             </View>
 
+            {/* Email Notification Section */}
+            <View style={styles.section}>
+              <Pressable
+                onPress={() => !isSubmitting && setSendEmailNotification(!sendEmailNotification)}
+                disabled={isSubmitting}
+                style={[styles.checkboxBox, { backgroundColor: colors.badgeBackground }]}>
+                <View style={styles.checkbox}>
+                  {sendEmailNotification ? (
+                    <RemixIcon name="checkbox-fill" size={20} color={colors.buttonPrimary} />
+                  ) : (
+                    <RemixIcon name="checkbox-blank-line" size={20} color={colors.buttonPrimary} />
+                  )}
+                </View>
+                <View style={styles.checkboxLabelContainer}>
+                  <ThemedText type="defaultSemiBold" style={styles.checkboxLabel} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Send custom email notification
+                  </ThemedText>
+                  <ThemedText type="default" style={styles.checkboxDescription} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                    Send a custom email with Credits.png image to notify the user about the credit assignment.
+                  </ThemedText>
+                </View>
+              </Pressable>
+
+              {/* Email Customization Section - Only shown when checkbox is checked */}
+              {sendEmailNotification && (
+                <View style={[styles.emailCustomizationSection, { borderColor: colors.divider }]}>
+                  <ThemedText type="defaultSemiBold" style={styles.sectionTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Customize Email Template
+                  </ThemedText>
+
+                  {/* Edit/Preview Toggle Buttons */}
+                  <View style={styles.emailViewToggle}>
+                    <Pressable
+                      onPress={() => setEmailViewMode('edit')}
+                      disabled={isSubmitting}
+                      style={[
+                        styles.emailViewButton,
+                        { 
+                          backgroundColor: emailViewMode === 'edit' ? colors.buttonPrimary : colors.buttonSecondary,
+                          borderColor: colors.inputBorder,
+                        },
+                        isSubmitting && styles.buttonDisabled,
+                      ]}>
+                      <ThemedText 
+                        type="defaultSemiBold" 
+                        style={styles.emailViewButtonText} 
+                        lightColor={emailViewMode === 'edit' ? colors.iconAccentLight : colors.textPrimary} 
+                        darkColor={emailViewMode === 'edit' ? colors.iconAccentLight : colors.textPrimary}>
+                        Edit Text
+                      </ThemedText>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setEmailViewMode('preview')}
+                      disabled={isSubmitting}
+                      style={[
+                        styles.emailViewButton,
+                        { 
+                          backgroundColor: emailViewMode === 'preview' ? colors.buttonPrimary : colors.buttonSecondary,
+                          borderColor: colors.inputBorder,
+                        },
+                        isSubmitting && styles.buttonDisabled,
+                      ]}>
+                      <ThemedText 
+                        type="defaultSemiBold" 
+                        style={styles.emailViewButtonText} 
+                        lightColor={emailViewMode === 'preview' ? colors.iconAccentLight : colors.textPrimary} 
+                        darkColor={emailViewMode === 'preview' ? colors.iconAccentLight : colors.textPrimary}>
+                        Preview
+                      </ThemedText>
+                    </Pressable>
+                  </View>
+
+                  {/* Email Content */}
+                  <View style={styles.emailContentSection}>
+                    <ThemedText type="defaultSemiBold" style={styles.label} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                      Email Content
+                    </ThemedText>
+                    {emailViewMode === 'edit' ? (
+                      <TextInput
+                        style={[
+                          styles.emailTextarea,
+                          { borderColor: colors.inputBorder, color: colors.textPrimary },
+                          isSubmitting && { backgroundColor: colors.badgeBackground },
+                          isSubmitting && styles.inputDisabled,
+                        ]}
+                        placeholder="Enter email content..."
+                        placeholderTextColor={colors.textSecondary}
+                        value={emailContent}
+                        onChangeText={setEmailContent}
+                        multiline
+                        numberOfLines={12}
+                        textAlignVertical="top"
+                        editable={!isSubmitting}
+                      />
+                    ) : (
+                      <View style={[styles.emailPreviewBox, { backgroundColor: colors.badgeBackground, borderColor: colors.inputBorder }]}>
+                        <ScrollView style={styles.emailPreviewScroll}>
+                          <ThemedText type="default" style={styles.emailPreviewText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                            {emailContent || '(No content)'}
+                          </ThemedText>
+                        </ScrollView>
+                      </View>
+                    )}
+                    <ThemedText type="default" style={styles.helperText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                      Edit the email text content that will be sent to the user.
+                    </ThemedText>
+                  </View>
+                </View>
+              )}
+            </View>
+
             {/* Error Message */}
             {error && (
               <View style={[styles.errorContainer, { borderColor: colors.buttonDanger }]}>
@@ -256,12 +434,12 @@ export function CreditAssignmentDialog({
               </Pressable>
               <Pressable
                 onPress={handleSubmit}
-                disabled={isSubmitting || !creditsInput}
+                disabled={isSubmitting || !creditsInput || isNaN(parseFloat(creditsInput)) || parseFloat(creditsInput) < 1}
                 style={[
                   styles.button,
                   styles.submitButton,
                   { backgroundColor: colors.buttonPrimary },
-                  (isSubmitting || !creditsInput) && styles.buttonDisabled,
+                  (isSubmitting || !creditsInput || isNaN(parseFloat(creditsInput)) || parseFloat(creditsInput) < 1) && styles.buttonDisabled,
                 ]}>
                 {isSubmitting ? (
                   <>
@@ -363,6 +541,11 @@ const styles = StyleSheet.create({
   userPreferredName: {
     fontSize: 14,
   },
+  inputContainer: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   input: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -371,6 +554,39 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
     // Border and text colors applied inline
+  },
+  inputWithSpinner: {
+    flex: 1,
+    paddingRight: 40,
+  },
+  spinnerContainer: {
+    position: 'absolute',
+    right: 1,
+    top: 1,
+    bottom: 1,
+    width: 32,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderTopRightRadius: 7,
+    borderBottomRightRadius: 7,
+    borderLeftWidth: 1,
+    borderLeftColor: '#E4D5CA',
+  },
+  spinnerButton: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+  },
+  spinnerButtonDisabled: {
+    opacity: 0.5,
+  },
+  spinnerDivider: {
+    width: '100%',
+    height: 1,
   },
   textarea: {
     backgroundColor: '#FFFFFF',
@@ -397,7 +613,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 8,
     gap: 4,
-    // Background and border colors applied inline
+    // Background and border colors applied inline - matches web bg-muted/50
   },
   conversionRow: {
     flexDirection: 'row',
@@ -409,10 +625,12 @@ const styles = StyleSheet.create({
   },
   conversionAmount: {
     fontSize: 18,
+    fontWeight: '700',
   },
   conversionFormula: {
     fontSize: 12,
     marginTop: 4,
+    // Color matches web text-muted-foreground
   },
   errorContainer: {
     flexDirection: 'row',
@@ -463,6 +681,88 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  checkboxBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 16,
+    borderRadius: 8,
+    // Background color applied inline
+  },
+  checkbox: {
+    marginTop: 2,
+  },
+  checkboxLabelContainer: {
+    flex: 1,
+    gap: 6,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  checkboxDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  emailCustomizationSection: {
+    marginTop: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: 8,
+    gap: 16,
+    // Border color applied inline
+  },
+  sectionTitle: {
+    fontSize: 16,
+  },
+  emailViewToggle: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  emailViewButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Background and border colors applied inline
+  },
+  emailViewButtonText: {
+    fontSize: 14,
+    // Color applied inline
+  },
+  emailContentSection: {
+    gap: 8,
+  },
+  emailTextarea: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    minHeight: 200,
+    maxHeight: 300,
+    fontFamily: 'monospace',
+    // Border and text colors applied inline
+  },
+  emailPreviewBox: {
+    borderWidth: 1,
+    borderRadius: 8,
+    minHeight: 200,
+    maxHeight: 300,
+    // Border and background colors applied inline
+  },
+  emailPreviewScroll: {
+    padding: 12,
+  },
+  emailPreviewText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    lineHeight: 20,
   },
 });
 

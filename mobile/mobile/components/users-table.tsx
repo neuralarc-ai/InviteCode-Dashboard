@@ -29,6 +29,7 @@ type UserProfile = {
   readonly email: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly referralSource?: string | null;
   readonly metadata?: Record<string, any> | null;
 };
 
@@ -79,6 +80,7 @@ export function UsersTable(): ReactElement {
           email: email,
           createdAt: user.created_at,
           updatedAt: user.updated_at,
+          referralSource: (user as any).referral_source || null,
           metadata: user.metadata || null,
         };
       });
@@ -419,38 +421,16 @@ export function UsersTable(): ReactElement {
           {/* Card Header */}
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
-              <RemixIcon name="user-3-line" size={20} color={colors.textPrimary} />
+              <RemixIcon name="user-3-line" size={24} color={colors.textPrimary} />
               <ThemedText type="defaultSemiBold" style={styles.cardTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                 User Profiles ({filteredProfiles.length}{' '}
                 {userTypeFilter === 'internal' ? 'internal' : 'external'} user
                 {filteredProfiles.length !== 1 ? 's' : ''})
               </ThemedText>
-              {selectedUserIds.size > 0 && (
-                <View style={[styles.selectedBadge, { backgroundColor: colors.buttonSecondary }]}>
-                  <ThemedText type="defaultSemiBold" style={styles.selectedBadgeText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
-                    {selectedUserIds.size} selected
-                  </ThemedText>
-                </View>
-              )}
             </View>
-            <View style={styles.cardHeaderActions}>
-              {selectedUserIds.size > 0 && (
-                <Pressable
-                  onPress={() => {
-                    // Bulk delete functionality can be added here
-                    console.log('Bulk delete', selectedUserIds.size, 'users');
-                  }}
-                  style={[styles.cardActionButton, styles.deleteButton, { backgroundColor: colors.buttonDanger }]}>
-                  <RemixIcon name="delete-bin-line" size={16} color={colors.iconAccentLight} />
-                  <ThemedText type="defaultSemiBold" style={styles.deleteButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
-                    Delete ({selectedUserIds.size})
-                  </ThemedText>
-                </Pressable>
-              )}
-              <Pressable onPress={fetchUserProfiles} style={[styles.cardActionButton, styles.refreshButton, { backgroundColor: colors.buttonSecondary }]}>
-                <RemixIcon name="refresh-line" size={16} color={colors.textPrimary} />
-              </Pressable>
-            </View>
+            <Pressable onPress={fetchUserProfiles} style={[styles.refreshButton, { backgroundColor: colors.buttonSecondary }]}>
+              <RemixIcon name="refresh-line" size={20} color={colors.textPrimary} />
+            </Pressable>
           </View>
 
           {/* Search */}
@@ -470,176 +450,225 @@ export function UsersTable(): ReactElement {
             />
           </View>
 
-          {/* Select All */}
-          {filteredProfiles.length > 0 && (
-            <View style={[styles.selectAllContainer, { borderBottomColor: colors.divider }]}>
-              <Pressable onPress={handleSelectAll} style={styles.checkboxContainer}>
-                <View
-                  style={[
-                    styles.checkbox,
-                    { borderColor: isAllSelected || (isSomeSelected && !isAllSelected) ? colors.buttonPrimary : colors.textSecondary },
-                    isAllSelected ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
-                    isSomeSelected && !isAllSelected ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
-                  ]}>
-                  {isAllSelected && (
-                    <RemixIcon name="check-line" size={14} color={colors.iconAccentLight} />
-                  )}
-                  {isSomeSelected && !isAllSelected && (
-                    <View style={styles.checkboxIndeterminateMark} />
-                  )}
-                </View>
-                <ThemedText type="default" style={styles.selectAllText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
-                  Select All
-                </ThemedText>
-              </Pressable>
-            </View>
-          )}
-
-          {/* User List */}
-          {filteredProfiles.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <RemixIcon name="user-3-line" size={48} color={colors.textSecondary} />
-              <ThemedText type="defaultSemiBold" style={styles.emptyText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                {searchQuery
-                  ? `No ${userTypeFilter} users found matching your search`
-                  : `No ${userTypeFilter} user profiles found`}
-              </ThemedText>
-            </View>
-          ) : (
-            <FlatList
-              key={`users-list-${userTypeFilter}-${page}`}
-              data={paginatedProfiles}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              renderItem={({ item: profile }) => (
-                <View style={[styles.userRow, { backgroundColor: colors.rowBackground, borderColor: colors.rowBorder }]}>
-                  {/* Checkbox */}
-                  <Pressable onPress={() => handleToggleSelect(profile.userId)} style={styles.checkboxContainer}>
+          {/* Table with Horizontal Scroll */}
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={true}
+            style={styles.tableScrollView}
+            contentContainerStyle={styles.tableScrollContent}>
+            <View style={[styles.tableContainer, { borderColor: colors.divider }]}>
+              {/* Table Header */}
+              <View style={[styles.tableHeader, { backgroundColor: colors.cardBackground, borderBottomColor: colors.divider }]}>
+                <View style={styles.tableHeaderCellCheckbox}>
+                  <Pressable onPress={handleSelectAll} style={styles.checkboxContainer}>
                     <View
                       style={[
                         styles.checkbox,
-                        { borderColor: selectedUserIds.has(profile.userId) ? colors.buttonPrimary : colors.textSecondary },
-                        selectedUserIds.has(profile.userId) ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
+                        { borderColor: isAllSelected || (isSomeSelected && !isAllSelected) ? colors.buttonPrimary : colors.textSecondary },
+                        isAllSelected ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
+                        isSomeSelected && !isAllSelected ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
                       ]}>
-                      {selectedUserIds.has(profile.userId) && (
+                      {isAllSelected && (
                         <RemixIcon name="check-line" size={14} color={colors.iconAccentLight} />
+                      )}
+                      {isSomeSelected && !isAllSelected && (
+                        <View style={styles.checkboxIndeterminateMark} />
                       )}
                     </View>
                   </Pressable>
+                </View>
+                <View style={styles.tableHeaderCellName}>
+                  <ThemedText type="defaultSemiBold" style={styles.tableHeaderText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Name
+                  </ThemedText>
+                </View>
+                <View style={styles.tableHeaderCellEmail}>
+                  <ThemedText type="defaultSemiBold" style={styles.tableHeaderText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Email
+                  </ThemedText>
+                </View>
+                <View style={styles.tableHeaderCellStatus}>
+                  <ThemedText type="defaultSemiBold" style={styles.tableHeaderText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Status
+                  </ThemedText>
+                </View>
+                <View style={styles.tableHeaderCellReferralSource}>
+                  <ThemedText type="defaultSemiBold" style={styles.tableHeaderText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Referral Source
+                  </ThemedText>
+                </View>
+                <View style={styles.tableHeaderCellUserId}>
+                  <ThemedText type="defaultSemiBold" style={styles.tableHeaderText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    User ID
+                  </ThemedText>
+                </View>
+                <View style={styles.tableHeaderCellCreated}>
+                  <ThemedText type="defaultSemiBold" style={styles.tableHeaderText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Created
+                  </ThemedText>
+                </View>
+                <View style={styles.tableHeaderCellActions}>
+                  <ThemedText type="defaultSemiBold" style={styles.tableHeaderText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Actions
+                  </ThemedText>
+                </View>
+              </View>
 
-                  <View style={styles.userInfo}>
+            {/* Table Body */}
+            {filteredProfiles.length === 0 ? (
+              <View style={[styles.tableEmptyRow, { minWidth: 1000 }]}>
+                <View style={styles.tableEmptyCell}>
+                  <RemixIcon name="user-3-line" size={48} color={colors.textSecondary} />
+                  <ThemedText type="defaultSemiBold" style={styles.emptyText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                    {searchQuery
+                      ? `No ${userTypeFilter} users found matching your search`
+                      : `No ${userTypeFilter} user profiles found`}
+                  </ThemedText>
+                </View>
+              </View>
+            ) : (
+              <FlatList
+                key={`users-list-${userTypeFilter}-${page}`}
+                data={paginatedProfiles}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+                renderItem={({ item: profile }) => (
+                  <View style={[styles.tableRow, { backgroundColor: colors.rowBackground, borderBottomColor: colors.divider }]}>
+                    {/* Checkbox */}
+                    <View style={styles.tableCellCheckbox}>
+                      <Pressable onPress={() => handleToggleSelect(profile.userId)} style={styles.checkboxContainer}>
+                        <View
+                          style={[
+                            styles.checkbox,
+                            { borderColor: selectedUserIds.has(profile.userId) ? colors.buttonPrimary : colors.textSecondary },
+                            selectedUserIds.has(profile.userId) ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
+                          ]}>
+                          {selectedUserIds.has(profile.userId) && (
+                            <RemixIcon name="check-line" size={14} color={colors.iconAccentLight} />
+                          )}
+                        </View>
+                      </Pressable>
+                    </View>
+
                     {/* Name */}
-                    <View style={styles.userNameRow}>
-                      <View style={[styles.avatar, { backgroundColor: colors.avatarBackground }]}>
-                        <ThemedText type="defaultSemiBold" style={styles.avatarText} lightColor={colors.avatarText} darkColor={colors.avatarText}>
-                          {getInitials(profile.fullName)}
+                    <View style={styles.tableCellName}>
+                      <View style={styles.nameCellContent}>
+                        <View style={[styles.avatar, { backgroundColor: colors.avatarBackground }]}>
+                          <ThemedText type="defaultSemiBold" style={styles.avatarText} lightColor={colors.avatarText} darkColor={colors.avatarText}>
+                            {getInitials(profile.fullName)}
+                          </ThemedText>
+                        </View>
+                        <View style={styles.nameTextContainer}>
+                          <ThemedText type="defaultSemiBold" style={styles.userName} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                            {profile.fullName}
+                          </ThemedText>
+                          {profile.preferredName && profile.preferredName !== profile.fullName && (
+                            <ThemedText type="default" style={styles.userPreferredName} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                              ({profile.preferredName})
+                            </ThemedText>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Email */}
+                    <View style={styles.tableCellEmail}>
+                      <View style={styles.emailCellContent}>
+                        <RemixIcon name="mail-line" size={14} color={colors.textSecondary} />
+                        <ThemedText type="default" style={styles.userEmail} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                          {profile.email}
                         </ThemedText>
                       </View>
-                      <View style={styles.userNameContainer}>
-                        <ThemedText type="defaultSemiBold" style={styles.userName} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
-                          {profile.fullName}
-                        </ThemedText>
-                        {profile.preferredName && profile.preferredName !== profile.fullName && (
-                          <ThemedText type="default" style={styles.userPreferredName} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                            ({profile.preferredName})
+                    </View>
+
+                    {/* Status */}
+                    <View style={styles.tableCellStatus}>
+                      <View style={styles.statusContainer}>
+                        {isCreditsEmailSent(profile) && isCreditsAssigned(profile) ? (
+                          <View style={styles.statusBadges}>
+                            <View style={[styles.statusBadge, { backgroundColor: colors.badgeSent }]}>
+                              <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
+                              <ThemedText type="default" style={styles.statusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                                Sent
+                              </ThemedText>
+                            </View>
+                            <View style={[styles.statusBadge, { backgroundColor: colors.badgeAssigned }]}>
+                              <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
+                              <ThemedText type="default" style={styles.statusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                                Assigned
+                              </ThemedText>
+                            </View>
+                          </View>
+                        ) : isCreditsEmailSent(profile) ? (
+                          <View style={[styles.statusBadge, { backgroundColor: colors.badgeSent }]}>
+                            <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
+                            <ThemedText type="default" style={styles.statusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                              Sent
+                            </ThemedText>
+                          </View>
+                        ) : isCreditsAssigned(profile) ? (
+                          <View style={[styles.statusBadge, { backgroundColor: colors.badgeAssigned }]}>
+                            <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
+                            <ThemedText type="default" style={styles.statusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                              Assigned
+                            </ThemedText>
+                          </View>
+                        ) : (
+                          <ThemedText type="default" style={styles.statusBadgeTextNotSent} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                            Not Sent
                           </ThemedText>
                         )}
                       </View>
                     </View>
 
-                    {/* Email */}
-                    <View style={styles.userEmailRow}>
-                      <RemixIcon name="mail-line" size={14} color={colors.textSecondary} />
-                      <ThemedText type="default" style={styles.userEmail} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                        {profile.email}
+                    {/* Referral Source */}
+                    <View style={styles.tableCellReferralSource}>
+                      <ThemedText type="default" style={styles.referralSourceText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                        {profile.referralSource || 'N/A'}
                       </ThemedText>
-                    </View>
-
-                    {/* Status */}
-                    <View style={styles.statusContainer}>
-                      {isCreditsEmailSent(profile) && isCreditsAssigned(profile) ? (
-                        <View style={styles.statusBadges}>
-                          <View style={styles.statusBadgePlain}>
-                            <RemixIcon name="check-line" size={12} color={colors.textSecondary} />
-                            <ThemedText type="default" style={styles.statusBadgeTextPlain} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                              Sent
-                            </ThemedText>
-                          </View>
-                          <View style={styles.statusBadgePlain}>
-                            <RemixIcon name="check-line" size={12} color={colors.textSecondary} />
-                            <ThemedText type="default" style={styles.statusBadgeTextPlain} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                              Assigned
-                            </ThemedText>
-                          </View>
-                        </View>
-                      ) : isCreditsEmailSent(profile) ? (
-                        <View style={styles.statusBadgePlain}>
-                          <RemixIcon name="check-line" size={12} color={colors.textSecondary} />
-                          <ThemedText type="default" style={styles.statusBadgeTextPlain} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                            Sent
-                          </ThemedText>
-                        </View>
-                      ) : isCreditsAssigned(profile) ? (
-                        <View style={styles.statusBadgePlain}>
-                          <RemixIcon name="check-line" size={12} color={colors.textSecondary} />
-                          <ThemedText type="default" style={styles.statusBadgeTextPlain} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                            Assigned
-                          </ThemedText>
-                        </View>
-                      ) : (
-                        <ThemedText type="default" style={styles.statusBadgeTextNotSent} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                          Not Sent
-                        </ThemedText>
-                      )}
                     </View>
 
                     {/* User ID */}
-                    <View style={styles.userIdRow}>
-                      <ThemedText type="default" style={styles.userIdLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                        User ID:
-                      </ThemedText>
+                    <View style={styles.tableCellUserId}>
                       <ThemedText type="default" style={styles.userIdValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                         {profile.userId.slice(0, 8)}...
                       </ThemedText>
                     </View>
 
-                    {/* Dates */}
-                    <View style={styles.datesRow}>
+                    {/* Created */}
+                    <View style={styles.tableCellCreated}>
                       <View style={styles.dateItem}>
-                        <RemixIcon name="calendar-line" size={14} color={colors.textSecondary} />
+                        <RemixIcon name="calendar-line" size={12} color={colors.textSecondary} />
                         <ThemedText type="default" style={styles.dateText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                          Created: {formatDate(profile.createdAt)}
-                        </ThemedText>
-                      </View>
-                      <View style={styles.dateItem}>
-                        <RemixIcon name="calendar-line" size={14} color={colors.textSecondary} />
-                        <ThemedText type="default" style={styles.dateText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                          Updated: {formatDate(profile.updatedAt)}
+                          {formatDate(profile.createdAt)}
                         </ThemedText>
                       </View>
                     </View>
 
                     {/* Actions */}
-                    <View style={styles.actionsRow}>
-                      <Pressable
-                        onPress={() => {
-                          setUserToAssignCredits(profile);
-                          setAssignCreditsDialogOpen(true);
-                        }}
-                        style={[styles.actionButtonSmall, styles.assignButton, { backgroundColor: colors.buttonSecondary }]}>
-                        <RemixIcon name="bank-card-line" size={18} color={colors.textPrimary} />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => handleDeleteClick(profile)}
-                        style={[styles.actionButtonSmall, styles.deleteButtonSmall]}>
-                        <RemixIcon name="delete-bin-line" size={18} color={colors.buttonDanger} />
-                      </Pressable>
+                    <View style={styles.tableCellActions}>
+                      <View style={styles.actionsRow}>
+                        <Pressable
+                          onPress={() => {
+                            setUserToAssignCredits(profile);
+                            setAssignCreditsDialogOpen(true);
+                          }}
+                          style={[styles.actionButtonSmall, styles.assignButton, { backgroundColor: colors.buttonSecondary }]}>
+                          <RemixIcon name="file-text-line" size={16} color={colors.textPrimary} />
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleDeleteClick(profile)}
+                          style={[styles.actionButtonSmall, styles.deleteButtonSmall]}>
+                          <RemixIcon name="delete-bin-line" size={16} color={colors.buttonDanger} />
+                        </Pressable>
+                      </View>
                     </View>
                   </View>
-                </View>
-              )}
-            />
-          )}
+                )}
+              />
+            )}
+            </View>
+          </ScrollView>
 
           {/* Pagination */}
           {totalPages > 1 && (
@@ -1036,7 +1065,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   refreshButton: {
-    // Background color applied inline
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteButton: {
     // Background color applied inline
@@ -1104,6 +1137,145 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
   },
+  // Table styles
+  tableScrollView: {
+    flex: 1,
+  },
+  tableScrollContent: {
+    minWidth: 1000, // Minimum width to enable horizontal scrolling
+  },
+  tableContainer: {
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: 'hidden',
+    minWidth: 1000,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    minWidth: 1000,
+  },
+  tableHeaderCellCheckbox: {
+    width: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tableHeaderCellName: {
+    width: 180,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableHeaderCellEmail: {
+    width: 200,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableHeaderCellStatus: {
+    width: 140,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableHeaderCellReferralSource: {
+    width: 140,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableHeaderCellUserId: {
+    width: 120,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableHeaderCellCreated: {
+    width: 160,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableHeaderCellActions: {
+    width: 110,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableHeaderText: {
+    fontSize: 13,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    minHeight: 60,
+    minWidth: 1000,
+  },
+  tableCellCheckbox: {
+    width: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tableCellName: {
+    width: 180,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableCellEmail: {
+    width: 200,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableCellStatus: {
+    width: 140,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableCellReferralSource: {
+    width: 140,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableCellUserId: {
+    width: 120,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableCellCreated: {
+    width: 160,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableCellActions: {
+    width: 110,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tableEmptyRow: {
+    paddingVertical: 48,
+    paddingHorizontal: 16,
+    width: '100%',
+  },
+  tableEmptyCell: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    width: '100%',
+  },
+  nameCellContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  nameTextContainer: {
+    flex: 1,
+  },
+  emailCellContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  referralSourceText: {
+    fontSize: 13,
+  },
+  // Legacy styles kept for compatibility
   userRow: {
     flexDirection: 'row',
     borderRadius: 12,
@@ -1111,7 +1283,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     gap: 12,
-    // Background and border colors applied inline
   },
   userInfo: {
     flex: 1,
@@ -1128,7 +1299,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    // Background color applied inline
   },
   avatarText: {
     fontSize: 14,
@@ -1158,14 +1328,15 @@ const styles = StyleSheet.create({
   statusBadges: {
     flexDirection: 'row',
     gap: 6,
+    flexWrap: 'wrap',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
   statusBadgePlain: {
     flexDirection: 'row',
@@ -1232,11 +1403,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 8,
-    minWidth: 44,
-    minHeight: 44,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+    minWidth: 36,
+    minHeight: 36,
   },
   assignButton: {
     // Background color applied inline

@@ -686,15 +686,15 @@ const styles = StyleSheet.create({
   },
   tabsList: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     flexWrap: 'wrap',
     // Background color applied inline
   },
   tab: {
     flex: 1,
-    minWidth: 80,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    minWidth: 70,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderRadius: 8,
     alignItems: 'center',
     // Background color applied inline
@@ -706,7 +706,7 @@ const styles = StyleSheet.create({
     // Background color applied inline
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
   },
   tabTextActive: {
     color: '#FFFFFF',

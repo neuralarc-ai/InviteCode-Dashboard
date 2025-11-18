@@ -106,7 +106,7 @@ export function CreateUserDialog({
 
   const getPasswordStrength = useCallback((passwordValue: string): { strength: 'weak' | 'medium' | 'strong'; color: string } => {
     if (passwordValue.length === 0) {
-      return { strength: 'weak', color: colors.secondaryText };
+      return { strength: 'weak', color: colors.textSecondary };
     }
     if (passwordValue.length < 6) {
       return { strength: 'weak', color: colors.weakPassword };
@@ -115,7 +115,7 @@ export function CreateUserDialog({
       return { strength: 'medium', color: colors.mediumPassword };
     }
     return { strength: 'strong', color: colors.strongPassword };
-  }, []);
+  }, [colors.textSecondary, colors.weakPassword, colors.mediumPassword, colors.strongPassword]);
 
   const passwordStrength = getPasswordStrength(password);
 
@@ -220,6 +220,7 @@ export function CreateUserDialog({
         } else if (errorMessage.includes('400') || errorMessage.includes('Invalid')) {
           errorMessage = 'Invalid input data. Please check your entries.';
         }
+
       }
       setErrors({ email: errorMessage });
     } finally {
@@ -975,3 +976,4 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
+

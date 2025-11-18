@@ -10,6 +10,7 @@ import { useAuth } from '@/providers/auth-context';
 import { useTheme } from '@/providers/theme-context';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNewUsersNotification } from '@/hooks/use-new-users-notification';
 
 type MenuItem = {
   readonly icon: IconName;
@@ -22,7 +23,7 @@ const menuItems = [
   { icon: 'dashboard-line', label: 'Dashboard', route: '/dashboard-overview' as const },
   { icon: 'user-3-line', label: 'Users', route: '/users' as const },
   { icon: 'bank-card-line', label: 'Credits', route: '/credits' as const },
-  { icon: 'shopping-cart-2-line', label: 'Purchased Credits', route: '/purchased-credits' as const },
+  { icon: 'shopping-cart-2-line', label: 'Paid Users', route: '/purchased-credits' as const },
   { icon: 'file-list-3-line', label: 'Usage Logs', route: '/usage-logs' as const },
 ] satisfies readonly MenuItem[];
 
@@ -33,6 +34,7 @@ export default function DashboardScreen(): ReactElement {
   const { colorScheme, toggleTheme } = useTheme();
   const theme = useColorScheme();
   const colors = Colors[theme];
+  const { newUsersCount, newPaidUsersCount } = useNewUsersNotification();
   const [activeLabel, setActiveLabel] = useState<MenuItem['label']>(() => {
     const matchedItem = menuItems.find((item) => item.route === pathname);
     if (matchedItem) {
@@ -88,17 +90,33 @@ export default function DashboardScreen(): ReactElement {
       <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
         <View style={[styles.sidebarCard, { backgroundColor: colors.sidebarBackground }]}>
           <View style={styles.cardContent}>
-            <LogoMark colors={colors} />
+            <View style={styles.headerSection}>
+              <ThemedText
+                type="subtitle"
+                style={styles.welcomeText}
+                lightColor={colors.textPrimary}
+                darkColor={colors.textPrimary}>
+                WELCOME
+              </ThemedText>
+              <View style={styles.logoContainer}>
+                <LogoMark colors={colors} />
+              </View>
+            </View>
             <View style={styles.menuSection}>
-              {menuItems.map((item) => (
-                <MenuRow
-                  key={item.label}
-                  item={item}
-                  isActive={item.label === activeLabel}
-                  onPress={handleMenuPress}
-                  colors={colors}
-                />
-              ))}
+              {menuItems.map((item) => {
+                const badgeCount =
+                  item.label === 'Users' ? newUsersCount : item.label === 'Paid Users' ? newPaidUsersCount : 0;
+                return (
+                  <MenuRow
+                    key={item.label}
+                    item={item}
+                    isActive={item.label === activeLabel}
+                    onPress={handleMenuPress}
+                    colors={colors}
+                    badgeCount={badgeCount}
+                  />
+                );
+              })}
             </View>
           </View>
           <View style={[styles.footerBar, { backgroundColor: colors.footerBackground }]}>
@@ -149,11 +167,13 @@ const MenuRow = memo(
     isActive,
     onPress,
     colors,
+    badgeCount,
   }: {
     item: MenuItem;
     isActive: boolean;
     onPress: (menuItem: MenuItem) => void;
     colors: typeof Colors.light;
+    badgeCount: number;
   }): ReactElement => {
     const { icon, label } = item;
 
@@ -165,7 +185,7 @@ const MenuRow = memo(
       <Pressable
         onPress={handlePress}
         accessibilityRole="button"
-        accessibilityLabel={`Navigate to ${label}`}
+        accessibilityLabel={`Navigate to ${label}${badgeCount > 0 ? `, ${badgeCount} new` : ''}`}
         style={({ pressed }) => [
           styles.menuItem,
           isActive ? { backgroundColor: colors.activeBackground } : undefined,
@@ -177,6 +197,21 @@ const MenuRow = memo(
           color={isActive ? colors.activeText : colors.textSecondary}
           style={styles.menuIcon}
         />
+        {badgeCount > 0 ? (
+          <View style={[styles.badge, { backgroundColor: '#22C55E' }]}>
+            {badgeCount > 9 ? (
+              <View style={styles.badgeDot} />
+            ) : (
+              <ThemedText
+                type="defaultSemiBold"
+                style={styles.badgeText}
+                lightColor="#FFFFFF"
+                darkColor="#FFFFFF">
+                {badgeCount}
+              </ThemedText>
+            )}
+          </View>
+        ) : null}
         <ThemedText
           type="defaultSemiBold"
           style={[styles.menuLabel, isActive ? styles.menuLabelActive : undefined]}
@@ -192,12 +227,14 @@ MenuRow.displayName = 'MenuRow';
 
 function LogoMark({ colors }: { colors: typeof Colors.light }): ReactElement {
   return (
-    <Svg width={36} height={38} viewBox="0 0 321 327" fill="none">
-      <Path
-        d="M297.53 213.65H231.2C231.2 213.65 231.17 213.65 231.16 213.65C226.15 213.38 223.5 212.04 221.36 209.7C220.22 208.47 219.35 207.01 218.69 205.47C216.6 200.62 215.44 195.01 215.39 190.39V124.2C215.39 111.36 204.98 100.95 192.14 100.95H135.16C132.53 101.05 130.25 101.3 124.47 101C120.42 100.79 116.04 99.34 112.74 96.87C109.59 94.51 108.12 88.99 107.22 84.7C106.25 80.07 105.79 75.34 105.79 70.6V23.03C106.31 10.41 95.9 0 83.06 0H23C10.3 0 0 10.3 0 23V89.44C0 102.23 10.46 112.69 23.25 112.69H82.69C82.94 112.69 83.22 112.73 83.47 112.73C91.59 112.9 100.49 116.19 102.5 123.85C102.73 124.72 102.81 125.63 102.81 126.53L102.7 185.43C102.54 191.12 102.22 196.51 100.44 200.89C97.53 207.63 92.26 213.92 85.5 217.07C82.41 218.55 79.03 219.32 75.61 219.32H26.67C10.01 219.32 0 229.34 0 241.69V300.48C0 314.76 11.57 326.33 25.85 326.33H90.48C103.32 326.33 112.69 318.03 112.69 305.19L111.81 242.57C111.81 241.5 111.74 240.16 111.77 238.59C111.8 236.64 111.74 235 111.83 233.06C112.02 228.85 112.24 224.36 114.52 220.07C117.51 214.45 125.69 213.96 130.13 213.66H187.1C194.16 213.66 200.79 217.29 204.39 223.37C206.59 227.75 207.83 232.14 208.08 236.91V303.1C208.08 315.94 218.49 326.35 231.33 326.35H297.52C310.37 326.35 320.78 315.94 320.78 303.09V236.91C320.78 224.07 310.37 213.66 297.53 213.66V213.65Z"
-        fill={colors.icon}
-      />
-    </Svg>
+    <View style={styles.logoWrapper}>
+      <Svg width={42} height={44} viewBox="0 0 321 327" fill="none">
+        <Path
+          d="M297.53 213.65H231.2C231.2 213.65 231.17 213.65 231.16 213.65C226.15 213.38 223.5 212.04 221.36 209.7C220.22 208.47 219.35 207.01 218.69 205.47C216.6 200.62 215.44 195.01 215.39 190.39V124.2C215.39 111.36 204.98 100.95 192.14 100.95H135.16C132.53 101.05 130.25 101.3 124.47 101C120.42 100.79 116.04 99.34 112.74 96.87C109.59 94.51 108.12 88.99 107.22 84.7C106.25 80.07 105.79 75.34 105.79 70.6V23.03C106.31 10.41 95.9 0 83.06 0H23C10.3 0 0 10.3 0 23V89.44C0 102.23 10.46 112.69 23.25 112.69H82.69C82.94 112.69 83.22 112.73 83.47 112.73C91.59 112.9 100.49 116.19 102.5 123.85C102.73 124.72 102.81 125.63 102.81 126.53L102.7 185.43C102.54 191.12 102.22 196.51 100.44 200.89C97.53 207.63 92.26 213.92 85.5 217.07C82.41 218.55 79.03 219.32 75.61 219.32H26.67C10.01 219.32 0 229.34 0 241.69V300.48C0 314.76 11.57 326.33 25.85 326.33H90.48C103.32 326.33 112.69 318.03 112.69 305.19L111.81 242.57C111.81 241.5 111.74 240.16 111.77 238.59C111.8 236.64 111.74 235 111.83 233.06C112.02 228.85 112.24 224.36 114.52 220.07C117.51 214.45 125.69 213.96 130.13 213.66H187.1C194.16 213.66 200.79 217.29 204.39 223.37C206.59 227.75 207.83 232.14 208.08 236.91V303.1C208.08 315.94 218.49 326.35 231.33 326.35H297.52C310.37 326.35 320.78 315.94 320.78 303.09V236.91C320.78 224.07 310.37 213.66 297.53 213.66V213.65Z"
+          fill={colors.icon}
+        />
+      </Svg>
+    </View>
   );
 }
 
@@ -215,59 +252,85 @@ const styles = StyleSheet.create({
   sidebarCard: {
     width: '100%',
     maxWidth: 360,
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    borderRadius: 28,
+    paddingHorizontal: 28,
+    paddingVertical: 36,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 20,
-    elevation: 6,
-    gap: 28,
-  },
-  cardContent: {
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 24,
+    elevation: 8,
     gap: 32,
   },
+  cardContent: {
+    gap: 36,
+  },
+  headerSection: {
+    alignItems: 'center',
+    gap: 20,
+    paddingBottom: 8,
+  },
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    opacity: 0.85,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
   menuSection: {
-    gap: 14,
-    marginTop: 32,
+    gap: 12,
+    marginTop: 8,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: 20,
     backgroundColor: 'transparent',
   },
   menuItemPressed: {
-    opacity: 0.85,
+    opacity: 0.75,
+    transform: [{ scale: 0.98 }],
   },
   menuIcon: {
-    marginRight: 14,
+    marginRight: 16,
   },
   menuLabel: {
-    fontSize: 18,
+    fontSize: 17,
+    letterSpacing: 0.3,
   },
   menuLabelActive: {
     // Color handled by ThemedText
+    fontWeight: '600',
   },
   footerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    marginTop: 4,
   },
   themeToggle: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 50,
+    height: 50,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 48,
-    minHeight: 48,
+    minWidth: 50,
+    minHeight: 50,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
   },
   themeTogglePressed: {
     opacity: 0.7,
@@ -276,16 +339,54 @@ const styles = StyleSheet.create({
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    gap: 10,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
   },
   logoutButtonPressed: {
     opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
   logoutLabel: {
     fontSize: 16,
+    letterSpacing: 0.2,
+  },
+  logoWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+  },
+  badge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 7,
+    marginRight: 12,
+    zIndex: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
+  },
+  badgeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 

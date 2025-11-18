@@ -15,6 +15,8 @@ import { useAuth } from '@/providers/auth-context';
 import { useDashboardSummary } from '@/hooks/use-dashboard-summary';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AnalyticsCharts } from '@/components/analytics-charts';
+import { RecentCreditTransactions } from '@/components/recent-credit-transactions';
 
 type MetricCard = {
   readonly title: string;
@@ -613,53 +615,11 @@ export default function DashboardOverviewScreen(): ReactElement {
           </View>
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <View style={[styles.sectionIconBadge, { backgroundColor: colors.badgeBackground }]}>
-                <RemixIcon name="money-dollar-circle-line" size={18} color={colors.iconAccent} />
-              </View>
-              <ThemedText
-                type="subtitle"
-                style={styles.sectionTitle}
-                lightColor={colors.textPrimary}
-                darkColor={colors.textPrimary}>
-                Recent Credit Transactions
-              </ThemedText>
-            </View>
-            <ThemedText
-              style={styles.sectionSubtitle}
-              lightColor={colors.textSecondary}
-              darkColor={colors.textSecondary}>
-              Latest 5 credit transactions
-            </ThemedText>
-          </View>
+        {/* Recent Credit Transactions Section */}
+        <RecentCreditTransactions />
 
-          <View style={styles.transactionList}>
-            {isSummaryLoading && recentTransactions.length === 0 ? (
-              <View style={styles.metricsLoading}>
-                <ActivityIndicator color={colors.iconAccent} />
-                <ThemedText
-                  style={styles.loadingHint}
-                  lightColor={colors.textSecondary}
-                  darkColor={colors.textSecondary}>
-                  Loading recent transactions...
-                </ThemedText>
-              </View>
-            ) : recentTransactions.length > 0 ? (
-              recentTransactions.map((transaction) => (
-                <RecentTransactionRow key={transaction.id} transaction={transaction} colors={colors} />
-              ))
-            ) : (
-              <ThemedText
-                style={styles.emptyStateText}
-                lightColor={colors.textSecondary}
-                darkColor={colors.textSecondary}>
-                No recent credit transactions available.
-              </ThemedText>
-            )}
-          </View>
-        </View>
+        {/* Analytics Charts Section */}
+        <AnalyticsCharts />
       </ScrollView>
     </SafeAreaView>
   );
