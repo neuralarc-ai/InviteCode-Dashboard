@@ -64,11 +64,29 @@ async def send_individual_email(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to send email",
             )
-    except Exception as e:
-        logger.error(f"Error sending individual email: {e}")
+    except ValueError as e:
+        # Configuration errors
+        error_msg = str(e)
+        logger.error(f"Configuration error sending individual email: {error_msg}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send email",
+            detail=error_msg,
+        )
+    except ConnectionError as e:
+        # Connection errors
+        error_msg = str(e)
+        logger.error(f"Connection error sending individual email: {error_msg}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_msg,
+        )
+    except Exception as e:
+        # Other errors - extract detailed message
+        error_msg = str(e) if str(e) else "Failed to send email"
+        logger.error(f"Error sending individual email: {error_msg}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=error_msg,
         )
 
 

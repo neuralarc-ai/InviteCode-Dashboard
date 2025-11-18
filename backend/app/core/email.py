@@ -3,6 +3,7 @@ Email utilities for sending emails with templates and attachments.
 """
 import os
 import aiosmtplib
+import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
@@ -563,8 +564,24 @@ async def send_email(
         attachments: List of MIMEImage attachments (optional)
         
     Returns:
-        True if email sent successfully, False otherwise
+        True if email sent successfully
+        
+    Raises:
+        ValueError: If SMTP configuration is missing or invalid
+        ConnectionError: If unable to connect to SMTP server
+        Exception: For other SMTP-related errors with detailed messages
     """
+    # Validate SMTP configuration
+    if not settings.smtp_host:
+        error_msg = "SMTP host is not configured"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+    
+    if not settings.sender_email:
+        error_msg = "Sender email is not configured"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+    
     try:
         # Create message
         msg = MIMEMultipart("alternative")
@@ -599,7 +616,16 @@ async def send_email(
         logger.info(f"Email sent successfully to {to_email}")
         return True
         
+    except smtplib.SMTPException as e:
+        error_msg = f"SMTP error: {str(e)}"
+        logger.error(f"Failed to send email to {to_email}: {error_msg}")
+        raise Exception(error_msg) from e
+    except (ConnectionError, OSError, TimeoutError) as e:
+        error_msg = f"Unable to connect to SMTP server at {settings.smtp_host}:{settings.smtp_port}. {str(e)}"
+        logger.error(f"Failed to send email to {to_email}: {error_msg}")
+        raise ConnectionError(error_msg) from e
     except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {e}")
-        return False
+        error_msg = f"Failed to send email: {str(e)}"
+        logger.error(f"Failed to send email to {to_email}: {error_msg}")
+        raise Exception(error_msg) from e
 

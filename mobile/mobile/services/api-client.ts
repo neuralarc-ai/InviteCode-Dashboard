@@ -99,12 +99,24 @@ async function apiRequest<T>(
     if (!response.ok) {
       // Try to parse error response
       let errorMessage = `HTTP error! status: ${response.status}`;
+      let errorData: any = null;
+      
       try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.detail || errorMessage;
+        errorData = await response.json();
+        // FastAPI returns errors in 'detail' field
+        errorMessage = errorData.detail || errorData.message || errorMessage;
       } catch {
         // If JSON parsing fails, use status text
         errorMessage = response.statusText || errorMessage;
+      }
+      
+      // Log detailed error information for debugging
+      if (__DEV__) {
+        console.error(`[API] Error response from ${endpoint}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
       }
       
       // Handle 401 Unauthorized - token expired or missing
