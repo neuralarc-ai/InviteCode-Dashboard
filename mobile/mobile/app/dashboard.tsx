@@ -22,7 +22,7 @@ const menuItems = [
   { icon: 'dashboard-line', label: 'Dashboard', route: '/dashboard-overview' as const },
   { icon: 'user-3-line', label: 'Users', route: '/users' as const },
   { icon: 'bank-card-line', label: 'Credits', route: '/credits' as const },
-  { icon: 'shopping-cart-2-line', label: 'Purchased Credits', route: '/purchased-credits' as const },
+  { icon: 'shopping-cart-2-line', label: 'Paid Users', route: '/purchased-credits' as const },
   { icon: 'file-list-3-line', label: 'Usage Logs', route: '/usage-logs' as const },
 ] satisfies readonly MenuItem[];
 

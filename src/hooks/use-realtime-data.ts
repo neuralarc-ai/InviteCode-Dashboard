@@ -1538,7 +1538,7 @@ export function useCreditBalances() {
         totalUsed: parseFloat(balance.totalUsed) || 0,
         lastUpdated: balance.lastUpdated ? new Date(balance.lastUpdated) : new Date(),
         metadata: balance.metadata || {},
-        userEmail: balance.userEmail || 'Email not available',
+        userEmail: balance.userEmail || undefined,
         userName: balance.userName || `User ${balance.userId.slice(0, 8)}`,
       }));
 

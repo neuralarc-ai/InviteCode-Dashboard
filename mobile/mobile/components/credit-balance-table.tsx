@@ -42,11 +42,9 @@ export function CreditBalanceTable(): ReactElement {
   const [selectedBalance, setSelectedBalance] = useState<{ userId: string; userName: string; userEmail: string } | null>(null);
   const rowsPerPage = 10;
 
-  const fetchCreditBalances = useCallback(async (silent: boolean = false) => {
+  const fetchCreditBalances = useCallback(async () => {
     try {
-      if (!silent) {
-        setIsLoading(true);
-      }
+      setIsLoading(true);
       setError(null);
 
       console.log('Fetching credit balances via API...');
@@ -58,7 +56,7 @@ export function CreditBalanceTable(): ReactElement {
         totalPurchased: parseFloat(String(balance.total_purchased || 0)) || 0,
         totalUsed: parseFloat(String(balance.total_used || 0)) || 0,
         lastUpdated: balance.last_updated ? new Date(balance.last_updated) : new Date(),
-        userEmail: balance.user_email || 'Email not available',
+        userEmail: balance.user_email || undefined,
         userName: balance.user_name || `User ${balance.user_id.slice(0, 8)}`,
       }));
 
@@ -68,37 +66,37 @@ export function CreditBalanceTable(): ReactElement {
       console.error('Error fetching credit balances:', err);
       setError(err instanceof Error ? err.message : 'Failed to load credit balances');
     } finally {
-      if (!silent) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
-    fetchCreditBalances(false);
-  }, [fetchCreditBalances]);
+    fetchCreditBalances();
 
-  // Set up real-time subscription for credit_balance table changes
-  useEffect(() => {
+    // Set up real-time subscription for credit_balance table (matching web version)
     console.log('Setting up real-time subscription for credit_balance table...');
-    
     const subscription = supabase
       .channel('credit_balance_changes')
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events: INSERT, UPDATE, DELETE
+          event: '*',
           schema: 'public',
           table: 'credit_balance',
         },
         (payload) => {
           console.log('Real-time credit balance update:', payload);
-          // Refetch on any change (silent mode to avoid loading spinner)
-          fetchCreditBalances(true);
+          // Refetch credit balances on any change (matching web version behavior)
+          fetchCreditBalances();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to credit_balance changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to credit_balance changes');
+        }
+      });
 
     return () => {
       console.log('Cleaning up real-time subscription...');
@@ -172,7 +170,7 @@ export function CreditBalanceTable(): ReactElement {
   }, []);
 
   const handleCreditAssignmentSuccess = useCallback(() => {
-    fetchCreditBalances(false);
+    fetchCreditBalances();
     setCreditDialogOpen(false);
   }, [fetchCreditBalances]);
 
@@ -229,7 +227,7 @@ export function CreditBalanceTable(): ReactElement {
             <ThemedText type="default" style={styles.errorText} lightColor={colors.buttonDanger} darkColor={colors.buttonDanger}>
               {error}
             </ThemedText>
-            <Pressable onPress={() => fetchCreditBalances(false)} style={[styles.retryButton, { backgroundColor: colors.buttonPrimary }]}>
+            <Pressable onPress={fetchCreditBalances} style={[styles.retryButton, { backgroundColor: colors.buttonPrimary }]}>
               <ThemedText type="defaultSemiBold" style={styles.retryButtonText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                 Retry
               </ThemedText>
@@ -272,7 +270,7 @@ export function CreditBalanceTable(): ReactElement {
             />
           </View>
           <Pressable
-            onPress={() => fetchCreditBalances(false)}
+            onPress={fetchCreditBalances}
               disabled={isLoading}
               style={({ pressed }) => [styles.refreshButton, { backgroundColor: colors.cardBackground }, pressed && styles.refreshButtonPressed, isLoading && styles.refreshButtonDisabled]}>
               <RemixIcon name="refresh-line" size={20} color={isLoading ? colors.textSecondary : colors.textPrimary} />
@@ -300,12 +298,14 @@ export function CreditBalanceTable(): ReactElement {
                       <ThemedText type="defaultSemiBold" style={styles.userName} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                         {balance.userName}
                       </ThemedText>
-                      <View style={styles.emailRow}>
-                        <RemixIcon name="mail-line" size={14} color={colors.textSecondary} />
-                        <ThemedText type="default" style={styles.userEmail} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                          {balance.userEmail}
-                        </ThemedText>
-                      </View>
+                      {balance.userEmail && balance.userEmail !== 'Email not available' && (
+                        <View style={styles.emailRow}>
+                          <RemixIcon name="mail-line" size={14} color={colors.textSecondary} />
+                          <ThemedText type="default" style={styles.userEmail} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                            {balance.userEmail}
+                          </ThemedText>
+                        </View>
+                      )}
                     </View>
                   </View>
                 </View>
@@ -329,26 +329,10 @@ export function CreditBalanceTable(): ReactElement {
                   </View>
                   <View style={styles.balanceRow}>
                     <ThemedText type="default" style={styles.balanceLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                      Total Purchased
-                    </ThemedText>
-                    <ThemedText type="default" style={styles.balanceValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
-                      {formatCurrency(balance.totalPurchased)}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.balanceRow}>
-                    <ThemedText type="default" style={styles.balanceLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                       Purchased Credits
                     </ThemedText>
                     <ThemedText type="defaultSemiBold" style={styles.balanceValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                       {formatCredits(balance.totalPurchased)}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.balanceRow}>
-                    <ThemedText type="default" style={styles.balanceLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                      Total Used
-                    </ThemedText>
-                    <ThemedText type="default" style={styles.balanceValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
-                      {formatCurrency(balance.totalUsed)}
                     </ThemedText>
                   </View>
                   <View style={styles.balanceRow}>

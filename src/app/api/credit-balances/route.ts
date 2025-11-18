@@ -199,11 +199,11 @@ export async function GET(request: NextRequest) {
     // Add user email and name to each balance
     // Priority for name: user_profiles > auth metadata > waitlist > email username > User ID
     const balancesWithUsers = transformedData.map(balance => {
-      const email = userIdToEmail.get(balance.userId) || 'Email not available';
+      const email = userIdToEmail.get(balance.userId) || null;
       let userName = userIdToName.get(balance.userId);
       
       // If no name found, try to extract from email
-      if (!userName && email !== 'Email not available') {
+      if (!userName && email) {
         const emailName = email.split('@')[0];
         // If email name looks reasonable (not too short, starts with letter)
         if (emailName.length > 2 && /^[a-zA-Z]/.test(emailName)) {
@@ -218,7 +218,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...balance,
-        userEmail: email,
+        userEmail: email || null,
         userName: userName
       };
     });

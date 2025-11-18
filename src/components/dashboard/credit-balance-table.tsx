@@ -201,9 +201,7 @@ export function CreditBalanceTable() {
                 <TableHead>User</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead>Credits</TableHead>
-                <TableHead>Total Purchased</TableHead>
                 <TableHead>Purchased Credits</TableHead>
-                <TableHead>Total Used</TableHead>
                 <TableHead>Used Credits</TableHead>
                 <TableHead>Last Updated</TableHead>
                 <TableHead>Actions</TableHead>
@@ -212,7 +210,7 @@ export function CreditBalanceTable() {
             <TableBody>
               {paginatedBalances.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
@@ -231,10 +229,12 @@ export function CreditBalanceTable() {
                         </div>
                         <div>
                           <div className="font-medium">{balance.userName}</div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {balance.userEmail}
-                          </div>
+                          {balance.userEmail && balance.userEmail !== 'Email not available' && (
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              {balance.userEmail}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -249,18 +249,8 @@ export function CreditBalanceTable() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono text-foreground">
-                        {formatCurrency(balance.totalPurchased)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
                       <span className="font-mono font-semibold text-foreground">
                         {formatCredits(balance.totalPurchased)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-foreground">
-                        {formatCurrency(balance.totalUsed)}
                       </span>
                     </TableCell>
                     <TableCell>
