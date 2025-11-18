@@ -180,7 +180,7 @@ async def assign_credits(
                 "total_purchased": new_total_purchased,
                 "last_updated": now,
                 "metadata": updated_metadata,
-            }).eq("user_id", user_id).select().single().execute()
+            }).select("*").eq("user_id", user_id).single().execute()
             
             if not update_response.data:
                 error_msg = f"No data returned after updating balance for user {user_id}"

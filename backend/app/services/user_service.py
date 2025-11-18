@@ -116,24 +116,72 @@ async def create_user(
     try:
         supabase = get_supabase_admin()
         
+        # Validate email format
+        if not email or not email.strip():
+            raise ValueError("Email is required")
+        
+        email_clean = email.strip().lower()
+        
+        # Validate password
+        if not password or len(password) < 6:
+            raise ValueError("Password must be at least 6 characters long")
+        
         # Create auth user
-        auth_response = supabase.auth.admin.create_user({
-            "email": email,
-            "password": password,
-            "email_confirm": True,
-        })
+        try:
+            auth_response = supabase.auth.admin.create_user({
+                "email": email_clean,
+                "password": password,
+                "email_confirm": True,
+            })
+        except Exception as auth_error:
+            error_msg = str(auth_error)
+            logger.error(f"Supabase auth error: {error_msg}")
+            # Handle duplicate email error
+            if 'already registered' in error_msg.lower() or 'already exists' in error_msg.lower() or 'duplicate' in error_msg.lower():
+                raise ValueError("A user with this email address already exists")
+            raise Exception(f"Failed to create auth user: {error_msg}")
         
-        if not auth_response.user:
-            raise Exception("Failed to create auth user")
+        # Check for errors in the response (Supabase Python client may return error objects)
+        if hasattr(auth_response, 'error') and auth_response.error:
+            error_msg = str(auth_response.error)
+            logger.error(f"Error in auth response: {error_msg}")
+            # Handle duplicate email error
+            if 'already registered' in error_msg.lower() or 'already exists' in error_msg.lower() or 'duplicate' in error_msg.lower():
+                raise ValueError("A user with this email address already exists")
+            raise Exception(f"Failed to create auth user: {error_msg}")
         
-        user_id = auth_response.user.id
+        # Check if user was created successfully
+        # Supabase Python client returns different structures, handle both
+        user = None
+        if hasattr(auth_response, 'user'):
+            user = auth_response.user
+        elif hasattr(auth_response, 'data') and hasattr(auth_response.data, 'user'):
+            user = auth_response.data.user
+        elif isinstance(auth_response, dict) and 'user' in auth_response:
+            user = auth_response['user']
+        
+        if not user:
+            logger.error("Auth user creation failed: No user data returned")
+            logger.error(f"Auth response structure: {type(auth_response)}, attributes: {dir(auth_response) if hasattr(auth_response, '__dict__') else 'N/A'}")
+            raise Exception("Failed to create auth user: No user data returned")
+        
+        # Extract user ID
+        if hasattr(user, 'id'):
+            user_id = user.id
+        elif isinstance(user, dict) and 'id' in user:
+            user_id = user['id']
+        else:
+            logger.error(f"Could not extract user ID from user object: {type(user)}")
+            raise Exception("Failed to extract user ID from auth response")
+        
+        logger.info(f"Auth user created successfully: {user_id}")
         
         # Create user profile
         profile_data = {
             "user_id": user_id,
-            "full_name": full_name,
-            "preferred_name": preferred_name or full_name.split()[0] if full_name else "",
-            "work_description": work_description or "",
+            "full_name": full_name.strip() if full_name else "",
+            "preferred_name": (preferred_name or full_name or "").strip() or (full_name.split()[0] if full_name and full_name.split() else ""),
+            "work_description": (work_description or "").strip(),
             "metadata": metadata or {},
             "plan_type": "seed",
             "account_type": "individual",
@@ -141,9 +189,17 @@ async def create_user(
         
         profile_response = supabase.table("user_profiles").insert(profile_data).select().single().execute()
         
-        return transform_user_profile(profile_response.data, email)
+        if not profile_response.data:
+            logger.error("Failed to create user profile: No data returned")
+            raise Exception("Failed to create user profile")
+        
+        return transform_user_profile(profile_response.data, email_clean)
+    except ValueError as e:
+        # Re-raise ValueError (e.g., duplicate email) as-is
+        logger.error(f"Validation error creating user: {e}")
+        raise
     except Exception as e:
-        logger.error(f"Error creating user: {e}")
+        logger.error(f"Error creating user: {e}", exc_info=True)
         raise
 
 

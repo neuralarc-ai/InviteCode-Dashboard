@@ -47,11 +47,27 @@ async def create_user(
             work_description=request.work_description,
             metadata=request.metadata,
         )
+    except ValueError as e:
+        # Handle validation errors (e.g., duplicate email)
+        error_msg = str(e)
+        logger.error(f"Validation error creating user: {error_msg}")
+        if "already exists" in error_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=error_msg,
+            )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg,
+        )
     except Exception as e:
-        logger.error(f"Error creating user: {e}")
+        error_msg = str(e)
+        logger.error(f"Error creating user: {error_msg}", exc_info=True)
+        # Return more specific error message if available
+        detail = error_msg if error_msg and error_msg != "Failed to create user" else "Failed to create user"
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create user",
+            detail=detail,
         )
 
 

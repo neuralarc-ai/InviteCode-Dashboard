@@ -47,20 +47,31 @@ async function apiRequest<T>(
   
   const url = `${BACKEND_URL}${API_PREFIX}${endpoint}`;
   
+  let response: Response | undefined;
+  
   try {
-    const response = await fetch(url, {
+    response = await fetch(url, {
       ...fetchOptions,
       headers,
     });
     
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(error.message || `HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      // FastAPI returns errors with 'detail' field, but some may use 'message'
+      const errorMessage = errorData.detail || errorData.message || `HTTP error! status: ${response.status}`;
+      throw new Error(errorMessage);
     }
     
     return await response.json();
   } catch (error) {
-    console.error(`API request failed: ${endpoint}`, error);
+    // Log detailed error information for debugging
+    if (__DEV__) {
+      console.error(`[API] Error response from ${endpoint}:`, {
+        status: response?.status,
+        statusText: response?.statusText,
+        errorData: error instanceof Error ? error.message : error,
+      });
+    }
     throw error;
   }
 }
