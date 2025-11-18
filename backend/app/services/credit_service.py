@@ -12,13 +12,27 @@ logger = logging.getLogger(__name__)
 
 def transform_credit_balance(row: dict, user_email: Optional[str] = None, user_name: Optional[str] = None) -> CreditBalanceResponse:
     """Transform database row to CreditBalanceResponse."""
+    # Handle last_updated - can be datetime object or ISO string
+    last_updated = row["last_updated"]
+    if isinstance(last_updated, str):
+        last_updated_dt = datetime.fromisoformat(last_updated.replace("Z", "+00:00") if last_updated.endswith("Z") else last_updated)
+    elif isinstance(last_updated, datetime):
+        last_updated_dt = last_updated
+    else:
+        raise ValueError(f"Invalid last_updated format: {type(last_updated)}")
+    
+    # Handle metadata - ensure it's a dict
+    metadata = row.get("metadata", {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+    
     return CreditBalanceResponse(
         user_id=row["user_id"],
         balance_dollars=float(row["balance_dollars"]),
         total_purchased=float(row["total_purchased"]),
         total_used=float(row["total_used"]),
-        last_updated=datetime.fromisoformat(row["last_updated"]),
-        metadata=row.get("metadata", {}),
+        last_updated=last_updated_dt,
+        metadata=metadata,
         user_email=user_email,
         user_name=user_name,
     )
@@ -128,16 +142,33 @@ async def assign_credits(
         supabase = get_supabase_admin()
         now = datetime.now().isoformat()
         
+        # Validate user_id
+        if not user_id or not isinstance(user_id, str):
+            raise ValueError(f"Invalid user_id: {user_id}")
+        
+        # Validate credits_to_add
+        if credits_to_add <= 0:
+            raise ValueError(f"credits_to_add must be positive, got: {credits_to_add}")
+        
         # Check if user already has a credit balance record
         existing_response = supabase.table("credit_balance").select("*").eq("user_id", user_id).maybe_single().execute()
         
         if existing_response.data:
             # Update existing balance
             existing = existing_response.data
-            new_balance = float(existing["balance_dollars"]) + credits_to_add
-            new_total_purchased = float(existing["total_purchased"]) + credits_to_add
+            try:
+                new_balance = float(existing["balance_dollars"]) + credits_to_add
+                new_total_purchased = float(existing["total_purchased"]) + credits_to_add
+            except (KeyError, ValueError, TypeError) as e:
+                error_msg = f"Error parsing existing balance data: {e}. Data: {existing}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
             
+            # Handle metadata - ensure it's a dict
             updated_metadata = existing.get("metadata", {})
+            if not isinstance(updated_metadata, dict):
+                updated_metadata = {}
+            
             updated_metadata["last_assignment"] = {
                 "amount": credits_to_add,
                 "timestamp": now,
@@ -150,6 +181,11 @@ async def assign_credits(
                 "last_updated": now,
                 "metadata": updated_metadata,
             }).eq("user_id", user_id).select().single().execute()
+            
+            if not update_response.data:
+                error_msg = f"No data returned after updating balance for user {user_id}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
             
             # Fetch user email and name for response
             user_email = None
@@ -171,8 +207,9 @@ async def assign_credits(
                             user_metadata.get("preferred_name") or
                             user_metadata.get("display_name")
                         )
-            except Exception:
-                pass
+            except Exception as auth_err:
+                logger.warning(f"Failed to fetch user info for {user_id}: {auth_err}")
+                # Don't fail the operation if we can't get user info
             
             return transform_credit_balance(update_response.data, user_email=user_email, user_name=user_name)
         else:
@@ -194,6 +231,11 @@ async def assign_credits(
             
             insert_response = supabase.table("credit_balance").insert(insert_data).select().single().execute()
             
+            if not insert_response.data:
+                error_msg = f"No data returned after inserting balance for user {user_id}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
+            
             # Fetch user email and name for response
             user_email = None
             user_name = None
@@ -214,13 +256,19 @@ async def assign_credits(
                             user_metadata.get("preferred_name") or
                             user_metadata.get("display_name")
                         )
-            except Exception:
-                pass
+            except Exception as auth_err:
+                logger.warning(f"Failed to fetch user info for {user_id}: {auth_err}")
+                # Don't fail the operation if we can't get user info
             
             return transform_credit_balance(insert_response.data, user_email=user_email, user_name=user_name)
-    except Exception as e:
-        logger.error(f"Error assigning credits: {e}")
+    except ValueError as e:
+        # Re-raise validation errors as-is
+        logger.error(f"Validation error assigning credits: {e}")
         raise
+    except Exception as e:
+        error_msg = f"Error assigning credits to user {user_id}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        raise Exception(error_msg) from e
 
 
 def transform_credit_purchase(row: dict, user_email: Optional[str] = None, user_name: Optional[str] = None) -> CreditPurchaseResponse:

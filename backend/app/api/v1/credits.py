@@ -64,11 +64,23 @@ async def assign_credits(
                 "totalUsed": balance.total_used,
             },
         )
+    except ValueError as e:
+        # Validation errors - return 400 Bad Request
+        error_msg = str(e)
+        logger.error(f"Validation error assigning credits: {error_msg}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg,
+        )
     except Exception as e:
-        logger.error(f"Error assigning credits: {e}", exc_info=True)
+        # Get detailed error message
+        error_msg = str(e)
+        logger.error(f"Error assigning credits: {error_msg}", exc_info=True)
+        
+        # Return detailed error message to help with debugging
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to assign credits",
+            detail=error_msg,
         )
 
 
