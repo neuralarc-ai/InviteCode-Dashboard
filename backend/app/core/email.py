@@ -604,13 +604,16 @@ async def send_email(
                 msg.attach(attachment)
         
         # Send email
+        # Port 587 uses STARTTLS (connect plain, then upgrade to TLS)
+        # Port 465 uses direct TLS/SSL connection
         await aiosmtplib.send(
             msg,
             hostname=settings.smtp_host,
             port=settings.smtp_port,
             username=settings.smtp_user,
             password=settings.smtp_pass,
-            use_tls=settings.smtp_port == 587,
+            start_tls=settings.smtp_port == 587,  # STARTTLS for port 587
+            use_tls=settings.smtp_port == 465,    # Direct TLS for port 465
         )
         
         logger.info(f"Email sent successfully to {to_email}")
