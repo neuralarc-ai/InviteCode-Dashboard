@@ -116,31 +116,21 @@ Authorization: Bearer <your_jwt_token>
 
 ## Deployment
 
-### Vercel Serverless
+### Vercel Serverless (Recommended)
 
-1. Install Vercel CLI:
-   ```bash
-   npm i -g vercel
-   ```
+**See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions.**
 
-2. Deploy:
-   ```bash
-   vercel
-   ```
+Quick start:
+1. Connect your GitHub repository to Vercel
+2. Set root directory to `backend/` in Vercel project settings
+3. Add all required environment variables (see DEPLOYMENT.md)
+4. Deploy automatically on push to `main` branch
 
-3. Set environment variables in Vercel dashboard
-
-### AWS Lambda
-
-1. Install Serverless Framework:
-   ```bash
-   npm install -g serverless
-   ```
-
-2. Deploy:
-   ```bash
-   serverless deploy
-   ```
+The deployment includes:
+- Automatic deployments from GitHub
+- Serverless function scaling
+- Static file serving for email images
+- Health check and API documentation endpoints
 
 ### Docker
 
