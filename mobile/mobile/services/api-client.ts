@@ -396,7 +396,7 @@ export const emailsApi = {
       body: JSON.stringify(data),
     }),
   
-  getImages: () => apiRequest<Array<{ name: string; url: string }>>('/emails/images'),
+  getImages: () => apiRequest<{ success: boolean; images: { logo: string | null; uptimeBody: string | null; downtimeBody: string | null; creditsBody: string | null } }>('/emails/images'),
 };
 
 /**

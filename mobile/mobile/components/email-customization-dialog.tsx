@@ -8,11 +8,18 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import RemixIcon from 'react-native-remix-icon';
 import { ThemedText } from '@/components/themed-text';
 import { getAppConfig } from '@/utils/config';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { emailsApi } from '@/services/api-client';
+import {
+  createUptimeHtmlTemplate,
+  createDowntimeHtmlTemplate,
+  createCreditsHtmlTemplate,
+} from '@/utils/email-templates';
 
 export type EmailSectionKey = 'uptime' | 'downtime' | 'creditsAdded' | 'activity';
 
@@ -98,19 +105,39 @@ const convertTextToHtml = (text: string): string => {
   return `<html><body>${text.split('\n').map((line) => `<p>${line || '<br />'}</p>`).join('')}</body></html>`;
 };
 
-const createDefaultEmailData = (): EmailData => {
+const createDefaultEmailData = (
+  logoBase64?: string | null,
+  uptimeBodyBase64?: string | null,
+  downtimeBodyBase64?: string | null,
+  creditsBodyBase64?: string | null
+): EmailData => {
   const sections: { [key in EmailSectionKey]: EmailSectionData } = {
     uptime: {
       textContent: defaultSectionContent.uptime,
-      htmlContent: convertTextToHtml(defaultSectionContent.uptime),
+      htmlContent: createUptimeHtmlTemplate({
+        logoBase64: logoBase64 || null,
+        uptimeBodyBase64: uptimeBodyBase64 || null,
+        textContent: defaultSectionContent.uptime,
+        useCid: false, // Use base64 for preview
+      }),
     },
     downtime: {
       textContent: defaultSectionContent.downtime,
-      htmlContent: convertTextToHtml(defaultSectionContent.downtime),
+      htmlContent: createDowntimeHtmlTemplate({
+        logoBase64: logoBase64 || null,
+        downtimeBodyBase64: downtimeBodyBase64 || uptimeBodyBase64 || null, // Use downtime image if available, otherwise fallback to uptime image
+        textContent: defaultSectionContent.downtime,
+        useCid: false, // Use base64 for preview
+      }),
     },
     creditsAdded: {
       textContent: defaultSectionContent.creditsAdded,
-      htmlContent: convertTextToHtml(defaultSectionContent.creditsAdded),
+      htmlContent: createCreditsHtmlTemplate({
+        logoBase64: logoBase64 || null,
+        creditsBodyBase64: creditsBodyBase64 || null,
+        textContent: defaultSectionContent.creditsAdded,
+        useCid: false, // Use base64 for preview
+      }),
     },
     activity: {
       textContent: defaultSectionContent.activity,
@@ -141,6 +168,17 @@ export function EmailCustomizationDialog({
 }: EmailCustomizationDialogProps): ReactElement {
   const theme = useColorScheme();
   const colors = Colors[theme];
+  const [emailImages, setEmailImages] = useState<{
+    logo: string | null;
+    uptimeBody: string | null;
+    downtimeBody: string | null;
+    creditsBody: string | null;
+  }>({
+    logo: null,
+    uptimeBody: null,
+    downtimeBody: null,
+    creditsBody: null,
+  });
   const [emailData, setEmailData] = useState<EmailData>(createDefaultEmailData());
   const [individualEmail, setIndividualEmail] = useState('');
   const [activeTab, setActiveTab] = useState<EmailSectionKey>('uptime');
@@ -152,6 +190,7 @@ export function EmailCustomizationDialog({
     activity: false,
   });
 
+  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       setEmailData(createDefaultEmailData());
@@ -167,40 +206,217 @@ export function EmailCustomizationDialog({
     }
   }, [open]);
 
+  // Fetch base64 images on component mount and when dialog opens
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const response = await emailsApi.getImages();
+        if (response.success && response.images) {
+          setEmailImages({
+            logo: response.images.logo,
+            uptimeBody: response.images.uptimeBody,
+            downtimeBody: response.images.downtimeBody,
+            creditsBody: response.images.creditsBody,
+          });
+          // Update email data with HTML templates containing base64 images
+          setEmailData((prev) => ({
+            ...prev,
+            sections: {
+              ...prev.sections,
+              uptime: {
+                textContent: prev.sections.uptime.textContent,
+                htmlContent: createUptimeHtmlTemplate({
+                  logoBase64: response.images.logo,
+                  uptimeBodyBase64: response.images.uptimeBody,
+                  textContent: prev.sections.uptime.textContent,
+                  useCid: false, // Use base64 for preview
+                }),
+              },
+              downtime: {
+                textContent: prev.sections.downtime.textContent,
+                htmlContent: createDowntimeHtmlTemplate({
+                  logoBase64: response.images.logo,
+                  downtimeBodyBase64: response.images.downtimeBody || response.images.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
+                  textContent: prev.sections.downtime.textContent,
+                  useCid: false, // Use base64 for preview
+                }),
+              },
+              creditsAdded: {
+                textContent: prev.sections.creditsAdded.textContent,
+                htmlContent: createCreditsHtmlTemplate({
+                  logoBase64: response.images.logo,
+                  creditsBodyBase64: response.images.creditsBody,
+                  textContent: prev.sections.creditsAdded.textContent,
+                  useCid: false, // Use base64 for preview
+                }),
+              },
+            },
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch email images:', error);
+      }
+    };
+
+    if (open) {
+      fetchImages();
+    }
+  }, [open]);
+
   const handleSubjectChange = useCallback((subject: string) => {
     setEmailData((prev) => ({ ...prev, subject }));
   }, []);
 
-  const handleSectionContentChange = useCallback((sectionKey: EmailSectionKey, textContent: string) => {
-    setEmailData((prev) => ({
-      ...prev,
-      sections: {
-        ...prev.sections,
-        [sectionKey]: {
-          textContent,
-          htmlContent: convertTextToHtml(textContent),
-        },
-      },
-    }));
-  }, []);
+  const handleSectionContentChange = useCallback(
+    (sectionKey: EmailSectionKey, textContent: string) => {
+      // For Uptime section, keep the HTML template with base64 images
+      if (sectionKey === 'uptime') {
+        setEmailData((prev) => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent,
+              htmlContent: createUptimeHtmlTemplate({
+                logoBase64: emailImages.logo,
+                uptimeBodyBase64: emailImages.uptimeBody,
+                textContent,
+                useCid: false, // Use base64 for preview
+              }),
+            },
+          },
+        }));
+      } else if (sectionKey === 'downtime') {
+        // For Downtime section, use the downtime HTML template with base64 images
+        setEmailData((prev) => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent,
+              htmlContent: createDowntimeHtmlTemplate({
+                logoBase64: emailImages.logo,
+                downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
+                textContent,
+                useCid: false, // Use base64 for preview
+              }),
+            },
+          },
+        }));
+      } else if (sectionKey === 'creditsAdded') {
+        // For Credits Added section, use the credits HTML template with base64 images
+        setEmailData((prev) => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent,
+              htmlContent: createCreditsHtmlTemplate({
+                logoBase64: emailImages.logo,
+                creditsBodyBase64: emailImages.creditsBody,
+                textContent,
+                useCid: false, // Use base64 for preview
+              }),
+            },
+          },
+        }));
+      } else {
+        setEmailData((prev) => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent,
+              htmlContent: convertTextToHtml(textContent),
+            },
+          },
+        }));
+      }
+    },
+    [emailImages]
+  );
 
-  const handleResetSection = useCallback((sectionKey: EmailSectionKey) => {
-    const defaultContent = defaultSectionContent[sectionKey];
-    setEmailData((prev) => ({
-      ...prev,
-      sections: {
-        ...prev.sections,
-        [sectionKey]: {
-          textContent: defaultContent,
-          htmlContent: convertTextToHtml(defaultContent),
-        },
-      },
-    }));
-  }, []);
+  const handleResetSection = useCallback(
+    (sectionKey: EmailSectionKey) => {
+      const defaultContent = defaultSectionContent[sectionKey];
+
+      // Special handling for Uptime section - use HTML template
+      if (sectionKey === 'uptime') {
+        setEmailData((prev) => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent: defaultContent,
+              htmlContent: createUptimeHtmlTemplate({
+                logoBase64: emailImages.logo,
+                uptimeBodyBase64: emailImages.uptimeBody,
+                textContent: defaultContent,
+                useCid: false, // Use base64 for preview
+              }),
+            },
+          },
+        }));
+      } else if (sectionKey === 'downtime') {
+        // Special handling for Downtime section - use HTML template
+        setEmailData((prev) => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent: defaultContent,
+              htmlContent: createDowntimeHtmlTemplate({
+                logoBase64: emailImages.logo,
+                downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
+                textContent: defaultContent,
+                useCid: false, // Use base64 for preview
+              }),
+            },
+          },
+        }));
+      } else if (sectionKey === 'creditsAdded') {
+        // Special handling for Credits Added section - use HTML template
+        setEmailData((prev) => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent: defaultContent,
+              htmlContent: createCreditsHtmlTemplate({
+                logoBase64: emailImages.logo,
+                creditsBodyBase64: emailImages.creditsBody,
+                textContent: defaultContent,
+                useCid: false, // Use base64 for preview
+              }),
+            },
+          },
+        }));
+      } else {
+        setEmailData((prev) => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent: defaultContent,
+              htmlContent: convertTextToHtml(defaultContent),
+            },
+          },
+        }));
+      }
+    },
+    [emailImages]
+  );
 
   const handleResetAll = useCallback(() => {
-    setEmailData(createDefaultEmailData());
-  }, []);
+    setEmailData(
+      createDefaultEmailData(
+        emailImages.logo,
+        emailImages.uptimeBody,
+        emailImages.downtimeBody,
+        emailImages.creditsBody
+      )
+    );
+  }, [emailImages]);
 
   const enhanceTextContent = useCallback((text: string): string => {
     return text
@@ -218,46 +434,165 @@ export function EmailCustomizationDialog({
       .replace(/The Helium Team/g, 'The Helium Development Team');
   }, []);
 
-  const handleEnhanceSection = useCallback(async (sectionKey: EmailSectionKey) => {
-    setIsEnhancing((prev) => ({ ...prev, [sectionKey]: true }));
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      const currentContent = emailData.sections[sectionKey].textContent;
-      const enhancedContent = enhanceTextContent(currentContent);
-      setEmailData((prev) => ({
-        ...prev,
-        sections: {
-          ...prev.sections,
-          [sectionKey]: {
-            textContent: enhancedContent,
-            htmlContent: convertTextToHtml(enhancedContent),
-          },
-        },
-      }));
-    } catch (error) {
-      console.error('Error enhancing email content:', error);
-    } finally {
-      setIsEnhancing((prev) => ({ ...prev, [sectionKey]: false }));
-    }
-  }, [emailData.sections, enhanceTextContent]);
+  const handleEnhanceSection = useCallback(
+    async (sectionKey: EmailSectionKey) => {
+      setIsEnhancing((prev) => ({ ...prev, [sectionKey]: true }));
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        const currentContent = emailData.sections[sectionKey].textContent;
+        const enhancedContent = enhanceTextContent(currentContent);
 
-  const getActiveSectionContent = useCallback((): { textContent: string; htmlContent: string } => {
-    return emailData.sections[activeTab];
-  }, [emailData.sections, activeTab]);
+        // Update HTML content based on section type
+        if (sectionKey === 'uptime') {
+          setEmailData((prev) => ({
+            ...prev,
+            sections: {
+              ...prev.sections,
+              [sectionKey]: {
+                textContent: enhancedContent,
+                htmlContent: createUptimeHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  uptimeBodyBase64: emailImages.uptimeBody,
+                  textContent: enhancedContent,
+                  useCid: false, // Use base64 for preview
+                }),
+              },
+            },
+          }));
+        } else if (sectionKey === 'downtime') {
+          setEmailData((prev) => ({
+            ...prev,
+            sections: {
+              ...prev.sections,
+              [sectionKey]: {
+                textContent: enhancedContent,
+                htmlContent: createDowntimeHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody,
+                  textContent: enhancedContent,
+                  useCid: false, // Use base64 for preview
+                }),
+              },
+            },
+          }));
+        } else if (sectionKey === 'creditsAdded') {
+          setEmailData((prev) => ({
+            ...prev,
+            sections: {
+              ...prev.sections,
+              [sectionKey]: {
+                textContent: enhancedContent,
+                htmlContent: createCreditsHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  creditsBodyBase64: emailImages.creditsBody,
+                  textContent: enhancedContent,
+                  useCid: false, // Use base64 for preview
+                }),
+              },
+            },
+          }));
+        } else {
+          setEmailData((prev) => ({
+            ...prev,
+            sections: {
+              ...prev.sections,
+              [sectionKey]: {
+                textContent: enhancedContent,
+                htmlContent: convertTextToHtml(enhancedContent),
+              },
+            },
+          }));
+        }
+      } catch (error) {
+        console.error('Error enhancing email content:', error);
+      } finally {
+        setIsEnhancing((prev) => ({ ...prev, [sectionKey]: false }));
+      }
+    },
+    [emailData.sections, enhanceTextContent, emailImages]
+  );
 
-  const handleSend = useCallback(async (selectedOnly: boolean = false) => {
-    const activeContent = getActiveSectionContent();
-    const emailDataToSend: EmailData = {
-      ...emailData,
-      textContent: activeContent.textContent,
-      htmlContent: activeContent.htmlContent,
-    };
-    await onSendEmail(emailDataToSend, selectedOnly);
-  }, [emailData, activeTab, getActiveSectionContent, onSendEmail]);
+  // Get the active section's content for sending
+  // Note: When sending, regenerate HTML with CID references for SMTP attachments
+  // When previewing, use base64 data URIs
+  const getActiveSectionContent = useCallback(
+    (forSending: boolean = false): { textContent: string; htmlContent: string } => {
+      const section = emailData.sections[activeTab];
+
+      // For uptime section, regenerate HTML with appropriate image mode
+      if (activeTab === 'uptime') {
+        const regeneratedHtml = createUptimeHtmlTemplate({
+          logoBase64: emailImages.logo,
+          uptimeBodyBase64: emailImages.uptimeBody,
+          textContent: section.textContent,
+          useCid: forSending, // Use CID when sending, base64 for preview
+        });
+        return {
+          textContent: section.textContent,
+          htmlContent: regeneratedHtml,
+        };
+      } else if (activeTab === 'downtime') {
+        // For downtime section, regenerate HTML with appropriate image mode
+        const regeneratedHtml = createDowntimeHtmlTemplate({
+          logoBase64: emailImages.logo,
+          downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
+          textContent: section.textContent,
+          useCid: forSending, // Use CID when sending, base64 for preview
+        });
+        return {
+          textContent: section.textContent,
+          htmlContent: regeneratedHtml,
+        };
+      } else if (activeTab === 'creditsAdded') {
+        // For credits added section, regenerate HTML with appropriate image mode
+        const regeneratedHtml = createCreditsHtmlTemplate({
+          logoBase64: emailImages.logo,
+          creditsBodyBase64: emailImages.creditsBody,
+          textContent: section.textContent,
+          useCid: forSending, // Use CID when sending, base64 for preview
+        });
+        return {
+          textContent: section.textContent,
+          htmlContent: regeneratedHtml,
+        };
+      } else {
+        // For simple templates, return as-is (they already have html wrapper)
+        return {
+          textContent: section.textContent || '',
+          htmlContent: section.htmlContent || '',
+        };
+      }
+    },
+    [emailData.sections, activeTab, emailImages]
+  );
+
+  const handleSend = useCallback(
+    async (selectedOnly: boolean = false) => {
+      const activeContent = getActiveSectionContent(true); // Use CID for sending
+      const emailDataToSend: EmailData = {
+        ...emailData,
+        textContent: activeContent.textContent,
+        htmlContent: activeContent.htmlContent,
+      };
+      await onSendEmail(emailDataToSend, selectedOnly);
+    },
+    [emailData, activeTab, getActiveSectionContent, onSendEmail]
+  );
 
   const handleSendToIndividualEmail = useCallback(async () => {
     if (individualEmail.trim()) {
-      const activeContent = getActiveSectionContent();
+      const activeContent = getActiveSectionContent(true); // Use CID for sending
+
+      // Ensure we have valid content
+      if (!activeContent.textContent || !activeContent.htmlContent) {
+        console.error('Missing content for active section:', {
+          activeTab,
+          textContent: activeContent.textContent,
+          htmlContent: activeContent.htmlContent ? 'exists' : 'missing',
+        });
+        return;
+      }
+
       const emailDataToSend: EmailData = {
         ...emailData,
         textContent: activeContent.textContent || '',
@@ -478,11 +813,20 @@ export function EmailCustomizationDialog({
                           Email Preview (HTML Template)
                         </ThemedText>
                         <View style={[styles.previewBox, { backgroundColor: colors.badgeBackground }]}>
-                          <ScrollView style={styles.previewScroll}>
-                            <ThemedText type="default" style={styles.previewText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
-                              {activeSection.textContent || '(No content)'}
-                            </ThemedText>
-                          </ScrollView>
+                          <WebView
+                            source={{ html: activeSection.htmlContent || '<html><body><p>No content</p></body></html>' }}
+                            style={styles.webView}
+                            scrollEnabled={true}
+                            showsVerticalScrollIndicator={true}
+                            showsHorizontalScrollIndicator={false}
+                            scalesPageToFit={true}
+                            startInLoadingState={true}
+                            renderLoading={() => (
+                              <View style={styles.webViewLoading}>
+                                <ActivityIndicator size="small" color={colors.textPrimary} />
+                              </View>
+                            )}
+                          />
                         </View>
                       </View>
                       <View style={styles.previewSection}>
@@ -793,8 +1137,8 @@ const styles = StyleSheet.create({
   previewBox: {
     borderWidth: 1,
     borderRadius: 8,
-    minHeight: 150,
-    maxHeight: 200,
+    minHeight: 250,
+    maxHeight: 400,
     // Border and background colors applied inline
   },
   previewScroll: {
@@ -803,6 +1147,22 @@ const styles = StyleSheet.create({
   previewText: {
     fontSize: 14,
     fontFamily: 'monospace',
+  },
+  webView: {
+    flex: 1,
+    minHeight: 250,
+    maxHeight: 400,
+    backgroundColor: 'transparent',
+  },
+  webViewLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   dialogFooter: {
     flexDirection: 'row',
