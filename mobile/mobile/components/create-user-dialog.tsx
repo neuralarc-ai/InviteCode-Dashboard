@@ -186,6 +186,8 @@ export function CreateUserDialog({
     }
 
     setIsSubmitting(true);
+    setErrors({}); // Clear previous errors
+    
     try {
       // Parse metadata if provided
       let parsedMetadata: Record<string, any> | null = null;
@@ -197,31 +199,52 @@ export function CreateUserDialog({
         }
       }
 
-      await usersApi.create({
-          email: email.trim().toLowerCase(),
-          password: password,
+      const result = await usersApi.create({
+        email: email.trim().toLowerCase(),
+        password: password,
         full_name: fullName.trim(),
         preferred_name: preferredName.trim() || fullName.trim(),
         work_description: workDescription.trim(),
+        personal_references: personalReferences.trim() || undefined,
+        avatar_url: avatarUrl.trim() || undefined,
+        referral_source: referralSource.trim() || undefined,
+        consent_given: consentGiven || undefined,
+        consent_date: consentGiven && consentDate ? consentDate : undefined,
+        plan_type: planType as 'seed' | 'edge' | 'quantum',
+        account_type: accountType as 'individual' | 'business',
         metadata: parsedMetadata || undefined,
       });
 
-      // If successful, the API returns the created user
+      // If successful, the API returns the created user (UserProfileResponse)
+      if (result && result.user_id) {
         onOpenChange(false);
         onSuccess?.();
+      } else {
+        setErrors({ email: 'User creation succeeded but no data returned' });
+      }
     } catch (err) {
       console.error('Error creating user:', err);
       let errorMessage = 'An unexpected error occurred while creating the user';
+      
       if (err instanceof Error) {
         errorMessage = err.message;
-        // Handle specific error cases
-        if (errorMessage.includes('already exists') || errorMessage.includes('409')) {
+        // Handle specific error cases - match web app behavior
+        const errorLower = errorMessage.toLowerCase();
+        if (
+          errorLower.includes('already exists') ||
+          errorLower.includes('already been registered') ||
+          errorLower.includes('already registered') ||
+          errorMessage.includes('409')
+        ) {
           errorMessage = 'A user with this email address already exists';
         } else if (errorMessage.includes('400') || errorMessage.includes('Invalid')) {
           errorMessage = 'Invalid input data. Please check your entries.';
+        } else if (errorMessage.includes('500') || errorMessage.includes('Failed to create')) {
+          errorMessage = 'Server error. Please try again later.';
         }
-
       }
+      
+      // Set error on email field to display it clearly
       setErrors({ email: errorMessage });
     } finally {
       setIsSubmitting(false);

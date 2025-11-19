@@ -64,11 +64,15 @@ async def assign_credits(
                 "totalUsed": balance.total_used,
             },
         )
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is
+        raise
     except Exception as e:
-        logger.error(f"Error assigning credits: {e}")
+        logger.error(f"Error assigning credits: {e}", exc_info=True)
+        error_detail = str(e) if str(e) else "Failed to assign credits"
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to assign credits",
+            detail=error_detail,
         )
 
 

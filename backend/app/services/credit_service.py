@@ -128,8 +128,24 @@ async def assign_credits(
         supabase = get_supabase_admin()
         now = datetime.now().isoformat()
         
+        # Validate inputs
+        if not user_id or not isinstance(user_id, str):
+            raise ValueError("user_id must be a non-empty string")
+        if not isinstance(credits_to_add, (int, float)) or credits_to_add <= 0:
+            raise ValueError("credits_to_add must be a positive number")
+        
         # Check if user already has a credit balance record
-        existing_response = supabase.table("credit_balance").select("*").eq("user_id", user_id).maybe_single().execute()
+        try:
+            existing_response = supabase.table("credit_balance").select("*").eq("user_id", user_id).maybe_single().execute()
+        except Exception as db_error:
+            logger.error(f"Database error checking existing balance for user {user_id}: {db_error}")
+            raise Exception(f"Failed to check existing balance: {str(db_error)}")
+        
+        # Check for Supabase errors in response
+        if hasattr(existing_response, 'error') and existing_response.error:
+            error_msg = str(existing_response.error)
+            logger.error(f"Supabase error checking existing balance: {error_msg}")
+            raise Exception(f"Database error: {error_msg}")
         
         if existing_response.data:
             # Update existing balance
@@ -137,19 +153,49 @@ async def assign_credits(
             new_balance = float(existing["balance_dollars"]) + credits_to_add
             new_total_purchased = float(existing["total_purchased"]) + credits_to_add
             
-            updated_metadata = existing.get("metadata", {})
+            # Ensure metadata is a dict
+            existing_metadata = existing.get("metadata")
+            if existing_metadata is None:
+                updated_metadata = {}
+            elif isinstance(existing_metadata, dict):
+                updated_metadata = existing_metadata.copy()
+            else:
+                # If metadata is a string or other type, try to parse it or create new dict
+                logger.warning(f"Metadata is not a dict for user {user_id}, type: {type(existing_metadata)}")
+                updated_metadata = {}
+            
             updated_metadata["last_assignment"] = {
                 "amount": credits_to_add,
                 "timestamp": now,
                 "notes": notes,
             }
             
+            # Update the balance (without select, as Supabase Python client doesn't support select after eq on updates)
             update_response = supabase.table("credit_balance").update({
                 "balance_dollars": new_balance,
                 "total_purchased": new_total_purchased,
                 "last_updated": now,
                 "metadata": updated_metadata,
-            }).eq("user_id", user_id).select().single().execute()
+            }).eq("user_id", user_id).execute()
+            
+            # Check for Supabase errors
+            if hasattr(update_response, 'error') and update_response.error:
+                error_msg = str(update_response.error)
+                logger.error(f"Supabase error updating balance: {error_msg}")
+                raise Exception(f"Database error updating balance: {error_msg}")
+            
+            # Fetch the updated record
+            fetch_response = supabase.table("credit_balance").select("*").eq("user_id", user_id).single().execute()
+            
+            if hasattr(fetch_response, 'error') and fetch_response.error:
+                error_msg = str(fetch_response.error)
+                logger.error(f"Supabase error fetching updated balance: {error_msg}")
+                raise Exception(f"Database error fetching updated balance: {error_msg}")
+            
+            if not fetch_response.data:
+                raise Exception("Update succeeded but failed to fetch updated data")
+            
+            update_response = fetch_response
             
             # Fetch user email and name for response
             user_email = None
@@ -192,7 +238,27 @@ async def assign_credits(
                 },
             }
             
-            insert_response = supabase.table("credit_balance").insert(insert_data).select().single().execute()
+            # Insert the balance (without select, as Supabase Python client doesn't support select after insert)
+            insert_response = supabase.table("credit_balance").insert(insert_data).execute()
+            
+            # Check for Supabase errors
+            if hasattr(insert_response, 'error') and insert_response.error:
+                error_msg = str(insert_response.error)
+                logger.error(f"Supabase error inserting balance: {error_msg}")
+                raise Exception(f"Database error inserting balance: {error_msg}")
+            
+            # Fetch the created balance record
+            fetch_response = supabase.table("credit_balance").select("*").eq("user_id", user_id).single().execute()
+            
+            if hasattr(fetch_response, 'error') and fetch_response.error:
+                error_msg = str(fetch_response.error)
+                logger.error(f"Supabase error fetching inserted balance: {error_msg}")
+                raise Exception(f"Database error fetching inserted balance: {error_msg}")
+            
+            if not fetch_response.data:
+                raise Exception("Insert succeeded but failed to fetch inserted data")
+            
+            insert_response = fetch_response
             
             # Fetch user email and name for response
             user_email = None

@@ -197,6 +197,13 @@ const MenuRow = memo(
           color={isActive ? colors.activeText : colors.textSecondary}
           style={styles.menuIcon}
         />
+        <ThemedText
+          type="defaultSemiBold"
+          style={[styles.menuLabel, isActive ? styles.menuLabelActive : undefined]}
+          lightColor={isActive ? colors.activeText : colors.textPrimary}
+          darkColor={isActive ? colors.activeText : colors.textPrimary}>
+          {label}
+        </ThemedText>
         {badgeCount > 0 ? (
           <View style={[styles.badge, { backgroundColor: '#22C55E' }]}>
             {badgeCount > 9 ? (
@@ -212,13 +219,6 @@ const MenuRow = memo(
             )}
           </View>
         ) : null}
-        <ThemedText
-          type="defaultSemiBold"
-          style={[styles.menuLabel, isActive ? styles.menuLabelActive : undefined]}
-          lightColor={isActive ? colors.activeText : colors.textPrimary}
-          darkColor={isActive ? colors.activeText : colors.textPrimary}>
-          {label}
-        </ThemedText>
       </Pressable>
     );
   },
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 7,
-    marginRight: 12,
+    marginLeft: 8,
     zIndex: 10,
     elevation: 5,
     shadowColor: '#000',

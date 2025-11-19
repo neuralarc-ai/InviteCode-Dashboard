@@ -146,6 +146,12 @@ async function apiRequest<T>(
         throw new Error(authErrorMsg);
       }
       
+      // Handle 409 Conflict - duplicate email or other conflicts
+      if (response.status === 409) {
+        // Error message should already be set from errorData.detail
+        throw new Error(errorMessage);
+      }
+      
       throw new Error(errorMessage);
     }
     
@@ -257,6 +263,13 @@ export const usersApi = {
     full_name: string;
     preferred_name?: string;
     work_description?: string;
+    personal_references?: string;
+    avatar_url?: string;
+    referral_source?: string;
+    consent_given?: boolean;
+    consent_date?: string;
+    plan_type?: 'seed' | 'edge' | 'quantum';
+    account_type?: 'individual' | 'business';
     metadata?: Record<string, any>;
   }) =>
     apiRequest<{
@@ -266,6 +279,13 @@ export const usersApi = {
       preferred_name: string | null;
       email: string | null;
       work_description: string | null;
+      personal_references: string | null;
+      avatar_url: string | null;
+      referral_source: string | null;
+      consent_given: boolean | null;
+      consent_date: string | null;
+      plan_type: string;
+      account_type: string;
       created_at: string;
       updated_at: string;
       metadata?: Record<string, any> | null;
@@ -310,12 +330,21 @@ export const creditsApi = {
   },
   
   assign: (userId: string, creditsToAdd: number, notes?: string) =>
-    apiRequest<{ success: boolean; message: string }>('/credits/assign', {
+    apiRequest<{ 
+      success: boolean; 
+      message: string;
+      data?: {
+        userId: string;
+        balanceDollars: number;
+        totalPurchased: number;
+        totalUsed: number;
+      };
+    }>('/credits/assign', {
       method: 'POST',
       body: JSON.stringify({
         user_id: userId,
         credits_to_add: creditsToAdd,
-        notes,
+        notes: notes || null,
       }),
     }),
   

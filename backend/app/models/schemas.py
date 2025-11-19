@@ -75,11 +75,40 @@ class UserProfileResponse(BaseModel):
 class CreateUserRequest(BaseModel):
     """Request to create user."""
     email: EmailStr
-    password: str = Field(..., min_length=8)
+    password: str = Field(..., min_length=6)  # Changed from 8 to 6 to match frontend validation
     full_name: str
     preferred_name: Optional[str] = None
     work_description: Optional[str] = None
+    personal_references: Optional[str] = None
+    avatar_url: Optional[str] = None
+    referral_source: Optional[str] = None
+    consent_given: Optional[bool] = None
+    consent_date: Optional[str] = None  # ISO date string
+    plan_type: Optional[str] = Field(default="seed")  # seed, edge, quantum
+    account_type: Optional[str] = Field(default="individual")  # individual, business
     metadata: Optional[Dict[str, Any]] = None
+    
+    @field_validator("plan_type")
+    @classmethod
+    def validate_plan_type(cls, v: Optional[str]) -> str:
+        """Validate plan type value."""
+        if v is None:
+            return "seed"
+        allowed = ["seed", "edge", "quantum"]
+        if v not in allowed:
+            raise ValueError(f"Plan type must be one of: {', '.join(allowed)}")
+        return v
+    
+    @field_validator("account_type")
+    @classmethod
+    def validate_account_type(cls, v: Optional[str]) -> str:
+        """Validate account type value."""
+        if v is None:
+            return "individual"
+        allowed = ["individual", "business"]
+        if v not in allowed:
+            raise ValueError(f"Account type must be one of: {', '.join(allowed)}")
+        return v
 
 
 class DeleteUserRequest(BaseModel):

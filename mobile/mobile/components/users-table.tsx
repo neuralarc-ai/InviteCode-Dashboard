@@ -14,7 +14,7 @@ import RemixIcon from 'react-native-remix-icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { usersApi, emailsApi } from '@/services/api-client';
+import { usersApi, emailsApi, creditsApi } from '@/services/api-client';
 import { CreditAssignmentDialog } from '@/components/credit-assignment-dialog';
 import { CreateUserDialog } from '@/components/create-user-dialog';
 import { EmailCustomizationDialog } from '@/components/email-customization-dialog';
@@ -53,6 +53,10 @@ export function UsersTable(): ReactElement {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [page, setPage] = useState(0);
   const rowsPerPage = 10;
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkCreditsInput, setBulkCreditsInput] = useState('');
+  const [isAssigningBulkCredits, setIsAssigningBulkCredits] = useState(false);
 
   const fetchUserProfiles = useCallback(async () => {
     try {
@@ -115,6 +119,7 @@ export function UsersTable(): ReactElement {
     }
   }, []);
 
+  // Fetch user profiles on mount and when dependencies change
   useEffect(() => {
     fetchUserProfiles();
   }, [fetchUserProfiles]);
@@ -287,6 +292,83 @@ export function UsersTable(): ReactElement {
     }
   }, [userToDelete, fetchUserProfiles]);
 
+  const handleBulkDeleteClick = useCallback(() => {
+    if (selectedUserIds.size === 0) {
+      setError('Please select users to delete');
+      return;
+    }
+    setBulkDeleteDialogOpen(true);
+  }, [selectedUserIds.size]);
+
+  const handleBulkDeleteConfirm = useCallback(async () => {
+    if (selectedUserIds.size === 0) return;
+
+    setIsDeleting(true);
+    try {
+      // Get profile IDs from selected user IDs
+      const selectedProfiles = filteredProfiles.filter(profile => 
+        selectedUserIds.has(profile.userId)
+      );
+      const userIds = selectedProfiles.map(profile => profile.userId);
+
+      await usersApi.bulkDelete(userIds);
+
+      setSelectedUserIds(new Set());
+      setBulkDeleteDialogOpen(false);
+      await fetchUserProfiles();
+    } catch (err) {
+      console.error('Error bulk deleting users:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete user profiles';
+      setError(errorMessage);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [selectedUserIds, filteredProfiles, fetchUserProfiles]);
+
+  const handleBulkAssignCredits = useCallback(async () => {
+    if (selectedUserIds.size === 0) {
+      setError('Please select users to assign credits');
+      return;
+    }
+
+    const creditsValue = parseFloat(bulkCreditsInput);
+    if (isNaN(creditsValue) || creditsValue < 1) {
+      setError('Please enter a valid number of credits (minimum 1)');
+      return;
+    }
+
+    setIsAssigningBulkCredits(true);
+    setError(null);
+
+    try {
+      // Get selected profiles
+      const selectedProfiles = filteredProfiles.filter(profile => 
+        selectedUserIds.has(profile.userId)
+      );
+
+      // Convert credits to dollars (100 credits = $1.00)
+      const dollarsToAdd = creditsValue / 100;
+
+      // Assign credits to each selected user
+      const promises = selectedProfiles.map(profile =>
+        creditsApi.assign(profile.userId, dollarsToAdd, `Bulk assignment: ${creditsValue} credits`)
+      );
+
+      await Promise.all(promises);
+
+      // Clear selection and input
+      setSelectedUserIds(new Set());
+      setBulkCreditsInput('');
+      await fetchUserProfiles();
+    } catch (err) {
+      console.error('Error bulk assigning credits:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to assign credits';
+      setError(errorMessage);
+    } finally {
+      setIsAssigningBulkCredits(false);
+    }
+  }, [selectedUserIds, bulkCreditsInput, filteredProfiles, fetchUserProfiles]);
+
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -416,6 +498,102 @@ export function UsersTable(): ReactElement {
           </Pressable>
         </View>
 
+        {/* Assign Credits Section - Only shown when users are selected */}
+        {selectedUserIds.size > 0 && (
+          <View style={[styles.assignCreditsSection, { backgroundColor: colors.badgeBackground, borderColor: colors.divider }]}>
+            <ThemedText type="defaultSemiBold" style={styles.assignCreditsTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+              Assign Credits to {selectedUserIds.size} Selected User{selectedUserIds.size !== 1 ? 's' : ''}
+            </ThemedText>
+            <View style={styles.assignCreditsContent}>
+              <View style={styles.assignCreditsInputContainer}>
+                <View style={styles.assignCreditsInputRow}>
+                  <View style={styles.assignCreditsInputWrapper}>
+                    <TextInput
+                      style={[
+                        styles.assignCreditsInput,
+                        styles.assignCreditsInputWithSpinner,
+                        { borderColor: colors.inputBorder, color: colors.textPrimary },
+                        isAssigningBulkCredits && { backgroundColor: colors.cardBackground, opacity: 0.6 },
+                      ]}
+                      placeholder="Enter number of credits"
+                      placeholderTextColor={colors.textSecondary}
+                      value={bulkCreditsInput}
+                      onChangeText={setBulkCreditsInput}
+                      keyboardType="numeric"
+                      editable={!isAssigningBulkCredits}
+                    />
+                    <View style={styles.assignCreditsSpinnerContainer}>
+                      <Pressable
+                        onPress={() => {
+                          if (!isAssigningBulkCredits) {
+                            if (!bulkCreditsInput || isNaN(parseFloat(bulkCreditsInput))) {
+                              setBulkCreditsInput('1');
+                            } else {
+                              const current = parseFloat(bulkCreditsInput);
+                              setBulkCreditsInput(String(current + 1));
+                            }
+                          }
+                        }}
+                        disabled={isAssigningBulkCredits}
+                        style={styles.assignCreditsSpinnerButton}>
+                        <RemixIcon name="arrow-up-s-line" size={16} color={colors.textSecondary} />
+                      </Pressable>
+                      <View style={[styles.assignCreditsSpinnerDivider, { backgroundColor: colors.divider }]} />
+                      <Pressable
+                        onPress={() => {
+                          if (!isAssigningBulkCredits) {
+                            if (!bulkCreditsInput || isNaN(parseFloat(bulkCreditsInput))) {
+                              setBulkCreditsInput('1');
+                            } else {
+                              const current = parseFloat(bulkCreditsInput);
+                              if (current > 1) {
+                                setBulkCreditsInput(String(current - 1));
+                              }
+                            }
+                          }
+                        }}
+                        disabled={isAssigningBulkCredits || (!bulkCreditsInput || parseFloat(bulkCreditsInput) <= 1)}
+                        style={[
+                          styles.assignCreditsSpinnerButton,
+                          (!bulkCreditsInput || (bulkCreditsInput && parseFloat(bulkCreditsInput) <= 1)) && styles.assignCreditsSpinnerButtonDisabled,
+                        ]}>
+                        <RemixIcon 
+                          name="arrow-down-s-line" 
+                          size={16} 
+                          color={(!bulkCreditsInput || (bulkCreditsInput && parseFloat(bulkCreditsInput) <= 1)) ? colors.textSecondary + '40' : colors.textSecondary} 
+                        />
+                      </Pressable>
+                    </View>
+                  </View>
+                  {/* Dollar Conversion Display - Inline */}
+                  {bulkCreditsInput && !isNaN(parseFloat(bulkCreditsInput)) && parseFloat(bulkCreditsInput) > 0 && (
+                    <ThemedText type="defaultSemiBold" style={styles.assignCreditsConversionText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                      = ${(parseFloat(bulkCreditsInput) / 100).toFixed(2)}
+                    </ThemedText>
+                  )}
+                </View>
+                <ThemedText type="default" style={styles.assignCreditsHelper} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                  Enter the number of credits to add to all selected users' accounts (100 credits = $1.00).
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={handleBulkAssignCredits}
+                disabled={isAssigningBulkCredits || !bulkCreditsInput || isNaN(parseFloat(bulkCreditsInput)) || parseFloat(bulkCreditsInput) < 1}
+                style={[
+                  styles.assignCreditsButton,
+                  { backgroundColor: colors.buttonPrimary },
+                  (isAssigningBulkCredits || !bulkCreditsInput || isNaN(parseFloat(bulkCreditsInput)) || parseFloat(bulkCreditsInput) < 1) && styles.buttonDisabled,
+                ]}>
+                {isAssigningBulkCredits ? (
+                  <ActivityIndicator size="small" color={colors.iconAccentLight} />
+                ) : (
+                  <RemixIcon name="file-text-line" size={18} color={colors.iconAccentLight} />
+                )}
+              </Pressable>
+            </View>
+          </View>
+        )}
+
         {/* Card Container */}
         <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
           {/* Card Header */}
@@ -427,35 +605,223 @@ export function UsersTable(): ReactElement {
                 {userTypeFilter === 'internal' ? 'internal' : 'external'} user
                 {filteredProfiles.length !== 1 ? 's' : ''})
               </ThemedText>
+              {selectedUserIds.size > 0 && (
+                <View style={[styles.selectedBadge, { backgroundColor: colors.buttonPrimary }]}>
+                  <ThemedText type="defaultSemiBold" style={styles.selectedBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                    {selectedUserIds.size} selected
+                  </ThemedText>
+                </View>
+              )}
             </View>
-            <Pressable onPress={fetchUserProfiles} style={[styles.refreshButton, { backgroundColor: colors.buttonSecondary }]}>
-              <RemixIcon name="refresh-line" size={20} color={colors.textPrimary} />
-            </Pressable>
+            <View style={styles.cardHeaderActions}>
+              {selectedUserIds.size > 0 && (
+                <Pressable
+                  onPress={handleBulkDeleteClick}
+                  disabled={isDeleting}
+                  style={[
+                    styles.deleteButton,
+                    { backgroundColor: colors.buttonDanger },
+                    isDeleting && styles.buttonDisabled,
+                  ]}>
+                  {isDeleting ? (
+                    <ActivityIndicator size="small" color={colors.iconAccentLight} />
+                  ) : (
+                    <RemixIcon name="delete-bin-line" size={18} color={colors.iconAccentLight} />
+                  )}
+                </Pressable>
+              )}
+              <Pressable onPress={fetchUserProfiles} style={[styles.refreshButton, { backgroundColor: colors.buttonSecondary }]}>
+                <RemixIcon name="refresh-line" size={20} color={colors.textPrimary} />
+              </Pressable>
+            </View>
           </View>
 
-          {/* Search */}
-          <View style={[styles.searchContainer, { backgroundColor: colors.searchBackground, borderColor: colors.searchBorder }]}>
-            <RemixIcon
-              name="search-line"
-              size={18}
-              color={colors.textSecondary}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              placeholder="Search users..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              style={[styles.searchInput, { color: colors.textPrimary }]}
-              placeholderTextColor={colors.textSecondary}
-            />
+          {/* Search and View Toggle */}
+          <View style={styles.searchAndToggleContainer}>
+            <View style={[styles.searchContainer, { backgroundColor: colors.searchBackground, borderColor: colors.searchBorder }]}>
+              <RemixIcon
+                name="search-line"
+                size={18}
+                color={colors.textSecondary}
+                style={styles.searchIcon}
+              />
+              <TextInput
+                placeholder="Search users..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                style={[styles.searchInput, { color: colors.textPrimary }]}
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+            <View style={styles.viewToggleContainer}>
+              <Pressable
+                onPress={() => setViewMode('table')}
+                style={[
+                  styles.viewToggleButton,
+                  {
+                    backgroundColor: viewMode === 'table' ? colors.activeTabBackground : colors.inactiveTabBackground,
+                  },
+                ]}>
+                <RemixIcon
+                  name="table-line"
+                  size={18}
+                  color={viewMode === 'table' ? colors.activeTabText : colors.inactiveTabText}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => setViewMode('grid')}
+                style={[
+                  styles.viewToggleButton,
+                  {
+                    backgroundColor: viewMode === 'grid' ? colors.activeTabBackground : colors.inactiveTabBackground,
+                  },
+                ]}>
+                <RemixIcon
+                  name="grid-line"
+                  size={18}
+                  color={viewMode === 'grid' ? colors.activeTabText : colors.inactiveTabText}
+                />
+              </Pressable>
+            </View>
           </View>
 
-          {/* Table with Horizontal Scroll */}
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={true}
-            style={styles.tableScrollView}
-            contentContainerStyle={styles.tableScrollContent}>
+          {/* Grid or Table View */}
+          {viewMode === 'grid' ? (
+            /* Grid/Card View */
+            filteredProfiles.length === 0 ? (
+              <View style={styles.gridEmptyContainer}>
+                <RemixIcon name="user-3-line" size={48} color={colors.textSecondary} />
+                <ThemedText type="defaultSemiBold" style={styles.emptyText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                  {searchQuery
+                    ? `No ${userTypeFilter} users found matching your search`
+                    : `No ${userTypeFilter} user profiles found`}
+                </ThemedText>
+              </View>
+            ) : (
+              <FlatList
+                key={`users-grid-${userTypeFilter}-${page}`}
+                data={paginatedProfiles}
+                keyExtractor={(item) => item.id}
+                scrollEnabled={false}
+                numColumns={1}
+                renderItem={({ item: profile }) => (
+                  <View style={[styles.userCard, { backgroundColor: colors.rowBackground, borderColor: colors.divider }]}>
+                    <View style={styles.cardContent}>
+                      {/* Checkbox */}
+                      <View style={styles.cardCheckboxContainer}>
+                        <Pressable onPress={() => handleToggleSelect(profile.userId)} style={styles.checkboxContainer}>
+                          <View
+                            style={[
+                              styles.checkbox,
+                              { borderColor: selectedUserIds.has(profile.userId) ? colors.buttonPrimary : colors.textSecondary },
+                              selectedUserIds.has(profile.userId) ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
+                            ]}>
+                            {selectedUserIds.has(profile.userId) && (
+                              <RemixIcon name="check-line" size={14} color={colors.iconAccentLight} />
+                            )}
+                          </View>
+                        </Pressable>
+                      </View>
+
+                      {/* User Info */}
+                      <View style={styles.cardUserInfo}>
+                        {/* Avatar and Name */}
+                        <View style={styles.cardHeaderRow}>
+                          <View style={[styles.cardAvatar, { backgroundColor: colors.avatarBackground }]}>
+                            <ThemedText type="defaultSemiBold" style={styles.cardAvatarText} lightColor={colors.avatarText} darkColor={colors.avatarText}>
+                              {getInitials(profile.fullName)}
+                            </ThemedText>
+                          </View>
+                          <View style={styles.cardNameContainer}>
+                            <ThemedText type="defaultSemiBold" style={styles.cardUserName} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                              {profile.fullName}
+                            </ThemedText>
+                          </View>
+                        </View>
+
+                        {/* Email */}
+                        <View style={styles.cardEmailRow}>
+                          <RemixIcon name="mail-line" size={14} color={colors.textSecondary} />
+                          <ThemedText type="default" style={styles.cardUserEmail} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                            {profile.email}
+                          </ThemedText>
+                        </View>
+
+                        {/* Status */}
+                        <View style={styles.cardStatusRow}>
+                          {isCreditsEmailSent(profile) && (
+                            <View style={[styles.cardStatusBadge, { backgroundColor: colors.badgeSent }]}>
+                              <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
+                              <ThemedText type="default" style={styles.cardStatusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                                Sent
+                              </ThemedText>
+                            </View>
+                          )}
+                          {isCreditsAssigned(profile) && (
+                            <View style={[styles.cardStatusBadge, { backgroundColor: colors.badgeAssigned }]}>
+                              <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
+                              <ThemedText type="default" style={styles.cardStatusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                                Assigned
+                              </ThemedText>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* User ID */}
+                        <View style={styles.cardUserIdRow}>
+                          <ThemedText type="default" style={styles.cardUserIdLabel} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                            User ID:{' '}
+                          </ThemedText>
+                          <ThemedText type="default" style={styles.cardUserIdValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                            {profile.userId.slice(0, 8)}...
+                          </ThemedText>
+                        </View>
+
+                        {/* Dates */}
+                        <View style={styles.cardDatesContainer}>
+                          <View style={styles.cardDateRow}>
+                            <RemixIcon name="calendar-line" size={12} color={colors.textSecondary} />
+                            <ThemedText type="default" style={styles.cardDateText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                              Created: {formatDate(profile.createdAt)}
+                            </ThemedText>
+                          </View>
+                          <View style={styles.cardDateRow}>
+                            <RemixIcon name="calendar-line" size={12} color={colors.textSecondary} />
+                            <ThemedText type="default" style={styles.cardDateText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                              Updated: {formatDate(profile.updatedAt)}
+                            </ThemedText>
+                          </View>
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={styles.cardActionsRow}>
+                          <Pressable
+                            onPress={() => {
+                              setUserToAssignCredits(profile);
+                              setAssignCreditsDialogOpen(true);
+                            }}
+                            style={[styles.cardActionButton, styles.cardAssignButton, { backgroundColor: colors.buttonSecondary }]}>
+                            <RemixIcon name="file-text-line" size={18} color={colors.textPrimary} />
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleDeleteClick(profile)}
+                            style={[styles.cardActionButton, styles.cardDeleteButton, { backgroundColor: '#FEE2E2' }]}>
+                            <RemixIcon name="delete-bin-line" size={18} color={colors.buttonDanger} />
+                          </Pressable>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                )}
+              />
+            )
+          ) : (
+            /* Table View */
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={true}
+              style={styles.tableScrollView}
+              contentContainerStyle={styles.tableScrollContent}>
             <View style={[styles.tableContainer, { borderColor: colors.divider }]}>
               {/* Table Header */}
               <View style={[styles.tableHeader, { backgroundColor: colors.cardBackground, borderBottomColor: colors.divider }]}>
@@ -669,6 +1035,7 @@ export function UsersTable(): ReactElement {
             )}
             </View>
           </ScrollView>
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && (
@@ -787,6 +1154,80 @@ export function UsersTable(): ReactElement {
                   ) : (
                     <ThemedText type="defaultSemiBold" style={styles.dialogButtonConfirmText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
                       Delete
+                    </ThemedText>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Bulk Delete Confirmation Dialog */}
+        <Modal
+          visible={bulkDeleteDialogOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            if (!isDeleting) {
+              setBulkDeleteDialogOpen(false);
+            }
+          }}>
+          <View style={styles.dialogOverlay}>
+            <Pressable
+              style={styles.overlayPressable}
+              onPress={() => {
+                if (!isDeleting) {
+                  setBulkDeleteDialogOpen(false);
+                }
+              }}
+            />
+            <View style={[styles.dialog, { backgroundColor: colors.cardBackground }]}>
+              <ThemedText type="title" style={styles.dialogTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                Are you sure?
+              </ThemedText>
+              <ThemedText type="default" style={styles.dialogDescription} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                This action cannot be undone. This will permanently delete{' '}
+                <ThemedText type="defaultSemiBold" lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                  {selectedUserIds.size} user profile{selectedUserIds.size !== 1 ? 's' : ''}
+                </ThemedText>.
+              </ThemedText>
+              <View style={styles.dialogActions}>
+                <Pressable
+                  onPress={() => {
+                    if (!isDeleting) {
+                      setBulkDeleteDialogOpen(false);
+                    }
+                  }}
+                  disabled={isDeleting}
+                  style={[
+                    styles.dialogButton,
+                    styles.dialogButtonCancel,
+                    { backgroundColor: colors.cardBackground, borderColor: colors.divider },
+                    isDeleting && styles.dialogButtonDisabled,
+                  ]}>
+                  <ThemedText type="defaultSemiBold" style={styles.dialogButtonCancelText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                    Cancel
+                  </ThemedText>
+                </Pressable>
+                <Pressable
+                  onPress={handleBulkDeleteConfirm}
+                  disabled={isDeleting}
+                  style={[
+                    styles.dialogButton,
+                    styles.dialogButtonConfirm,
+                    { backgroundColor: colors.buttonDanger },
+                    isDeleting && styles.dialogButtonDisabled,
+                  ]}>
+                  {isDeleting ? (
+                    <>
+                      <ActivityIndicator size="small" color={colors.iconAccentLight} style={{ marginRight: 8 }} />
+                      <ThemedText type="defaultSemiBold" style={styles.dialogButtonConfirmText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                        Deleting...
+                      </ThemedText>
+                    </>
+                  ) : (
+                    <ThemedText type="defaultSemiBold" style={styles.dialogButtonConfirmText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                      Delete {selectedUserIds.size} user{selectedUserIds.size !== 1 ? 's' : ''}
                     </ThemedText>
                   )}
                 </Pressable>
@@ -1055,14 +1496,96 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
-  cardActionButton: {
+  assignCreditsSection: {
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    gap: 12,
+    marginBottom: 8,
+  },
+  assignCreditsTitle: {
+    fontSize: 16,
+  },
+  assignCreditsContent: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  assignCreditsInputContainer: {
+    flex: 1,
+    gap: 6,
+  },
+  assignCreditsInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: 8,
+  },
+  assignCreditsInputWrapper: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  assignCreditsInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
     borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+  assignCreditsInputWithSpinner: {
+    flex: 1,
+    paddingRight: 40,
+  },
+  assignCreditsSpinnerContainer: {
+    position: 'absolute',
+    right: 1,
+    top: 1,
+    bottom: 1,
+    width: 32,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderTopRightRadius: 7,
+    borderBottomRightRadius: 7,
+    borderLeftWidth: 1,
+    borderLeftColor: '#E4D5CA',
+  },
+  assignCreditsSpinnerButton: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+  },
+  assignCreditsSpinnerButtonDisabled: {
+    opacity: 0.5,
+  },
+  assignCreditsSpinnerDivider: {
+    width: '100%',
+    height: 1,
+  },
+  assignCreditsConversionText: {
+    fontSize: 16,
+    marginLeft: 4,
+  },
+  assignCreditsHelper: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  assignCreditsButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   refreshButton: {
     width: 40,
@@ -1072,11 +1595,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteButton: {
-    // Background color applied inline
-  },
-  deleteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 8,
   },
   selectAllContainer: {
     paddingVertical: 8,
@@ -1111,7 +1634,13 @@ const styles = StyleSheet.create({
   selectAllText: {
     fontSize: 14,
   },
+  searchAndToggleContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
   searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 12,
@@ -1127,6 +1656,19 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     // Color applied inline
+  },
+  viewToggleContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  viewToggleButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Background color applied inline
   },
   emptyContainer: {
     alignItems: 'center',
@@ -1526,6 +2068,121 @@ const styles = StyleSheet.create({
   },
   paginationPageText: {
     fontSize: 14,
+  },
+  // Grid/Card View Styles
+  gridEmptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    gap: 12,
+  },
+  userCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    padding: 16,
+    // Background and border colors applied inline
+  },
+  cardContent: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cardCheckboxContainer: {
+    justifyContent: 'flex-start',
+    paddingTop: 2,
+  },
+  cardUserInfo: {
+    flex: 1,
+    gap: 8,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cardAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Background color applied inline
+  },
+  cardAvatarText: {
+    fontSize: 14,
+  },
+  cardNameContainer: {
+    flex: 1,
+  },
+  cardUserName: {
+    fontSize: 16,
+  },
+  cardEmailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cardUserEmail: {
+    fontSize: 14,
+  },
+  cardStatusRow: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  cardStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    // Background color applied inline
+  },
+  cardStatusBadgeText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  cardUserIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardUserIdLabel: {
+    fontSize: 13,
+  },
+  cardUserIdValue: {
+    fontSize: 13,
+    fontFamily: 'monospace',
+  },
+  cardDatesContainer: {
+    gap: 4,
+  },
+  cardDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cardDateText: {
+    fontSize: 12,
+  },
+  cardActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  cardActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Background color applied inline
+  },
+  cardAssignButton: {
+    // Background color applied inline
+  },
+  cardDeleteButton: {
+    // Background color applied inline
   },
 });
 

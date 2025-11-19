@@ -19,6 +19,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { LogoutButton } from '@/components/logout-button';
@@ -42,9 +43,12 @@ export function SharedSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link href="/users">
+              <Link href="/users" className="flex items-center gap-2">
                 <UserCheck />
-                Users
+                <span>Users</span>
+                <SidebarMenuBadge className="!relative !right-0 !top-0 ml-1 bg-green-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                  1
+                </SidebarMenuBadge>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
