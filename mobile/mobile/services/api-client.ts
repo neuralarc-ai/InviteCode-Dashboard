@@ -152,7 +152,11 @@ async function apiRequest<T>(
         throw new Error(errorMessage);
       }
       
-      throw new Error(errorMessage);
+      // Create error with HTTP status info attached
+      const httpError = new Error(errorMessage);
+      (httpError as any).isHttpError = true;
+      (httpError as any).status = response.status;
+      throw httpError;
     }
     
     return await response.json();
@@ -164,8 +168,18 @@ async function apiRequest<T>(
       hasToken: Boolean(authToken),
     });
     
-    // Provide more helpful error messages
-    if (errorMessage.includes('Network request failed') || errorMessage.includes('Failed to fetch')) {
+    // Only show network error message for actual network failures, not HTTP errors
+    // Network errors are TypeError from fetch() failing, not HTTP error responses
+    const isNetworkError = 
+      error instanceof TypeError || 
+      (error instanceof Error && 
+       !(error as any).isHttpError && 
+       (errorMessage.includes('Network request failed') || 
+        errorMessage.includes('Failed to fetch') ||
+        errorMessage.includes('NetworkError') ||
+        errorMessage.includes('ERR_NETWORK')));
+    
+    if (isNetworkError) {
       const isLocalhost = backendUrl.includes('localhost') || backendUrl.includes('127.0.0.1');
       const errorMsg = isLocalhost
         ? `Network error: Unable to connect to backend at ${backendUrl}.\n\n` +
@@ -180,9 +194,9 @@ async function apiRequest<T>(
           `Example: EXPO_PUBLIC_BACKEND_URL=http://192.168.1.100:8000`
         : `Network error: Unable to connect to backend at ${backendUrl}.\n\n` +
           `Please check:\n` +
-          `1. Backend is running on port 8000\n` +
-          `2. Backend is accessible from your network\n` +
-          `3. Firewall allows connections on port 8000\n` +
+          `1. Backend is running and accessible\n` +
+          `2. Backend URL is correct: ${backendUrl}\n` +
+          `3. Network connection is stable\n` +
           `4. CORS settings allow requests from this app`;
       
       throw new Error(errorMsg);
