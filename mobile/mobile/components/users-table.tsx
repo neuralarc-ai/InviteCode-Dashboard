@@ -224,8 +224,6 @@ export function UsersTable(): ReactElement {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     }).format(date);
   }, []);
 
@@ -750,20 +748,19 @@ export function UsersTable(): ReactElement {
                         {/* Status */}
                         <View style={styles.cardStatusRow}>
                           {isCreditsEmailSent(profile) && (
-                            <View style={[styles.cardStatusBadge, { backgroundColor: colors.badgeSent }]}>
-                              <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
-                              <ThemedText type="default" style={styles.cardStatusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                            <ThemedText type="default" style={styles.statusText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                                 Sent
                               </ThemedText>
-                            </View>
                           )}
                           {isCreditsAssigned(profile) && (
-                            <View style={[styles.cardStatusBadge, { backgroundColor: colors.badgeAssigned }]}>
-                              <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
-                              <ThemedText type="default" style={styles.cardStatusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                            <ThemedText type="default" style={styles.statusText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                                 Assigned
                               </ThemedText>
-                            </View>
+                          )}
+                          {!isCreditsEmailSent(profile) && !isCreditsAssigned(profile) && (
+                            <ThemedText type="default" style={styles.statusText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                              Not Sent
+                            </ThemedText>
                           )}
                         </View>
 
@@ -863,11 +860,6 @@ export function UsersTable(): ReactElement {
                     Referral Source
                   </ThemedText>
                 </View>
-                <View style={styles.tableHeaderCellUserId}>
-                  <ThemedText type="defaultSemiBold" style={styles.tableHeaderText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
-                    User ID
-                  </ThemedText>
-                </View>
                 <View style={styles.tableHeaderCellCreated}>
                   <ThemedText type="defaultSemiBold" style={styles.tableHeaderText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                     Created
@@ -950,37 +942,18 @@ export function UsersTable(): ReactElement {
                     {/* Status */}
                     <View style={styles.tableCellStatus}>
                       <View style={styles.statusContainer}>
-                        {isCreditsEmailSent(profile) && isCreditsAssigned(profile) ? (
-                          <View style={styles.statusBadges}>
-                            <View style={[styles.statusBadge, { backgroundColor: colors.badgeSent }]}>
-                              <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
-                              <ThemedText type="default" style={styles.statusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                        {isCreditsEmailSent(profile) && (
+                          <ThemedText type="default" style={styles.statusText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                                 Sent
                               </ThemedText>
-                            </View>
-                            <View style={[styles.statusBadge, { backgroundColor: colors.badgeAssigned }]}>
-                              <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
-                              <ThemedText type="default" style={styles.statusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
+                        )}
+                        {isCreditsAssigned(profile) && (
+                          <ThemedText type="default" style={styles.statusText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                                 Assigned
                               </ThemedText>
-                            </View>
-                          </View>
-                        ) : isCreditsEmailSent(profile) ? (
-                          <View style={[styles.statusBadge, { backgroundColor: colors.badgeSent }]}>
-                            <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
-                            <ThemedText type="default" style={styles.statusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
-                              Sent
-                            </ThemedText>
-                          </View>
-                        ) : isCreditsAssigned(profile) ? (
-                          <View style={[styles.statusBadge, { backgroundColor: colors.badgeAssigned }]}>
-                            <RemixIcon name="check-line" size={12} color={colors.iconAccentLight} />
-                            <ThemedText type="default" style={styles.statusBadgeText} lightColor={colors.iconAccentLight} darkColor={colors.iconAccentLight}>
-                              Assigned
-                            </ThemedText>
-                          </View>
-                        ) : (
-                          <ThemedText type="default" style={styles.statusBadgeTextNotSent} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                        )}
+                        {!isCreditsEmailSent(profile) && !isCreditsAssigned(profile) && (
+                          <ThemedText type="default" style={styles.statusText} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
                             Not Sent
                           </ThemedText>
                         )}
@@ -991,13 +964,6 @@ export function UsersTable(): ReactElement {
                     <View style={styles.tableCellReferralSource}>
                       <ThemedText type="default" style={styles.referralSourceText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
                         {profile.referralSource || 'N/A'}
-                      </ThemedText>
-                    </View>
-
-                    {/* User ID */}
-                    <View style={styles.tableCellUserId}>
-                      <ThemedText type="default" style={styles.userIdValue} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
-                        {profile.userId.slice(0, 8)}...
                       </ThemedText>
                     </View>
 
@@ -1863,9 +1829,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   statusContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    flexDirection: 'column',
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 13,
   },
   statusBadges: {
     flexDirection: 'row',
@@ -2126,9 +2094,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   cardStatusRow: {
-    flexDirection: 'row',
-    gap: 6,
-    flexWrap: 'wrap',
+    flexDirection: 'column',
+    gap: 4,
   },
   cardStatusBadge: {
     flexDirection: 'row',

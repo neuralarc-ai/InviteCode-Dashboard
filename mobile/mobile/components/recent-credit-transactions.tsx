@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import RemixIcon from 'react-native-remix-icon';
+import { CircleDollarSign, HandCoins } from 'lucide-react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useCreditUsage, useCreditPurchases } from '@/hooks/use-realtime-data';
 import { Colors } from '@/constants/theme';
@@ -20,6 +21,7 @@ export function RecentCreditTransactions() {
   const colors = Colors[theme];
   const { creditUsage, loading: usageLoading, error: usageError } = useCreditUsage();
   const { creditPurchases, loading: purchasesLoading, error: purchasesError } = useCreditPurchases();
+  const [filterType, setFilterType] = React.useState<'all' | 'used' | 'purchased'>('purchased');
 
   const loading = usageLoading || purchasesLoading;
   const error = usageError || purchasesError;
@@ -73,6 +75,17 @@ export function RecentCreditTransactions() {
       .slice(0, 5);
   }, [creditUsage, creditPurchases]);
 
+  // Filter transactions based on filterType state
+  const filteredTransactions = React.useMemo(() => {
+    if (filterType === 'used') {
+      return recentTransactions.filter(transaction => transaction.type === 'used');
+    }
+    if (filterType === 'purchased') {
+      return recentTransactions.filter(transaction => transaction.type === 'purchased');
+    }
+    return recentTransactions;
+  }, [recentTransactions, filterType]);
+
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -103,6 +116,7 @@ export function RecentCreditTransactions() {
       <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
+            <View style={styles.headerRowLeft}>
             <View style={[styles.iconBadge, { backgroundColor: colors.badgeBackground }]}>
               <RemixIcon name="money-dollar-circle-line" size={18} color={colors.iconAccent} />
             </View>
@@ -113,6 +127,15 @@ export function RecentCreditTransactions() {
               darkColor={colors.textPrimary}>
               Recent Credit Transactions
             </ThemedText>
+            </View>
+            <View style={styles.headerIcons}>
+              <View style={styles.iconButtonContainer}>
+                <CircleDollarSign size={20} color={colors.iconAccent} />
+              </View>
+              <View style={styles.iconButtonContainer}>
+                <HandCoins size={20} color={colors.iconAccent} />
+              </View>
+            </View>
           </View>
           <ThemedText
             style={styles.subtitle}
@@ -141,6 +164,7 @@ export function RecentCreditTransactions() {
       <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
+            <View style={styles.headerRowLeft}>
             <View style={[styles.iconBadge, { backgroundColor: colors.badgeBackground }]}>
               <RemixIcon name="money-dollar-circle-line" size={18} color={colors.iconAccent} />
             </View>
@@ -151,6 +175,15 @@ export function RecentCreditTransactions() {
               darkColor={colors.textPrimary}>
               Recent Credit Transactions
             </ThemedText>
+            </View>
+            <View style={styles.headerIcons}>
+              <View style={styles.iconButtonContainer}>
+                <CircleDollarSign size={20} color={colors.iconAccent} />
+              </View>
+              <View style={styles.iconButtonContainer}>
+                <HandCoins size={20} color={colors.iconAccent} />
+              </View>
+            </View>
           </View>
           <ThemedText
             style={styles.subtitle}
@@ -175,6 +208,7 @@ export function RecentCreditTransactions() {
     <View style={[styles.card, { backgroundColor: colors.cardBackground }]}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
+          <View style={styles.headerRowLeft}>
           <View style={[styles.iconBadge, { backgroundColor: colors.badgeBackground }]}>
             <RemixIcon name="money-dollar-circle-line" size={18} color={colors.iconAccent} />
           </View>
@@ -185,18 +219,51 @@ export function RecentCreditTransactions() {
             darkColor={colors.textPrimary}>
             Recent Credit Transactions
           </ThemedText>
+          </View>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity
+              onPress={() => setFilterType(filterType === 'purchased' ? 'all' : 'purchased')}
+              activeOpacity={0.7}
+              style={[
+                styles.iconButton,
+                { backgroundColor: '#E9DFD3' },
+                filterType === 'purchased' && { backgroundColor: colors.activeTabBackground },
+              ]}>
+              <CircleDollarSign
+                size={20}
+                color={filterType === 'purchased' ? colors.highlightText : colors.iconAccent}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setFilterType(filterType === 'used' ? 'all' : 'used')}
+              activeOpacity={0.7}
+              style={[
+                styles.iconButton,
+                { backgroundColor: '#E9DFD3' },
+                filterType === 'used' && { backgroundColor: colors.activeTabBackground },
+              ]}>
+              <HandCoins
+                size={20}
+                color={filterType === 'used' ? colors.highlightText : colors.iconAccent}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-        <ThemedText
-          style={styles.subtitle}
-          lightColor={colors.textSecondary}
-          darkColor={colors.textSecondary}>
-          Latest 5 credit transactions
-        </ThemedText>
-      </View>
-      <View style={styles.content}>
-        {recentTransactions.length > 0 ? (
-          <View style={styles.transactionList}>
-            {recentTransactions.map((transaction) => {
+          <ThemedText
+            style={styles.subtitle}
+            lightColor={colors.textSecondary}
+            darkColor={colors.textSecondary}>
+            {filterType === 'used'
+              ? 'Used credit transactions only'
+              : filterType === 'purchased'
+              ? 'Purchased credit transactions only'
+              : 'Latest 5 credit transactions'}
+          </ThemedText>
+        </View>
+        <View style={styles.content}>
+          {filteredTransactions.length > 0 ? (
+            <View style={styles.transactionList}>
+              {filteredTransactions.map((transaction) => {
               const isUsage = transaction.type === 'used';
               return (
                 <View
@@ -316,7 +383,35 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 10,
+  },
+  headerRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconButtonContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#E5E5E5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   iconBadge: {
     width: 36,
@@ -327,6 +422,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
+    flexShrink: 1,
   },
   subtitle: {
     fontSize: 14,

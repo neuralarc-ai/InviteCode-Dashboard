@@ -32,7 +32,7 @@ export default function LoginScreen(): ReactElement {
 
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
-      router.replace('/dashboard');
+      router.replace('/dashboard-overview');
     }
   }, [isAuthLoading, isAuthenticated, router]);
 
@@ -74,7 +74,7 @@ export default function LoginScreen(): ReactElement {
         return;
       }
 
-      router.replace('/dashboard');
+      router.replace('/dashboard-overview');
     } catch (error) {
       console.error('Admin login failed', {
         correlationId,

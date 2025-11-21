@@ -8,9 +8,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 import RemixIcon from 'react-native-remix-icon';
 import { ThemedText } from '@/components/themed-text';
+import { SafeWebView } from '@/components/safe-webview';
 import { getAppConfig } from '@/utils/config';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -813,7 +813,7 @@ export function EmailCustomizationDialog({
                           Email Preview (HTML Template)
                         </ThemedText>
                         <View style={[styles.previewBox, { backgroundColor: colors.badgeBackground }]}>
-                          <WebView
+                          <SafeWebView
                             source={{ html: activeSection.htmlContent || '<html><body><p>No content</p></body></html>' }}
                             style={styles.webView}
                             scrollEnabled={true}

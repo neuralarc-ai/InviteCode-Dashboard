@@ -15,7 +15,7 @@ export default function RootRedirect(): ReactElement {
     );
   }
 
-  return <Redirect href={isAuthenticated ? '/dashboard' : '/login'} />;
+  return <Redirect href={isAuthenticated ? '/dashboard-overview' : '/login'} />;
 }
 
 const styles = StyleSheet.create({

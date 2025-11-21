@@ -13,7 +13,7 @@ export const Colors = {
     text: '#1F1F1F',
     background: '#F6EDE3',
     sidebarBackground: '#F7DFCF',
-    activeBackground: '#E7A79A',
+    activeBackground: '#F5EDE3',
     footerBackground: '#E5ADA0',
     footerIcon: '#1F1F1F',
     themeToggleBackground: '#FFFFFF',

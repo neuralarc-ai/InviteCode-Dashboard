@@ -1,18 +1,28 @@
-import { useRouter } from 'expo-router';
-import { memo, useCallback, useEffect, useMemo, type ReactElement } from 'react';
+import { usePathname, useRouter, type Href } from 'expo-router';
+import { memo, useCallback, useEffect, useMemo, useState, type ReactElement } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   ScrollView,
   StyleSheet,
   View,
   Pressable,
+  Dimensions,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import RemixIcon, { type IconName } from 'react-native-remix-icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { useAuth } from '@/providers/auth-context';
+import { useTheme } from '@/providers/theme-context';
 import { useDashboardSummary } from '@/hooks/use-dashboard-summary';
+import { useNewUsersNotification } from '@/hooks/use-new-users-notification';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AnalyticsCharts } from '@/components/analytics-charts';
@@ -34,20 +44,19 @@ type RecentUser = {
   readonly preferredName: string | null;
 };
 
-type RecentTransaction = {
-  readonly id: string;
-  readonly userName: string;
-  readonly email: string | null;
-  readonly status: 'Purchased' | 'Used';
-  readonly direction: 'in' | 'out';
-  readonly netAmountLabel: string;
-  readonly netCreditsLabel: string;
-  readonly occurredAtLabel: string;
-  readonly purchasedCreditsLabel: string;
-  readonly usedCreditsLabel: string;
-  readonly hasPurchases: boolean;
-  readonly hasUsage: boolean;
+type MenuItem = {
+  readonly icon: IconName;
+  readonly label: string;
+  readonly route?: Href;
 };
+
+const menuItems: readonly MenuItem[] = [
+  { icon: 'dashboard-line', label: 'Dashboard', route: '/dashboard-overview' as const },
+  { icon: 'user-3-line', label: 'Users', route: '/users' as const },
+  { icon: 'bank-card-line', label: 'Credits', route: '/credits' as const },
+  { icon: 'shopping-cart-2-line', label: 'Paid Users', route: '/purchased-credits' as const },
+  { icon: 'file-list-3-line', label: 'Usage Logs', route: '/usage-logs' as const },
+] as const;
 
 
 const styles = StyleSheet.create({
@@ -76,6 +85,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerThemeToggle: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerThemeTogglePressed: {
+    opacity: 0.8,
+  },
   backButton: {
     width: 42,
     height: 42,
@@ -86,10 +110,22 @@ const styles = StyleSheet.create({
   backButtonPressed: {
     opacity: 0.8,
   },
+  menuButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuButtonPressed: {
+    opacity: 0.8,
+  },
   headerTitle: {
     fontSize: 28,
   },
   metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 16,
   },
   metricsLoading: {
@@ -122,8 +158,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   metricValue: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 25,
+    fontWeight: '600',
   },
   metricSubtitle: {
     fontSize: 14,
@@ -144,7 +180,14 @@ const styles = StyleSheet.create({
   sectionTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 10,
+  },
+  sectionTitleLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 20,
@@ -327,25 +370,157 @@ const styles = StyleSheet.create({
   transactionCreditsDeltaNegative: {
     // Color applied inline
   },
+  drawerOverlay: {
+    flex: 1,
+  },
+  drawerContainer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 280,
+    backgroundColor: 'transparent',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: -2, height: 0 },
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  drawerContent: {
+    flex: 1,
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  dropdownLogoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+    paddingBottom: 1,
+    borderBottomWidth: 1,
+    marginBottom: 4,
+  },
+  dropdownLogoWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 2,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 14,
+    borderRadius: 12,
+    marginVertical: 2,
+  },
+  dropdownItemPressed: {
+    opacity: 0.7,
+  },
+  dropdownItemIcon: {
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropdownItemLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    flex: 1,
+  },
+  dropdownFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+  },
+  dropdownThemeToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 36,
+    minHeight: 36,
+  },
+  dropdownThemeTogglePressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
+  },
+  dropdownLogoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 0,
+    paddingVertical: 4,
+  },
+  dropdownLogoutButtonPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  dropdownLogoutLabel: {
+    fontSize: 14,
+    fontWeight: '400',
+  },
+  dropdownBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    marginLeft: 8,
+    zIndex: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
+  },
+  dropdownBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+  },
+  dropdownBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
 });
 
 export default function DashboardOverviewScreen(): ReactElement {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const pathname = usePathname();
+  const { isAuthenticated, isLoading, signOut } = useAuth();
+  const { colorScheme, toggleTheme } = useTheme();
   const theme = useColorScheme();
   const colors = Colors[theme];
+  const { newUsersCount, newPaidUsersCount } = useNewUsersNotification();
   const {
     data: summary,
     isLoading: isSummaryLoading,
     error: summaryError,
     refresh,
   } = useDashboardSummary();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const drawerTranslateX = useSharedValue(280);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace('/login');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  useEffect(() => {
+    if (isMenuOpen) {
+      drawerTranslateX.value = withTiming(0, { duration: 300 });
+    } else {
+      drawerTranslateX.value = withTiming(280, { duration: 300 });
+    }
+  }, [isMenuOpen, drawerTranslateX]);
 
   const formatCredits = useCallback((value: number) => {
     return value.toLocaleString('en-US', {
@@ -374,22 +549,6 @@ export default function DashboardOverviewScreen(): ReactElement {
     } catch (error) {
       console.warn('Failed to format join date', { isoString, error });
       return 'Join date unavailable';
-    }
-  }, []);
-
-  const formatTransactionOccurredAt = useCallback((isoString: string) => {
-    try {
-      const date = new Date(isoString);
-      return new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      }).format(date);
-    } catch (error) {
-      console.warn('Failed to format transaction timestamp', { isoString, error });
-      return 'Timestamp unavailable';
     }
   }, []);
 
@@ -442,35 +601,42 @@ export default function DashboardOverviewScreen(): ReactElement {
     }));
   }, [formatJoinedAt, summary]);
 
-  const recentTransactions = useMemo<readonly RecentTransaction[]>(() => {
-    if (!summary) {
-      return [];
-    }
+  const handleMenuToggle = useCallback(() => {
+    setIsMenuOpen((prev) => !prev);
+  }, []);
 
-    return summary.recentTransactions.map((transaction) => {
-      const netCreditsAbsolute = Math.abs(transaction.netCredits);
-      const netAmountAbsolute = Math.abs(transaction.netAmountDollars);
+  const handleMenuClose = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
 
-      return {
-        id: transaction.id,
-        userName: transaction.userName,
-        email: transaction.email,
-        status: transaction.status,
-        direction: transaction.direction,
-        netAmountLabel: `$${netAmountAbsolute.toFixed(2)} (${formatCount(netCreditsAbsolute)} credits)`,
-        netCreditsLabel: `${transaction.direction === 'in' ? '+' : '-'}${formatCount(netCreditsAbsolute)}`,
-        occurredAtLabel: formatTransactionOccurredAt(transaction.occurredAt),
-        purchasedCreditsLabel: formatCount(transaction.totalPurchasedCredits),
-        usedCreditsLabel: formatCount(transaction.totalUsedCredits),
-        hasPurchases: transaction.totalPurchasedCredits > 0,
-        hasUsage: transaction.totalUsedCredits > 0,
-      };
+  const drawerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: drawerTranslateX.value }],
+    };
+  });
+
+  const handleMenuItemPress = useCallback(
+    (item: MenuItem) => {
+      handleMenuClose();
+      if (item.route && item.route !== pathname) {
+        router.push(item.route);
+      }
+    },
+    [handleMenuClose, pathname, router],
+  );
+
+  const handleLogout = useCallback(async () => {
+    const correlationId = `dashboard-logout-${Date.now()}`;
+
+    console.info('Admin requested logout', {
+      correlationId,
+      timestamp: new Date().toISOString(),
     });
-  }, [formatCount, formatTransactionOccurredAt, summary]);
 
-  const handleBackToMenu = useCallback(() => {
-    router.back();
-  }, [router]);
+    handleMenuClose();
+    await signOut({ correlationId });
+    router.replace('/login');
+  }, [handleMenuClose, router, signOut]);
 
   if (isLoading) {
     return (
@@ -494,17 +660,6 @@ export default function DashboardOverviewScreen(): ReactElement {
         bounces={false}>
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
-            <Pressable
-              onPress={handleBackToMenu}
-              accessibilityRole="button"
-              accessibilityLabel="Navigate back to main dashboard menu"
-              style={({ pressed }) => [
-                styles.backButton,
-                { backgroundColor: colors.cardBackground },
-                pressed ? styles.backButtonPressed : undefined,
-              ]}>
-              <RemixIcon name="arrow-left-line" size={22} color={colors.textPrimary} />
-            </Pressable>
             <ThemedText
               type="title"
               style={styles.headerTitle}
@@ -513,7 +668,136 @@ export default function DashboardOverviewScreen(): ReactElement {
               Dashboard
             </ThemedText>
           </View>
+          <View style={styles.headerRight}>
+            <Pressable
+              onPress={toggleTheme}
+              accessibilityRole="button"
+              accessibilityLabel={colorScheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={({ pressed }) => [
+                styles.headerThemeToggle,
+                { backgroundColor: colors.cardBackground },
+                pressed ? styles.headerThemeTogglePressed : undefined,
+              ]}>
+              <RemixIcon
+                name={colorScheme === 'dark' ? 'sun-line' : 'moon-line'}
+                size={20}
+                color={colors.textPrimary}
+              />
+            </Pressable>
+            <Pressable
+              onPress={handleMenuToggle}
+              accessibilityRole="button"
+              accessibilityLabel="Open menu"
+              style={({ pressed }) => [
+                styles.menuButton,
+                { backgroundColor: colors.cardBackground },
+                pressed ? styles.menuButtonPressed : undefined,
+              ]}>
+              <RemixIcon name="menu-line" size={22} color={colors.textPrimary} />
+            </Pressable>
+          </View>
         </View>
+
+        <Modal
+          visible={isMenuOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={handleMenuClose}>
+          <View style={styles.drawerOverlay}>
+            <BlurView
+              intensity={20}
+              tint={colorScheme === 'dark' ? 'dark' : 'light'}
+              style={StyleSheet.absoluteFill}>
+              <Pressable style={StyleSheet.absoluteFill} onPress={handleMenuClose} />
+            </BlurView>
+            <Animated.View
+              style={[
+                styles.drawerContainer,
+                drawerAnimatedStyle,
+                { backgroundColor: colors.cardBackground },
+              ]}>
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={(e) => {
+                  e.stopPropagation();
+                }}
+              />
+              <View style={styles.drawerContent}>
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 8 }}>
+                  {menuItems.map((item) => {
+                    const isActive = item.route === pathname;
+                    const badgeCount =
+                      item.label === 'Users' ? newUsersCount : item.label === 'Paid Users' ? newPaidUsersCount : 0;
+                    return (
+                      <Pressable
+                        key={item.label}
+                        onPress={() => handleMenuItemPress(item)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Navigate to ${item.label}${badgeCount > 0 ? `, ${badgeCount} new` : ''}`}
+                        style={({ pressed }) => [
+                          styles.dropdownItem,
+                          isActive ? { backgroundColor: colors.activeBackground } : undefined,
+                          pressed ? styles.dropdownItemPressed : undefined,
+                        ]}>
+                        <View style={styles.dropdownItemIcon}>
+                          <RemixIcon
+                            name={item.icon}
+                            size={20}
+                            color={isActive ? colors.activeText : colors.textPrimary}
+                          />
+                        </View>
+                        <ThemedText
+                          type="default"
+                          style={styles.dropdownItemLabel}
+                          lightColor={isActive ? colors.activeText : colors.textPrimary}
+                          darkColor={isActive ? colors.activeText : colors.textPrimary}>
+                          {item.label}
+                        </ThemedText>
+                        {badgeCount > 0 ? (
+                          <View style={[styles.dropdownBadge, { backgroundColor: '#22C55E' }]}>
+                            {badgeCount > 9 ? (
+                              <View style={styles.dropdownBadgeDot} />
+                            ) : (
+                              <ThemedText
+                                type="defaultSemiBold"
+                                style={styles.dropdownBadgeText}
+                                lightColor="#FFFFFF"
+                                darkColor="#FFFFFF">
+                                {badgeCount}
+                              </ThemedText>
+                            )}
+                          </View>
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+                <View style={[styles.dropdownFooter, { borderTopColor: colors.divider, marginTop: 16 }]}>
+                  <Pressable
+                    onPress={handleLogout}
+                    accessibilityRole="button"
+                    accessibilityLabel="Log out of admin dashboard"
+                    style={({ pressed }) => [
+                      styles.dropdownLogoutButton,
+                      pressed ? styles.dropdownLogoutButtonPressed : undefined,
+                    ]}>
+                    <RemixIcon name="logout-box-r-line" size={15} color={colors.textPrimary} />
+                    <ThemedText
+                      type="default"
+                      style={styles.dropdownLogoutLabel}
+                      lightColor={colors.textPrimary}
+                      darkColor={colors.textPrimary}>
+                      Logout
+                    </ThemedText>
+                  </Pressable>
+                </View>
+              </View>
+            </Animated.View>
+          </View>
+        </Modal>
 
         <View style={styles.metricsGrid}>
           {isSummaryLoading && metrics.length === 0 ? (
@@ -569,9 +853,13 @@ export default function DashboardOverviewScreen(): ReactElement {
           </View>
         ) : null}
 
+        {/* Recent Credit Transactions Section */}
+        <RecentCreditTransactions />
+
         <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionTitleLeft}>
               <View style={[styles.sectionIconBadge, { backgroundColor: colors.badgeBackground }]}>
                 <RemixIcon name="user-follow-line" size={18} color={colors.iconAccent} />
               </View>
@@ -582,6 +870,7 @@ export default function DashboardOverviewScreen(): ReactElement {
                 darkColor={colors.textPrimary}>
                 Recent Users
               </ThemedText>
+              </View>
             </View>
             <ThemedText
               style={styles.sectionSubtitle}
@@ -615,9 +904,6 @@ export default function DashboardOverviewScreen(): ReactElement {
           </View>
         </View>
 
-        {/* Recent Credit Transactions Section */}
-        <RecentCreditTransactions />
-
         {/* Analytics Charts Section */}
         <AnalyticsCharts />
       </ScrollView>
@@ -628,8 +914,15 @@ export default function DashboardOverviewScreen(): ReactElement {
 const MetricCardComponent = memo(({ metric, colors }: { readonly metric: MetricCard; colors: typeof Colors.light }): ReactElement => {
   const { title, value, subtitle, icon } = metric;
 
+  // Calculate card width for 2-column layout
+  // Screen width - horizontal padding (20 * 2) - gap (16) divided by 2
+  const screenWidth = Dimensions.get('window').width;
+  const horizontalPadding = 20 * 2;
+  const gap = 16;
+  const cardWidth = (screenWidth - horizontalPadding - gap) / 2;
+
   return (
-    <View style={[styles.metricCard, { backgroundColor: colors.cardBackground }]}>
+    <View style={[styles.metricCard, { backgroundColor: colors.cardBackground, width: cardWidth }]}>
       <View style={[styles.metricIconBadge, { backgroundColor: colors.badgeBackground }]}>
         <RemixIcon name={icon} size={22} color={colors.iconAccent} />
       </View>
@@ -641,10 +934,11 @@ const MetricCardComponent = memo(({ metric, colors }: { readonly metric: MetricC
         {title}
       </ThemedText>
       <ThemedText
-        type="title"
+        type="default"
         style={styles.metricValue}
         lightColor={title === 'Total Users' ? colors.highlightText : colors.textPrimary}
-        darkColor={title === 'Total Users' ? colors.highlightText : colors.textPrimary}>
+        darkColor={title === 'Total Users' ? colors.highlightText : colors.textPrimary}
+        numberOfLines={1}>
         {value}
       </ThemedText>
       <ThemedText
@@ -705,103 +999,4 @@ const RecentUserRow = memo(({ user, colors }: { readonly user: RecentUser; color
 });
 RecentUserRow.displayName = 'RecentUserRow';
 
-const RecentTransactionRow = memo(({ transaction, colors }: { readonly transaction: RecentTransaction; colors: typeof Colors.light }): ReactElement => {
-  const isIncoming = transaction.direction === 'in';
-  const iconName = isIncoming ? 'arrow-up-line' : 'arrow-down-line';
-
-  return (
-    <View style={[styles.transactionRow, { borderBottomColor: colors.divider }]}>
-      <View
-        style={[
-          styles.transactionIconBadge,
-          {
-            backgroundColor: isIncoming ? colors.transactionPositiveIconBackground : colors.transactionNegativeIconBackground,
-          },
-        ]}>
-        <RemixIcon
-          name={iconName}
-          size={20}
-          color={isIncoming ? colors.transactionPositiveIcon : colors.transactionNegativeIcon}
-        />
-      </View>
-      <View style={styles.transactionDetails}>
-        <View style={styles.transactionHeaderRow}>
-          <ThemedText
-            type="defaultSemiBold"
-            style={styles.transactionUserName}
-            lightColor={colors.textPrimary}
-            darkColor={colors.textPrimary}>
-            {transaction.userName}
-          </ThemedText>
-          <View
-            style={[
-              styles.transactionStatusBadge,
-              {
-                backgroundColor: isIncoming ? colors.transactionPositiveBadgeBackground : colors.transactionNegativeBadgeBackground,
-              },
-            ]}>
-            <ThemedText
-              type="defaultSemiBold"
-              style={styles.transactionStatusText}
-              lightColor={isIncoming ? colors.transactionPositiveBadgeText : colors.transactionNegativeBadgeText}
-              darkColor={isIncoming ? colors.transactionPositiveBadgeText : colors.transactionNegativeBadgeText}>
-              {transaction.status}
-            </ThemedText>
-          </View>
-        </View>
-
-        <ThemedText
-          style={styles.transactionAmountLabel}
-          lightColor={colors.textSecondary}
-          darkColor={colors.textSecondary}>
-          {transaction.netAmountLabel}
-        </ThemedText>
-
-        <View style={styles.transactionMetaRow}>
-          <RemixIcon name="calendar-line" size={16} color={colors.textSecondary} style={styles.transactionMetaIcon} />
-          <ThemedText
-            style={styles.transactionMetaText}
-            lightColor={colors.textSecondary}
-            darkColor={colors.textSecondary}>
-            {transaction.occurredAtLabel}
-          </ThemedText>
-        </View>
-
-        <View style={styles.transactionBreakdownRow}>
-          {transaction.hasPurchases ? (
-            <View style={styles.transactionBreakdownItem}>
-              <RemixIcon name="arrow-up-circle-line" size={14} color={colors.transactionPositiveText} />
-              <ThemedText
-                style={styles.transactionBreakdownText}
-                lightColor={colors.transactionPositiveText}
-                darkColor={colors.transactionPositiveText}>
-                {`+${transaction.purchasedCreditsLabel} credits purchased`}
-              </ThemedText>
-            </View>
-          ) : null}
-          {transaction.hasUsage ? (
-            <View style={styles.transactionBreakdownItem}>
-              <RemixIcon name="arrow-down-circle-line" size={14} color={colors.transactionNegativeText} />
-              <ThemedText
-                style={styles.transactionBreakdownText}
-                lightColor={colors.transactionNegativeText}
-                darkColor={colors.transactionNegativeText}>
-                {`-${transaction.usedCreditsLabel} credits used`}
-              </ThemedText>
-            </View>
-          ) : null}
-        </View>
-      </View>
-
-      <ThemedText
-        type="defaultSemiBold"
-        style={styles.transactionCreditsDelta}
-        lightColor={isIncoming ? colors.transactionPositiveText : colors.transactionNegativeText}
-        darkColor={isIncoming ? colors.transactionPositiveText : colors.transactionNegativeText}>
-        {transaction.netCreditsLabel}
-      </ThemedText>
-    </View>
-  );
-});
-RecentTransactionRow.displayName = 'RecentTransactionRow';
 
