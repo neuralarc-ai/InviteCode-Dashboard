@@ -510,7 +510,7 @@ export function UsersTable(): ReactElement {
                       style={[
                         styles.assignCreditsInput,
                         styles.assignCreditsInputWithSpinner,
-                        { borderColor: colors.inputBorder, color: colors.textPrimary },
+                        { borderColor: colors.inputBorder, color: '#1F1F1F' },
                         isAssigningBulkCredits && { backgroundColor: colors.cardBackground, opacity: 0.6 },
                       ]}
                       placeholder="Enter number of credits"

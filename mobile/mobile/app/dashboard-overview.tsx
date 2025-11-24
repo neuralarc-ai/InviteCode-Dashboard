@@ -8,6 +8,7 @@ import {
   View,
   Pressable,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Animated, {
@@ -27,6 +28,8 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AnalyticsCharts } from '@/components/analytics-charts';
 import { RecentCreditTransactions } from '@/components/recent-credit-transactions';
+import { CreditAssignmentDialog } from '@/components/credit-assignment-dialog';
+import { creditsApi, usersApi } from '@/services/api-client';
 
 type MetricCard = {
   readonly title: string;
@@ -189,6 +192,11 @@ const styles = StyleSheet.create({
     gap: 10,
     flex: 1,
   },
+  sectionHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   sectionTitle: {
     fontSize: 20,
   },
@@ -247,6 +255,135 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
+  },
+  assignCreditButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assignCreditButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
+  },
+  recentUserCheckboxContainer: {
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxIndeterminateMark: {
+    width: 10,
+    height: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  assignCreditsSection: {
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    gap: 12,
+    marginBottom: 16,
+  },
+  assignCreditsTitle: {
+    fontSize: 16,
+  },
+  assignCreditsContent: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  assignCreditsInputContainer: {
+    flex: 1,
+    gap: 6,
+  },
+  assignCreditsInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  assignCreditsInputWrapper: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  assignCreditsInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+  assignCreditsInputWithSpinner: {
+    flex: 1,
+    paddingRight: 40,
+  },
+  assignCreditsSpinnerContainer: {
+    position: 'absolute',
+    right: 1,
+    top: 1,
+    bottom: 1,
+    width: 32,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderTopRightRadius: 7,
+    borderBottomRightRadius: 7,
+    borderLeftWidth: 1,
+    borderLeftColor: '#E4D5CA',
+  },
+  assignCreditsSpinnerButton: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+  },
+  assignCreditsSpinnerButtonDisabled: {
+    opacity: 0.5,
+  },
+  assignCreditsSpinnerDivider: {
+    width: '100%',
+    height: 1,
+  },
+  assignCreditsConversionText: {
+    fontSize: 16,
+    marginLeft: 4,
+  },
+  assignCreditsHelper: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  assignCreditsButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  deleteButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 8,
   },
   avatarCircle: {
     width: 44,
@@ -507,6 +644,12 @@ export default function DashboardOverviewScreen(): ReactElement {
   } = useDashboardSummary();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const drawerTranslateX = useSharedValue(280);
+  const [assignCreditsDialogOpen, setAssignCreditsDialogOpen] = useState(false);
+  const [userToAssignCredits, setUserToAssignCredits] = useState<RecentUser | null>(null);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [bulkCreditsInput, setBulkCreditsInput] = useState('');
+  const [isAssigningBulkCredits, setIsAssigningBulkCredits] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -637,6 +780,106 @@ export default function DashboardOverviewScreen(): ReactElement {
     await signOut({ correlationId });
     router.replace('/login');
   }, [handleMenuClose, router, signOut]);
+
+  const handleAssignCredits = useCallback((user: RecentUser) => {
+    setUserToAssignCredits(user);
+    setAssignCreditsDialogOpen(true);
+  }, []);
+
+  const handleCreditAssignmentSuccess = useCallback(() => {
+    setAssignCreditsDialogOpen(false);
+    setUserToAssignCredits(null);
+    refresh();
+  }, [refresh]);
+
+  const handleToggleSelect = useCallback((userId: string) => {
+    setSelectedUserIds((prev) => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(userId)) {
+        newSelection.delete(userId);
+      } else {
+        newSelection.add(userId);
+      }
+      return newSelection;
+    });
+  }, []);
+
+  const handleBulkAssignCredits = useCallback(async () => {
+    if (selectedUserIds.size === 0) {
+      return;
+    }
+
+    const creditsValue = parseFloat(bulkCreditsInput);
+    if (isNaN(creditsValue) || creditsValue < 1) {
+      return;
+    }
+
+    setIsAssigningBulkCredits(true);
+
+    try {
+      // Get selected users
+      const selectedUsers = recentUsers.filter(user => selectedUserIds.has(user.id));
+
+      // Convert credits to dollars (100 credits = $1.00)
+      const dollarsToAdd = creditsValue / 100;
+
+      // Assign credits to each selected user
+      const promises = selectedUsers.map(user =>
+        creditsApi.assign(user.id, dollarsToAdd, `Bulk assignment: ${creditsValue} credits`)
+      );
+
+      await Promise.all(promises);
+
+      // Clear selection and input
+      setSelectedUserIds(new Set());
+      setBulkCreditsInput('');
+      await refresh();
+    } catch (err) {
+      console.error('Error bulk assigning credits:', err);
+    } finally {
+      setIsAssigningBulkCredits(false);
+    }
+  }, [selectedUserIds, bulkCreditsInput, recentUsers, refresh]);
+
+  const handleSelectAllRecentUsers = useCallback(() => {
+    const allUserIds = new Set(recentUsers.map((user) => user.id));
+    if (
+      selectedUserIds.size === recentUsers.length &&
+      recentUsers.every((user) => selectedUserIds.has(user.id))
+    ) {
+      setSelectedUserIds(new Set());
+    } else {
+      setSelectedUserIds(allUserIds);
+    }
+  }, [recentUsers, selectedUserIds]);
+
+  const isAllRecentUsersSelected =
+    recentUsers.length > 0 &&
+    recentUsers.every((user) => selectedUserIds.has(user.id));
+  const isSomeRecentUsersSelected = recentUsers.some((user) => selectedUserIds.has(user.id));
+
+  const handleBulkDeleteRecentUsers = useCallback(async () => {
+    if (selectedUserIds.size === 0) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      // Get selected user IDs
+      const userIds = Array.from(selectedUserIds);
+
+      await usersApi.bulkDelete(userIds);
+
+      // Clear selection
+      setSelectedUserIds(new Set());
+      await refresh();
+    } catch (err) {
+      console.error('Error bulk deleting users:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [selectedUserIds, refresh]);
 
   if (isLoading) {
     return (
@@ -871,6 +1114,40 @@ export default function DashboardOverviewScreen(): ReactElement {
                 Recent Users
               </ThemedText>
               </View>
+              <View style={styles.sectionHeaderActions}>
+                <Pressable onPress={handleSelectAllRecentUsers} style={styles.checkboxContainer}>
+                  <View
+                    style={[
+                      styles.checkbox,
+                      { borderColor: isAllRecentUsersSelected || (isSomeRecentUsersSelected && !isAllRecentUsersSelected) ? colors.buttonPrimary : colors.textSecondary },
+                      isAllRecentUsersSelected ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
+                      isSomeRecentUsersSelected && !isAllRecentUsersSelected ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
+                    ]}>
+                    {isAllRecentUsersSelected && (
+                      <RemixIcon name="check-line" size={14} color={colors.iconAccentLight} />
+                    )}
+                    {isSomeRecentUsersSelected && !isAllRecentUsersSelected && (
+                      <View style={[styles.checkboxIndeterminateMark, { backgroundColor: colors.iconAccentLight }]} />
+                    )}
+                  </View>
+                </Pressable>
+                {selectedUserIds.size > 0 && (
+                  <Pressable
+                    onPress={handleBulkDeleteRecentUsers}
+                    disabled={isDeleting}
+                    style={[
+                      styles.deleteButton,
+                      { backgroundColor: colors.buttonDanger },
+                      isDeleting && styles.buttonDisabled,
+                    ]}>
+                    {isDeleting ? (
+                      <ActivityIndicator size="small" color={colors.iconAccentLight} />
+                    ) : (
+                      <RemixIcon name="delete-bin-line" size={18} color={colors.iconAccentLight} />
+                    )}
+                  </Pressable>
+                )}
+              </View>
             </View>
             <ThemedText
               style={styles.sectionSubtitle}
@@ -879,6 +1156,102 @@ export default function DashboardOverviewScreen(): ReactElement {
               Latest 5 registered users
             </ThemedText>
           </View>
+
+          {/* Assign Credits Section - Only shown when users are selected */}
+          {selectedUserIds.size > 0 && (
+            <View style={[styles.assignCreditsSection, { backgroundColor: colors.badgeBackground, borderColor: colors.divider }]}>
+              <ThemedText type="defaultSemiBold" style={styles.assignCreditsTitle} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                Assign Credits to {selectedUserIds.size} Selected User{selectedUserIds.size !== 1 ? 's' : ''}
+              </ThemedText>
+              <View style={styles.assignCreditsContent}>
+                <View style={styles.assignCreditsInputContainer}>
+                  <View style={styles.assignCreditsInputRow}>
+                    <View style={styles.assignCreditsInputWrapper}>
+                      <TextInput
+                        style={[
+                          styles.assignCreditsInput,
+                          styles.assignCreditsInputWithSpinner,
+                          { borderColor: colors.inputBorder, color: '#1F1F1F' },
+                          isAssigningBulkCredits && { backgroundColor: colors.cardBackground, opacity: 0.6 },
+                        ]}
+                        placeholder="Enter number of credits"
+                        placeholderTextColor={colors.textSecondary}
+                        value={bulkCreditsInput}
+                        onChangeText={setBulkCreditsInput}
+                        keyboardType="numeric"
+                        editable={!isAssigningBulkCredits}
+                      />
+                      <View style={styles.assignCreditsSpinnerContainer}>
+                        <Pressable
+                          onPress={() => {
+                            if (!isAssigningBulkCredits) {
+                              if (!bulkCreditsInput || isNaN(parseFloat(bulkCreditsInput))) {
+                                setBulkCreditsInput('1');
+                              } else {
+                                const current = parseFloat(bulkCreditsInput);
+                                setBulkCreditsInput(String(current + 1));
+                              }
+                            }
+                          }}
+                          disabled={isAssigningBulkCredits}
+                          style={styles.assignCreditsSpinnerButton}>
+                          <RemixIcon name="arrow-up-s-line" size={16} color={colors.textSecondary} />
+                        </Pressable>
+                        <View style={[styles.assignCreditsSpinnerDivider, { backgroundColor: colors.divider }]} />
+                        <Pressable
+                          onPress={() => {
+                            if (!isAssigningBulkCredits) {
+                              if (!bulkCreditsInput || isNaN(parseFloat(bulkCreditsInput))) {
+                                setBulkCreditsInput('1');
+                              } else {
+                                const current = parseFloat(bulkCreditsInput);
+                                if (current > 1) {
+                                  setBulkCreditsInput(String(current - 1));
+                                }
+                              }
+                            }
+                          }}
+                          disabled={isAssigningBulkCredits || (!bulkCreditsInput || parseFloat(bulkCreditsInput) <= 1)}
+                          style={[
+                            styles.assignCreditsSpinnerButton,
+                            (!bulkCreditsInput || (bulkCreditsInput && parseFloat(bulkCreditsInput) <= 1)) && styles.assignCreditsSpinnerButtonDisabled,
+                          ]}>
+                          <RemixIcon 
+                            name="arrow-down-s-line" 
+                            size={16} 
+                            color={(!bulkCreditsInput || (bulkCreditsInput && parseFloat(bulkCreditsInput) <= 1)) ? colors.textSecondary + '40' : colors.textSecondary} 
+                          />
+                        </Pressable>
+                      </View>
+                    </View>
+                    {/* Dollar Conversion Display - Inline */}
+                    {bulkCreditsInput && !isNaN(parseFloat(bulkCreditsInput)) && parseFloat(bulkCreditsInput) > 0 && (
+                      <ThemedText type="defaultSemiBold" style={styles.assignCreditsConversionText} lightColor={colors.textPrimary} darkColor={colors.textPrimary}>
+                        = ${(parseFloat(bulkCreditsInput) / 100).toFixed(2)}
+                      </ThemedText>
+                    )}
+                  </View>
+                  <ThemedText type="default" style={styles.assignCreditsHelper} lightColor={colors.textSecondary} darkColor={colors.textSecondary}>
+                    Enter the number of credits to add to all selected users' accounts (100 credits = $1.00).
+                  </ThemedText>
+                </View>
+                <Pressable
+                  onPress={handleBulkAssignCredits}
+                  disabled={isAssigningBulkCredits || !bulkCreditsInput || isNaN(parseFloat(bulkCreditsInput)) || parseFloat(bulkCreditsInput) < 1}
+                  style={[
+                    styles.assignCreditsButton,
+                    { backgroundColor: colors.buttonPrimary },
+                    (isAssigningBulkCredits || !bulkCreditsInput || isNaN(parseFloat(bulkCreditsInput)) || parseFloat(bulkCreditsInput) < 1) && styles.buttonDisabled,
+                  ]}>
+                  {isAssigningBulkCredits ? (
+                    <ActivityIndicator size="small" color={colors.iconAccentLight} />
+                  ) : (
+                    <RemixIcon name="file-text-line" size={18} color={colors.iconAccentLight} />
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          )}
 
           <View style={styles.recentUserList}>
             {isSummaryLoading && recentUsers.length === 0 ? (
@@ -892,7 +1265,16 @@ export default function DashboardOverviewScreen(): ReactElement {
                 </ThemedText>
               </View>
             ) : recentUsers.length > 0 ? (
-              recentUsers.map((user) => <RecentUserRow key={user.id} user={user} colors={colors} />)
+              recentUsers.map((user) => (
+                <RecentUserRow
+                  key={user.id}
+                  user={user}
+                  colors={colors}
+                  onAssignCredits={handleAssignCredits}
+                  isSelected={selectedUserIds.has(user.id)}
+                  onToggleSelect={handleToggleSelect}
+                />
+              ))
             ) : (
               <ThemedText
                 style={styles.emptyStateText}
@@ -906,6 +1288,22 @@ export default function DashboardOverviewScreen(): ReactElement {
 
         {/* Analytics Charts Section */}
         <AnalyticsCharts />
+
+        {/* Credit Assignment Dialog */}
+        {userToAssignCredits && (
+          <CreditAssignmentDialog
+            open={assignCreditsDialogOpen}
+            onOpenChange={setAssignCreditsDialogOpen}
+            user={{
+              id: userToAssignCredits.id,
+              userId: userToAssignCredits.id,
+              fullName: userToAssignCredits.name,
+              preferredName: userToAssignCredits.preferredName,
+              email: userToAssignCredits.email,
+            }}
+            onSuccess={handleCreditAssignmentSuccess}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -952,21 +1350,39 @@ const MetricCardComponent = memo(({ metric, colors }: { readonly metric: MetricC
 });
 MetricCardComponent.displayName = 'MetricCardComponent';
 
-const RecentUserRow = memo(({ user, colors }: { readonly user: RecentUser; colors: typeof Colors.light }): ReactElement => {
+const RecentUserRow = memo(({ 
+  user, 
+  colors, 
+  onAssignCredits,
+  isSelected,
+  onToggleSelect,
+}: { 
+  readonly user: RecentUser; 
+  readonly colors: typeof Colors.light;
+  readonly onAssignCredits: (user: RecentUser) => void;
+  readonly isSelected: boolean;
+  readonly onToggleSelect: (userId: string) => void;
+}): ReactElement => {
   const displayName = user.preferredName && user.preferredName.trim().length > 0 ? user.preferredName : user.name;
-  const avatarLabel = displayName.trim().length > 0 ? displayName.trim().charAt(0).toUpperCase() : '?';
 
   return (
     <View style={[styles.recentUserRow, { borderBottomColor: colors.divider }]}>
-      <View style={[styles.avatarCircle, { backgroundColor: colors.avatarBackground }]}>
-        <ThemedText
-          type="defaultSemiBold"
-          style={styles.avatarLabel}
-          lightColor={colors.avatarText}
-          darkColor={colors.avatarText}>
-          {avatarLabel}
-        </ThemedText>
+      {/* Checkbox */}
+      <View style={styles.recentUserCheckboxContainer}>
+        <Pressable onPress={() => onToggleSelect(user.id)} style={styles.checkboxContainer}>
+          <View
+            style={[
+              styles.checkbox,
+              { borderColor: isSelected ? colors.buttonPrimary : colors.textSecondary },
+              isSelected ? { backgroundColor: colors.buttonPrimary, borderColor: colors.buttonPrimary } : undefined,
+            ]}>
+            {isSelected && (
+              <RemixIcon name="check-line" size={14} color={colors.iconAccentLight} />
+            )}
+          </View>
+        </Pressable>
       </View>
+
       <View style={styles.userDetails}>
         <ThemedText
           type="defaultSemiBold"
@@ -994,6 +1410,16 @@ const RecentUserRow = memo(({ user, colors }: { readonly user: RecentUser; color
           </ThemedText>
         </View>
       </View>
+      <Pressable
+        onPress={() => onAssignCredits(user)}
+        accessibilityRole="button"
+        accessibilityLabel={`Assign credits to ${displayName}`}
+        style={({ pressed }) => [
+          styles.assignCreditButton,
+          pressed && styles.assignCreditButtonPressed,
+        ]}>
+        <RemixIcon name="file-text-line" size={20} color={colors.iconAccent} />
+      </Pressable>
     </View>
   );
 });

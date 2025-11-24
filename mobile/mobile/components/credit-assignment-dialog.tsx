@@ -191,7 +191,7 @@ export function CreditAssignmentDialog({
                   style={[
                     styles.input,
                     styles.inputWithSpinner,
-                    { borderColor: colors.inputBorder, color: colors.textPrimary },
+                    { borderColor: colors.inputBorder, color: '#1F1F1F' },
                     isSubmitting && { backgroundColor: colors.badgeBackground },
                     isSubmitting && styles.inputDisabled,
                   ]}
