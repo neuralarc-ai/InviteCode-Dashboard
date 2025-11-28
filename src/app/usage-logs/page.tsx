@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,6 +70,7 @@ export default function UsageLogsPage() {
   const [sendingCustomEmail, setSendingCustomEmail] = useState(false);
   const [enhancingEmail, setEnhancingEmail] = useState(false);
   const [overallTotalCost, setOverallTotalCost] = useState<number>(0);
+  const hasLoggedUserDataRef = useRef(false);
   
   // Quick reminder preview dialog state
   const [quickReminderPreview, setQuickReminderPreview] = useState<{
@@ -131,6 +132,58 @@ export default function UsageLogsPage() {
     
     return () => clearInterval(interval);
   }, [grandTotalCost]); // Re-fetch when grandTotalCost changes (indicates data refresh)
+
+  // Log detailed user metadata to the browser console once per page load
+  useEffect(() => {
+    if (hasLoggedUserDataRef.current) {
+      return;
+    }
+    if (!usageLogs || usageLogs.length === 0) {
+      return;
+    }
+
+    const userIds = Array.from(
+      new Set(
+        usageLogs
+          .map((log) => log.user_id)
+          .filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+      )
+    ).slice(0, 200); // Avoid sending an excessively large payload
+
+    if (userIds.length === 0) {
+      return;
+    }
+
+    hasLoggedUserDataRef.current = true;
+
+    const fetchAndLogUserData = async () => {
+      try {
+        console.log('[fetch-user-from-logs] Requesting user data for', userIds.length, 'users');
+        const response = await fetch('/api/fetch-user-from-logs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userIds }),
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok || !payload.success) {
+          console.error('[fetch-user-from-logs] Failed to fetch user data', payload);
+          hasLoggedUserDataRef.current = false; // allow retry if the next render has data
+          return;
+        }
+
+        console.log('[fetch-user-from-logs] Response payload:', payload);
+      } catch (err) {
+        console.error('[fetch-user-from-logs] Unexpected error', err);
+        hasLoggedUserDataRef.current = false;
+      }
+    };
+
+    fetchAndLogUserData();
+  }, [usageLogs]);
 
   // Load email results from localStorage on component mount
   useEffect(() => {

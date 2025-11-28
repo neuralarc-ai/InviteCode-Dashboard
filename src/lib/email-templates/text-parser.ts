@@ -27,11 +27,12 @@ export function parseEmailText(textContent: string): ParsedEmailContent {
   // If no paragraphs found with double newlines, try splitting by single newlines
   let processedParagraphs = paragraphs.length > 0 ? paragraphs : cleanedContent.split(/\n+/).map(p => p.trim()).filter(p => p.length > 0);
   
-  // Find greeting line - look for common greeting patterns
+  // Find greeting line - look for common greeting patterns or sale announcements
   let greeting = defaultGreeting;
   const greetingPatterns = [
     /^(greetings|dear|hello|hi)[\s,]/i,
     /^(greetings from|dear|hello|hi)/i,
+    /^(grand black friday sale|black friday|sale!)/i,
   ];
   
   const greetingLineIndex = processedParagraphs.findIndex(p => 
@@ -42,11 +43,12 @@ export function parseEmailText(textContent: string): ParsedEmailContent {
     greeting = processedParagraphs[greetingLineIndex];
     // Ensure proper capitalization
     greeting = greeting.replace(/^greetings from /i, 'Greetings from ');
+    greeting = greeting.replace(/^grand black friday sale!/i, 'Grand Black Friday Sale!');
     processedParagraphs.splice(greetingLineIndex, 1);
   } else if (processedParagraphs.length > 0) {
-    // If first paragraph looks like a greeting, use it
+    // If first paragraph looks like a greeting or short announcement, use it
     const firstPara = processedParagraphs[0];
-    if (firstPara.length < 100 && !/[.!?]\s/.test(firstPara)) {
+    if ((firstPara.length < 100 && !/[.!?]\s/.test(firstPara)) || /^(grand black friday|sale!)/i.test(firstPara)) {
       greeting = firstPara;
       processedParagraphs.shift();
     }

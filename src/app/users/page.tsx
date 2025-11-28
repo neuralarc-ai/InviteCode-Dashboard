@@ -51,7 +51,24 @@ export default function UsersPage() {
       // If sending to selected users only, include their user IDs
       if (selectedOnly && selectedUserIds.size > 0) {
         requestBody.selectedUserIds = Array.from(selectedUserIds);
+        console.log('Sending to selected users:', {
+          count: selectedUserIds.size,
+          userIds: Array.from(selectedUserIds)
+        });
+      } else {
+        console.log('Sending to all users');
       }
+      
+      console.log('Request body being sent:', {
+        hasSubject: !!requestBody.subject,
+        subjectLength: requestBody.subject?.length || 0,
+        hasTextContent: !!requestBody.textContent,
+        textContentLength: requestBody.textContent?.length || 0,
+        hasHtmlContent: !!requestBody.htmlContent,
+        htmlContentLength: requestBody.htmlContent?.length || 0,
+        hasSelectedUserIds: !!requestBody.selectedUserIds,
+        selectedUserIdsCount: requestBody.selectedUserIds?.length || 0
+      });
 
       const response = await fetch('/api/send-bulk-email', {
         method: 'POST',
@@ -60,6 +77,67 @@ export default function UsersPage() {
         },
         body: JSON.stringify(requestBody),
       });
+
+      // Check if response is OK before parsing
+      if (!response.ok) {
+        let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        let errorDetails: any = null;
+        
+        try {
+          // Try to get response as text first to see what we're dealing with
+          const responseText = await response.text();
+          console.log('Error response text (raw):', responseText);
+          
+          // Try to parse as JSON
+          if (responseText && responseText.trim().length > 0) {
+            try {
+              errorDetails = JSON.parse(responseText);
+              console.log('Error response parsed as JSON:', errorDetails);
+              
+              // Check if errorDetails is empty object or has no message
+              if (errorDetails && typeof errorDetails === 'object') {
+                if (Object.keys(errorDetails).length === 0) {
+                  errorMessage = `Server returned empty error response (${response.status}). This usually means the selected users don't exist in the database.`;
+                } else {
+                  errorMessage = errorDetails.message || errorDetails.hint || errorDetails.error || errorMessage;
+                  
+                  // Include additional details if available
+                  if (errorDetails.details) {
+                    console.log('Error details:', errorDetails.details);
+                    if (errorDetails.details.selectedUserIds) {
+                      errorMessage += ` Selected user IDs: ${JSON.stringify(errorDetails.details.selectedUserIds)}`;
+                    }
+                  }
+                }
+              }
+            } catch (jsonParseError) {
+              // Not valid JSON, use text as error message
+              console.error('Failed to parse error response as JSON:', jsonParseError);
+              errorMessage = responseText || errorMessage;
+            }
+          } else {
+            // Empty response body
+            errorMessage = `Server returned empty response (${response.status}). This usually means the selected users don't exist in the database or there was a validation error.`;
+          }
+        } catch (parseError) {
+          console.error('Failed to read error response:', parseError);
+          errorMessage = `Failed to read error response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`;
+        }
+        
+        console.error('Bulk email error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorDetails,
+          finalErrorMessage: errorMessage
+        });
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return;
+      }
 
       const result = await response.json();
 
@@ -76,9 +154,10 @@ export default function UsersPage() {
         // Note: Real-time subscription should automatically refresh the user profiles
         // when the metadata is updated in the database
       } else {
+        console.error('Bulk email error:', result);
         toast({
           title: "Error",
-          description: result.message || "Failed to send emails",
+          description: result.message || result.hint || "Failed to send emails",
           variant: "destructive",
         });
       }
@@ -113,6 +192,35 @@ export default function UsersPage() {
         body: JSON.stringify(requestBody),
       });
 
+      // Check if response is OK before parsing
+      if (!response.ok) {
+        let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        try {
+          const errorResult = await response.json();
+          errorMessage = errorResult.message || errorResult.hint || errorMessage;
+          console.error('Individual email error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorResult
+          });
+        } catch (parseError) {
+          const text = await response.text();
+          console.error('Failed to parse error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: text
+          });
+          errorMessage = text || errorMessage;
+        }
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const result = await response.json();
 
       if (result.success) {
@@ -123,9 +231,10 @@ export default function UsersPage() {
         // Note: Real-time subscription should automatically refresh the user profiles
         // when the metadata is updated in the database
       } else {
+        console.error('Individual email error:', result);
         toast({
           title: "Error",
-          description: result.message || "Failed to send email",
+          description: result.message || result.hint || "Failed to send email",
           variant: "destructive",
         });
       }

@@ -12,17 +12,44 @@ export async function POST(request: NextRequest) {
     try {
       const body = await request.json();
       
-      // Check for required fields
-      if (!body.subject || !body.textContent || !body.htmlContent || !body.individualEmail) {
+      // Debug logging
+      console.log('Received email request:', {
+        hasSubject: !!body.subject,
+        subjectLength: body.subject?.length || 0,
+        hasTextContent: !!body.textContent,
+        textContentLength: body.textContent?.length || 0,
+        hasHtmlContent: !!body.htmlContent,
+        htmlContentLength: body.htmlContent?.length || 0,
+        hasIndividualEmail: !!body.individualEmail,
+        individualEmail: body.individualEmail
+      });
+      
+      // Check for required fields with better validation
+      const missingFields = [];
+      if (!body.subject || typeof body.subject !== 'string' || body.subject.trim().length === 0) {
+        missingFields.push('subject');
+      }
+      if (!body.textContent || typeof body.textContent !== 'string' || body.textContent.trim().length === 0) {
+        missingFields.push('textContent');
+      }
+      if (!body.htmlContent || typeof body.htmlContent !== 'string' || body.htmlContent.trim().length === 0) {
+        missingFields.push('htmlContent');
+      }
+      if (!body.individualEmail || typeof body.individualEmail !== 'string' || body.individualEmail.trim().length === 0) {
+        missingFields.push('individualEmail');
+      }
+      
+      if (missingFields.length > 0) {
         return NextResponse.json(
           { 
             success: false, 
-            message: 'Missing required fields: subject, textContent, htmlContent, and individualEmail are required',
+            message: `Missing or invalid required fields: ${missingFields.join(', ')}`,
             details: {
-              hasSubject: !!body.subject,
-              hasTextContent: !!body.textContent,
-              hasHtmlContent: !!body.htmlContent,
-              hasIndividualEmail: !!body.individualEmail
+              hasSubject: !!body.subject && body.subject.trim().length > 0,
+              hasTextContent: !!body.textContent && body.textContent.trim().length > 0,
+              hasHtmlContent: !!body.htmlContent && body.htmlContent.trim().length > 0,
+              hasIndividualEmail: !!body.individualEmail && body.individualEmail.trim().length > 0,
+              missingFields
             }
           },
           { status: 400 }
@@ -30,11 +57,11 @@ export async function POST(request: NextRequest) {
       }
 
       customEmailData = {
-        subject: body.subject,
-        textContent: body.textContent,
-        htmlContent: body.htmlContent
+        subject: body.subject.trim(),
+        textContent: body.textContent.trim(),
+        htmlContent: body.htmlContent.trim()
       };
-      individualEmail = body.individualEmail;
+      individualEmail = body.individualEmail.trim();
     } catch (parseError) {
       console.error('Error parsing request body:', parseError);
       return NextResponse.json(
@@ -122,6 +149,9 @@ export async function POST(request: NextRequest) {
     if (emailContent.includes('cid:credits-body')) {
       attachments.push(...createEmailAttachments([EMAIL_IMAGES.creditsBody]));
     }
+    if (emailContent.includes('cid:updates-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.updatesBody]));
+    }
 
     // Send email to individual user
     try {
@@ -152,18 +182,38 @@ export async function POST(request: NextRequest) {
           const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
           const user = authUsers?.users?.find(u => u.email === individualEmail);
           if (user) {
-            // Mark user as credits email sent
-            const markResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/mark-credits-email-sent`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userIds: [user.id] }),
-            });
+            // Directly update the database instead of making HTTP call
+            const now = new Date().toISOString();
             
-            if (!markResponse.ok) {
-              const markResult = await markResponse.json();
-              console.warn(`Failed to mark user as sent for ${individualEmail}:`, markResult);
-            } else {
-              console.log(`Marked user ${user.id} (${individualEmail}) as credits email sent`);
+            // Fetch existing profile to preserve metadata
+            const { data: existingProfile } = await supabaseAdmin
+              .from('user_profiles')
+              .select('user_id, metadata')
+              .eq('user_id', user.id)
+              .single();
+            
+            if (existingProfile) {
+              const updatedMetadata = {
+                ...(existingProfile.metadata || {}),
+                credits_email_sent_at: now,
+                ...(existingProfile.metadata?.credits_assigned !== undefined 
+                  ? { credits_assigned: existingProfile.metadata.credits_assigned } 
+                  : {})
+              };
+
+              const { error: updateError } = await supabaseAdmin
+                .from('user_profiles')
+                .update({
+                  metadata: updatedMetadata,
+                  updated_at: now
+                })
+                .eq('user_id', user.id);
+              
+              if (updateError) {
+                console.warn(`Failed to mark user as sent for ${individualEmail}:`, updateError);
+              } else {
+                console.log(`Marked user ${user.id} (${individualEmail}) as credits email sent`);
+              }
             }
           }
         } catch (markError) {

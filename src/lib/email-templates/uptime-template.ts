@@ -29,9 +29,9 @@ export function createUptimeHtmlTemplate(
 
   // Use CID references for SMTP (default), or base64 data URIs for Resend API
   const logoImg = useCid
-    ? `<img src="cid:email-logo" width="56" height="57" style="display:block;width:100%;height:auto;max-width:100%" alt="Helium Logo">`
+    ? `<img src="cid:email-logo" width="56" height="57" style="display:block;width:56px;height:auto;max-width:56px;margin:0 auto;" alt="Helium Logo">`
     : logoBase64
-    ? `<img src="${logoBase64}" width="56" height="57" style="display:block;width:100%;height:auto;max-width:100%" alt="Helium Logo">`
+    ? `<img src="${logoBase64}" width="56" height="57" style="display:block;width:56px;height:auto;max-width:56px;margin:0 auto;" alt="Helium Logo">`
     : "";
   
   const uptimeBodyImg = useCid
@@ -51,7 +51,26 @@ export function createUptimeHtmlTemplate(
   const secondaryText = paragraphs[1] || "";
   const closingText = paragraphs[2] || "";
 
-  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+  // Function to add bold formatting to specific terms
+  const addBoldFormatting = (text: string): string => {
+    if (!text) return text;
+    let formatted = text;
+    // Make "back online" bold
+    formatted = formatted.replace(/\bback online\b/gi, '<span style="font-weight:700">back online</span>');
+    // Make "patience" bold
+    formatted = formatted.replace(/\bpatience\b/gi, '<span style="font-weight:700">patience</span>');
+    // Make "The Helium Team" bold
+    formatted = formatted.replace(/\bThe Helium Team\b/gi, '<span style="font-weight:700">The Helium Team</span>');
+    return formatted;
+  };
+
+  // Apply bold formatting
+  const formattedMainText = addBoldFormatting(mainText);
+  const formattedSecondaryText = addBoldFormatting(secondaryText);
+  const formattedClosingText = addBoldFormatting(closingText);
+  const formattedSignoffText = addBoldFormatting(signoffText);
+
+  return `<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,174 +78,130 @@ export function createUptimeHtmlTemplate(
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <meta name="x-apple-disable-message-reformatting">
 <style>
-@media (max-width: 450px) {
-  .layout-0 {
-    display: none !important;
-  }
+body {
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background-color: #f0f1f5;
+  margin: 0;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif;
 }
-@media (max-width: 450px) and (min-width: 0px) {
-  .layout-0-under-450 {
-    display: table !important;
+.email-container {
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: #ffffff;
+}
+.email-content {
+  padding: 0 20px;
+  margin-bottom: 6px;
+  color: #333333;
+  font-size: 18.6667px;
+  line-height: 1.84;
+  text-align: left;
+}
+.logo-wrapper {
+  text-align: center;
+  padding: 12px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.uptime-image-wrapper {
+  text-align: center;
+  padding: 0 20px;
+}
+.uptime-image {
+  max-width: 560px;
+  width: 100%;
+  height: auto;
+}
+.spacer {
+  height: 12px;
+}
+.spacer-large {
+  height: 16px;
+}
+.footer {
+  background-color: #070300;
+  padding: 13px 20px;
+  text-align: center;
+}
+.footer-content {
+  max-width: 522px;
+  margin: 0 auto;
+  padding: 7px;
+}
+.footer-text {
+  color: #f6f5f1;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-align: left;
+  margin-bottom: 16px;
+}
+.footer-detail {
+  color: #f6f5f1;
+  font-size: 13.3333px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-align: left;
+}
+@media (max-width: 450px) {
+  .footer {
+    display: none;
   }
 }
 </style>
 </head>
-<body style="width:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;background-color:#f0f1f5;margin:0;padding:0">
-<table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f0f1f5" style="background-color:#f0f1f5">
-<tbody>
-<tr>
-<td style="background-color:#f0f1f5">
-<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;background-color:#ffffff">
-<tbody>
-<tr>
-<td style="padding:10px 0px 0px 0px">
-<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
-<tbody>
-<tr>
-<td style="padding:10px 0 10px 0">
-<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="color:#000;font-style:normal;font-weight:normal;font-size:16px;line-height:1.4;letter-spacing:0;text-align:left;direction:ltr;border-collapse:collapse;font-family:Arial, Helvetica, sans-serif;white-space:normal;word-wrap:break-word;word-break:break-word">
-<tbody>
-<tr>
-<td style="padding:0px 20px">
-<table cellpadding="0" cellspacing="0" border="0" style="width:100%">
-<tbody>
-<tr>
-<td align="center">
-<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:56px">
-<tbody>
-<tr>
-<td style="width:100%;padding:20 0">
-${logoImg}
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-<tr>
-<td style="font-size:0;height:16px" height="16">&nbsp;</td>
-</tr>
-<tr>
-<td style="padding:0px 20px">
-<table cellpadding="0" cellspacing="0" border="0" style="width:100%">
-<tbody>
-<tr>
-<td align="center">
-<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px">
-<tbody>
-<tr>
-<td style="width:100%;padding:0">
-${uptimeBodyImg}
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-<tr>
-<td style="font-size:0;height:8px" height="8">&nbsp;</td>
-</tr>
-<tr>
-<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
-<span style="white-space:pre-wrap">${greetingText.replace(
+<body>
+<div style="background-color: #f0f1f5; width: 100%;">
+  <div class="email-container">
+    <div style="padding: 10px 0 0 0;">
+      <div class="logo-wrapper">
+        ${logoImg}
+      </div>
+      <div class="spacer-large"></div>
+      <div class="uptime-image-wrapper">
+        <div class="uptime-image">
+          ${uptimeBodyImg}
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="email-content">
+        <div style="white-space: pre-wrap;">${greetingText.replace(
     "Greetings from Helium,",
     'Greetings from <span style="font-weight:700">Helium</span>,'
-  )}</span><span style="white-space:pre-wrap"><br></span>
-</td>
-</tr>
-<tr>
-<td style="font-size:0;height:8px" height="8">&nbsp;</td>
-</tr>
-<tr>
-<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
-<span style="white-space:pre-wrap">${mainText}</span><span style="white-space:pre-wrap"><br></span>
-</td>
-</tr>
-<tr>
-<td style="font-size:0;height:8px" height="8">&nbsp;</td>
-</tr>
-<tr>
-<td dir="ltr" style="color:#333333;font-size:18.6667px;white-space:pre-wrap;line-height:1.84;text-align:left;padding:0px 20px">
-${secondaryText}<br>
-</td>
-</tr>
-<tr>
-<td style="font-size:0;height:8px" height="8">&nbsp;</td>
-</tr>
-<tr>
-<td dir="ltr" style="color:#333333;font-size:18.6667px;white-space:pre-wrap;line-height:1.84;text-align:left;padding:0px 20px">
-${closingText}<br>
-</td>
-</tr>
-<tr>
-<td style="font-size:0;height:8px" height="8">&nbsp;</td>
-</tr>
-<tr>
-<td dir="ltr" style="color:#333333;font-size:18.6667px;white-space:pre-wrap;line-height:1.84;text-align:left;padding:0px 20px">
-${signoffText}<br>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-<table border="0" cellpadding="0" cellspacing="0" class="layout-0" align="center" style="display:table;border-spacing:0px;border-collapse:separate;width:100%;max-width:100%;table-layout:fixed;margin:0 auto;background-color:#070300">
-<tbody>
-<tr>
-<td style="text-align:center;padding:13.099106420068516px 20px">
-<table border="0" cellpadding="0" cellspacing="0" style="border-spacing:0px;border-collapse:separate;width:100%;max-width:522px;table-layout:fixed;margin:0 auto">
-<tbody>
-<tr>
-<td width="100.00%" style="width:100.00%;box-sizing:border-box;vertical-align:top">
-<table border="0" cellpadding="0" cellspacing="0" style="border-spacing:0px;border-collapse:separate;width:100%;table-layout:fixed">
-<tbody>
-<tr>
-<td style="padding:7px">
-<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="color:#000;font-style:normal;font-weight:normal;font-size:16px;line-height:1.4;letter-spacing:0;text-align:left;direction:ltr;border-collapse:collapse;font-family:Arial, Helvetica, sans-serif;white-space:normal;word-wrap:break-word;word-break:break-word">
-<tbody>
-<tr>
-<td dir="ltr" style="color:#f6f5f1;font-size:16px;font-weight:700;letter-spacing:-0.01em;white-space:pre-wrap;line-height:1.2;text-align:left">Need help?<br></td>
-</tr>
-<tr>
-<td style="font-size:0;height:16px" height="16">&nbsp;</td>
-</tr>
-<tr>
-<td dir="ltr" style="color:#f6f5f1;font-size:13.3333px;letter-spacing:-0.01em;line-height:1.2;text-align:left">
-<span style="white-space:pre-wrap">Our support team is here to assist you with onboarding, integrations, or deployment. You can reach us directly at </span><span style="font-weight:700;white-space:pre-wrap">support@he2.ai</span><span style="white-space:pre-wrap"> or through the in-app assistant.</span><span style="white-space:pre-wrap"><br></span>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
+  )}<br></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="email-content">
+        <div style="white-space: pre-wrap;">${formattedMainText}<br></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="email-content">
+        <div style="white-space: pre-wrap;">${formattedSecondaryText}<br></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="email-content">
+        <div style="white-space: pre-wrap;">${formattedClosingText}<br></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="email-content">
+        <div style="white-space: pre-wrap;">${formattedSignoffText}<br></div>
+      </div>
+    </div>
+    <div class="footer">
+      <div class="footer-content">
+        <div class="footer-text">Need help?<br></div>
+        <div class="footer-detail">
+          <span style="white-space: pre-wrap;">Our support team is here to assist you with onboarding, integrations, or deployment. You can reach us directly at </span><span style="font-weight:700;white-space:pre-wrap">support@he2.ai</span><span style="white-space:pre-wrap"> or through the in-app assistant.</span><br>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>`;
 }

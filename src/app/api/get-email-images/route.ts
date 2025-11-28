@@ -9,6 +9,7 @@ export async function GET() {
     const uptimeBodyBase64 = getImageBase64('uptime-body.png');
     const creditsBodyBase64 = getImageBase64('1Kcredits.png');
     const creditsCustomBase64 = getImageBase64('Credits.png');
+    const updatesBodyBase64 = getImageBase64('Updates.png');
 
     return NextResponse.json({
       success: true,
@@ -18,6 +19,7 @@ export async function GET() {
         uptimeBody: uptimeBodyBase64,
         creditsBody: creditsBodyBase64,
         creditsCustom: creditsCustomBase64,
+        updatesBody: updatesBodyBase64,
       },
     });
   } catch (error) {

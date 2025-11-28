@@ -45,6 +45,12 @@ export const EMAIL_IMAGES: Record<string, ImageAttachment> = {
     cid: 'credits-custom',
     contentType: 'image/png',
   },
+  updatesBody: {
+    filename: 'Updates.png',
+    path: 'Updates.png',
+    cid: 'updates-body',
+    contentType: 'image/png',
+  },
   reminder: {
     filename: 'Reminder.png',
     path: 'Reminder.png',

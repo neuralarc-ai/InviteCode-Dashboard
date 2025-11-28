@@ -20,7 +20,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { createUptimeHtmlTemplate, createDowntimeHtmlTemplate, createCreditsHtmlTemplate, convertTextToHtml } from '@/lib/email-templates';
+import { createUptimeHtmlTemplate, createDowntimeHtmlTemplate, createCreditsHtmlTemplate, createUpdatesHtmlTemplate, convertTextToHtml } from '@/lib/email-templates';
 
 interface EmailCustomizationDialogProps {
   open: boolean;
@@ -31,7 +31,7 @@ interface EmailCustomizationDialogProps {
   selectedCount?: number;
 }
 
-export type EmailSectionKey = 'uptime' | 'downtime' | 'creditsAdded' | 'activity';
+export type EmailSectionKey = 'uptime' | 'downtime' | 'creditsAdded' | 'activity' | 'updates';
 
 interface EmailSectionData {
   textContent: string;
@@ -102,9 +102,33 @@ Thank you for being an active member of our community.
 
 Thanks,
 The Helium Team`,
+
+  updates: `Grand Black Friday Sale!
+
+Thank you for being a part of the Helium AI community. Your trust and continued usage mean a great deal to us, and we are committed to delivering even more value to you in the coming months.
+
+We are pleased to extend an exclusive annual offer for our current users.
+
+For USD 149.99 per year, you will receive:
+- 5000 credits every month
+- 24,000 bonus credits for the year
+- Full access to Helium AI, including A.I.M, Helix, Orbit, Vault, workflow automation, content generation, and more
+
+This plan is designed to give you a full year of uninterrupted access to Helium AI, with sufficient credits to run your day to day work, experiments, and projects without worrying about frequent top-ups.
+
+If you would like to activate this annual plan, please click the link below or log in to your Helium account and proceed to the billing section:
+
+[Activate the USD 149.99 Annual Plan]
+
+If you have any questions regarding the plan, credits, or your existing account, simply reply to this email and our team will be happy to assist you.
+
+Thank you once again for choosing Helium AI. We look forward to supporting you as you scale your work with a single, intelligent AI platform.
+
+Warm regards,
+The Helium Team`,
 };
 
-const createDefaultEmailData = (logoBase64?: string | null, uptimeBodyBase64?: string | null, downtimeBodyBase64?: string | null, creditsBodyBase64?: string | null): EmailData => {
+const createDefaultEmailData = (logoBase64?: string | null, uptimeBodyBase64?: string | null, downtimeBodyBase64?: string | null, creditsBodyBase64?: string | null, updatesBodyBase64?: string | null): EmailData => {
   const sections: { [key in EmailSectionKey]: EmailSectionData } = {
     uptime: {
       textContent: defaultSectionContent.uptime,
@@ -136,6 +160,15 @@ const createDefaultEmailData = (logoBase64?: string | null, uptimeBodyBase64?: s
     activity: {
       textContent: defaultSectionContent.activity,
       htmlContent: convertTextToHtml(defaultSectionContent.activity),
+    },
+    updates: {
+      textContent: defaultSectionContent.updates,
+      htmlContent: createUpdatesHtmlTemplate({
+        logoBase64: logoBase64 || null,
+        updatesBodyBase64: updatesBodyBase64 || null,
+        textContent: defaultSectionContent.updates,
+        useCid: false, // Use base64 for preview
+      }),
     },
   };
 
@@ -250,6 +283,7 @@ const sectionLabels: Record<EmailSectionKey, string> = {
   downtime: 'Downtime',
   creditsAdded: 'Credits Added',
   activity: 'Activity',
+  updates: 'Updates',
 };
 
 export function EmailCustomizationDialog({ 
@@ -260,11 +294,12 @@ export function EmailCustomizationDialog({
   isSending,
   selectedCount = 0
 }: EmailCustomizationDialogProps) {
-  const [emailImages, setEmailImages] = useState<{ logo: string | null; uptimeBody: string | null; downtimeBody: string | null; creditsBody: string | null }>({
+  const [emailImages, setEmailImages] = useState<{ logo: string | null; uptimeBody: string | null; downtimeBody: string | null; creditsBody: string | null; updatesBody: string | null }>({
     logo: null,
     uptimeBody: null,
     downtimeBody: null,
     creditsBody: null,
+    updatesBody: null,
   });
   const [emailData, setEmailData] = useState<EmailData>(createDefaultEmailData());
 // ... existing code ...
@@ -275,6 +310,7 @@ export function EmailCustomizationDialog({
     downtime: false,
     creditsAdded: false,
     activity: false,
+    updates: false,
   });
 
   // Fetch base64 images on component mount
@@ -290,8 +326,9 @@ export function EmailCustomizationDialog({
               uptimeBody: data.images.uptimeBody,
               downtimeBody: data.images.downtimeBody,
               creditsBody: data.images.creditsBody,
+              updatesBody: data.images.updatesBody,
             });
-            // Update Uptime, Downtime, and Credits sections with HTML templates containing base64 images
+            // Update Uptime, Downtime, Credits, and Updates sections with HTML templates containing base64 images
             setEmailData(prev => ({
               ...prev,
               sections: {
@@ -320,6 +357,15 @@ export function EmailCustomizationDialog({
                     logoBase64: data.images.logo,
                     creditsBodyBase64: data.images.creditsBody,
                     textContent: prev.sections.creditsAdded.textContent,
+                    useCid: false, // Use base64 for preview
+                  }),
+                },
+                updates: {
+                  textContent: prev.sections.updates.textContent,
+                  htmlContent: createUpdatesHtmlTemplate({
+                    logoBase64: data.images.logo,
+                    updatesBodyBase64: data.images.updatesBody,
+                    textContent: prev.sections.updates.textContent,
                     useCid: false, // Use base64 for preview
                   }),
                 },
@@ -385,6 +431,23 @@ export function EmailCustomizationDialog({
             htmlContent: createCreditsHtmlTemplate({
               logoBase64: emailImages.logo,
               creditsBodyBase64: emailImages.creditsBody,
+              textContent,
+              useCid: false, // Use base64 for preview
+            }),
+          },
+        },
+      }));
+    } else if (sectionKey === 'updates') {
+      // For Updates section, use the updates HTML template with base64 images
+      setEmailData(prev => ({
+        ...prev,
+        sections: {
+          ...prev.sections,
+          [sectionKey]: {
+            textContent,
+            htmlContent: createUpdatesHtmlTemplate({
+              logoBase64: emailImages.logo,
+              updatesBodyBase64: emailImages.updatesBody,
               textContent,
               useCid: false, // Use base64 for preview
             }),
@@ -459,6 +522,23 @@ export function EmailCustomizationDialog({
           },
         },
       }));
+    } else if (sectionKey === 'updates') {
+      // Special handling for Updates section - use HTML template
+      setEmailData(prev => ({
+        ...prev,
+        sections: {
+          ...prev.sections,
+          [sectionKey]: {
+            textContent: defaultContent,
+            htmlContent: createUpdatesHtmlTemplate({
+              logoBase64: emailImages.logo,
+              updatesBodyBase64: emailImages.updatesBody,
+              textContent: defaultContent,
+              useCid: false, // Use base64 for preview
+            }),
+          },
+        },
+      }));
     } else {
       setEmailData(prev => ({
         ...prev,
@@ -474,7 +554,7 @@ export function EmailCustomizationDialog({
   };
 
   const handleResetAll = () => {
-    setEmailData(createDefaultEmailData(emailImages.logo, emailImages.uptimeBody, emailImages.downtimeBody, emailImages.creditsBody));
+    setEmailData(createDefaultEmailData(emailImages.logo, emailImages.uptimeBody, emailImages.downtimeBody, emailImages.creditsBody, emailImages.updatesBody));
   };
 
   const enhanceTextContent = (text: string): string => {
@@ -552,6 +632,22 @@ export function EmailCustomizationDialog({
             },
           },
         }));
+      } else if (sectionKey === 'updates') {
+        setEmailData(prev => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent: enhancedContent,
+              htmlContent: createUpdatesHtmlTemplate({
+                logoBase64: emailImages.logo,
+                updatesBodyBase64: emailImages.updatesBody,
+                textContent: enhancedContent,
+                useCid: false, // Use base64 for preview
+              }),
+            },
+          },
+        }));
       } else {
         setEmailData(prev => ({
           ...prev,
@@ -613,6 +709,18 @@ export function EmailCustomizationDialog({
         textContent: section.textContent,
         htmlContent: regeneratedHtml,
       };
+    } else if (activeTab === 'updates') {
+      // For updates section, regenerate HTML with appropriate image mode
+      const regeneratedHtml = createUpdatesHtmlTemplate({
+        logoBase64: emailImages.logo,
+        updatesBodyBase64: emailImages.updatesBody,
+        textContent: section.textContent,
+        useCid: forSending, // Use CID when sending, base64 for preview
+      });
+      return {
+        textContent: section.textContent,
+        htmlContent: regeneratedHtml,
+      };
     } else {
       // For simple templates, return as-is (they already have html wrapper)
       return {
@@ -633,26 +741,44 @@ export function EmailCustomizationDialog({
   };
 
   const handleSendToIndividual = async () => {
-    if (individualEmail.trim()) {
-      const activeContent = getActiveSectionContent(true); // Use CID for sending
-      
-      // Ensure we have valid content
-      if (!activeContent.textContent || !activeContent.htmlContent) {
-        console.error('Missing content for active section:', {
-          activeTab,
-          textContent: activeContent.textContent,
-          htmlContent: activeContent.htmlContent ? 'exists' : 'missing',
-        });
-        return;
-      }
-      
-      const emailDataToSend: EmailData = {
-        ...emailData,
-        textContent: activeContent.textContent || '',
-        htmlContent: activeContent.htmlContent || '',
-      };
-      await onSendToIndividual(emailDataToSend, individualEmail.trim());
+    if (!individualEmail.trim()) {
+      console.error('Individual email address is required');
+      return;
     }
+    
+    const activeContent = getActiveSectionContent(true); // Use CID for sending
+    
+    // Ensure we have valid content
+    if (!activeContent.textContent || activeContent.textContent.trim().length === 0) {
+      console.error('Missing text content for active section:', {
+        activeTab,
+        textContent: activeContent.textContent,
+        sectionTextContent: emailData.sections[activeTab]?.textContent,
+      });
+      return;
+    }
+    
+    if (!activeContent.htmlContent || activeContent.htmlContent.trim().length === 0) {
+      console.error('Missing HTML content for active section:', {
+        activeTab,
+        htmlContent: activeContent.htmlContent ? 'exists but empty' : 'missing',
+      });
+      return;
+    }
+    
+    if (!emailData.subject || emailData.subject.trim().length === 0) {
+      console.error('Email subject is required');
+      return;
+    }
+    
+    const emailDataToSend: EmailData = {
+      ...emailData,
+      subject: emailData.subject.trim(),
+      textContent: activeContent.textContent.trim(),
+      htmlContent: activeContent.htmlContent.trim(),
+    };
+    
+    await onSendToIndividual(emailDataToSend, individualEmail.trim());
   };
 
   // Check if the active section has content
@@ -720,11 +846,12 @@ export function EmailCustomizationDialog({
 
           {/* Email Sections */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as EmailSectionKey)} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="uptime">{sectionLabels.uptime}</TabsTrigger>
               <TabsTrigger value="downtime">{sectionLabels.downtime}</TabsTrigger>
               <TabsTrigger value="creditsAdded">{sectionLabels.creditsAdded}</TabsTrigger>
               <TabsTrigger value="activity">{sectionLabels.activity}</TabsTrigger>
+              <TabsTrigger value="updates">{sectionLabels.updates}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="uptime" className="mt-4">
@@ -772,6 +899,19 @@ export function EmailCustomizationDialog({
                 sectionData={emailData.sections.activity}
                 sectionLabel={sectionLabels.activity}
                 isEnhancing={isEnhancing.activity}
+                isSending={isSending}
+                onContentChange={handleSectionContentChange}
+                onReset={handleResetSection}
+                onEnhance={handleEnhanceSection}
+              />
+            </TabsContent>
+
+            <TabsContent value="updates" className="mt-4">
+              <EmailSection
+                sectionKey="updates"
+                sectionData={emailData.sections.updates}
+                sectionLabel={sectionLabels.updates}
+                isEnhancing={isEnhancing.updates}
                 isSending={isSending}
                 onContentChange={handleSectionContentChange}
                 onReset={handleResetSection}

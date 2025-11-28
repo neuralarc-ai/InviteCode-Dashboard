@@ -9,13 +9,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'userIds array is required' }, { status: 400 });
     }
 
-    console.log('Fetching user data from usage logs for IDs:', userIds.length, 'users');
+    const logEntries: string[] = [];
+    const logAndStore = (...args: unknown[]) => {
+      const serialized = args
+        .map((arg) =>
+          typeof arg === 'string' ? arg : JSON.stringify(arg, null, 2)
+        )
+        .join(' ');
+      logEntries.push(serialized);
+      console.log(...args);
+    };
+
+    logAndStore('Fetching user data from usage logs for IDs:', userIds.length, 'users');
 
     const userData: Array<{id: string, email: string, full_name: string}> = [];
 
     // For each user ID, try to get information from usage logs and other sources
     for (const userId of userIds) {
-      console.log(`Processing user ${userId}...`);
+      logAndStore(`Processing user ${userId}...`);
       
       // Try to get user info from auth first
       let authUser = null;
@@ -25,7 +36,7 @@ export async function POST(request: NextRequest) {
           authUser = authUsers.users.find(user => user.id === userId);
         }
       } catch (authErr) {
-        console.log(`Could not fetch auth user ${userId}:`, authErr);
+        logAndStore(`Could not fetch auth user ${userId}:`, authErr);
       }
 
       if (authUser) {
@@ -52,7 +63,7 @@ export async function POST(request: NextRequest) {
           full_name: fullName || `User ${userId.slice(0, 8)}`
         });
         
-        console.log(`Added auth user ${userId}: ${fullName}`);
+        logAndStore(`Added auth user ${userId}: ${fullName}`);
       } else {
         // User not in auth - create placeholder with usage info
         try {
@@ -73,9 +84,9 @@ export async function POST(request: NextRequest) {
             full_name: `User ${userId.slice(0, 8)} (Deleted)`
           });
           
-          console.log(`Added placeholder user ${userId} (deleted from auth)`);
+          logAndStore(`Added placeholder user ${userId} (deleted from auth)`);
         } catch (usageErr) {
-          console.log(`Could not fetch usage stats for ${userId}:`, usageErr);
+          logAndStore(`Could not fetch usage stats for ${userId}:`, usageErr);
           
           // Final fallback
           userData.push({
@@ -87,8 +98,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('Total user data returned:', userData.length);
-    return NextResponse.json(userData);
+    logAndStore('Total user data returned:', userData.length);
+    return NextResponse.json({
+      success: true,
+      userCount: userData.length,
+      users: userData,
+      logs: logEntries,
+    });
 
   } catch (error) {
     console.error('Error in fetch-user-from-logs API:', error);
