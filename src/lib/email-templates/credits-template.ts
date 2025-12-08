@@ -77,7 +77,7 @@ export function createCreditsHtmlTemplate(
     ? `<img src="${creditsBodyBase64}" width="560" height="220" style="display:block;width:100%;height:auto;max-width:100%" alt="Credits Added">`
     : "";
 
-  return `<!DOCTYPE html>
+  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -85,157 +85,185 @@ export function createCreditsHtmlTemplate(
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <meta name="x-apple-disable-message-reformatting">
 <style>
-body {
-  width: 100%;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  background-color: #f0f1f5;
-  margin: 0;
-  padding: 0;
-  font-family: Arial, Helvetica, sans-serif;
-}
-.email-container {
-  max-width: 600px;
-  margin: 0 auto;
-  background-color: #ffffff;
-}
-.email-content {
-  padding: 0 20px;
-  margin-bottom: 6px;
-  color: #333333;
-  font-size: 18.6667px;
-  line-height: 1.84;
-  text-align: left;
-}
-.logo-wrapper {
-  text-align: center;
-  padding: 12px 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.credits-image-wrapper {
-  text-align: center;
-  padding: 0 20px;
-}
-.credits-image {
-  max-width: 560px;
-  width: 100%;
-  height: auto;
-}
-.spacer {
-  height: 12px;
-}
-.spacer-large {
-  height: 16px;
-}
-.button-wrapper {
-  text-align: center;
-  padding: 0 20px;
-  margin-top: 12px;
-}
-.button {
-  display: inline-block;
-  background-color: #4ade80;
-  color: #ffffff;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  text-decoration: none;
-  text-align: center;
-  padding: 14px 32px;
-  border-radius: 8px;
-  line-height: 1.2;
-  letter-spacing: 0.01em;
-}
-.footer {
-  background-color: #f0f1f5;
-  padding: 13px 20px;
-  text-align: center;
-}
-.footer-content {
-  max-width: 522px;
-  margin: 0 auto;
-  padding: 7px;
-}
-.footer-text {
-  color: #0e1b10;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-  text-align: left;
-  margin-bottom: 16px;
-}
-.footer-detail {
-  color: #0e1b10;
-  font-size: 13.3333px;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
-  text-align: left;
-}
-.footer-link {
-  color: #2563eb;
-  font-weight: 700;
-  text-decoration: none;
-}
 @media (max-width: 450px) {
-  .footer {
-    display: none;
+  .layout-0 {
+    display: none !important;
   }
 }
 </style>
 </head>
-<body>
-<div style="background-color: #f0f1f5; width: 100%;">
-  <div class="email-container">
-    <div style="padding: 10px 0 0 0;">
-      <div class="logo-wrapper">
+<body style="width:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;background-color:#f0f1f5;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f0f1f5" style="background-color:#f0f1f5">
+<tbody>
+<tr>
+<td style="background-color:#f0f1f5">
+<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;background-color:#ffffff">
+<tbody>
+<tr>
+<td style="padding:10px 0px 0px 0px">
+<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+<tbody>
+<tr>
+<td style="padding:12px 0">
+<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="color:#000;font-style:normal;font-weight:normal;font-size:16px;line-height:1.4;letter-spacing:0;text-align:left;direction:ltr;border-collapse:collapse;font-family:Arial, Helvetica, sans-serif;white-space:normal;word-wrap:break-word;word-break:break-word">
+<tbody>
+<tr>
+<td style="padding:0px 20px">
+<table cellpadding="0" cellspacing="0" border="0" style="width:100%">
+<tbody>
+<tr>
+<td align="center">
+<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:56px">
+<tbody>
+<tr>
+<td style="width:100%;padding:0">
         ${logoImg}
-      </div>
-      <div class="spacer-large"></div>
-      <div class="credits-image-wrapper">
-        <div class="credits-image">
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td style="font-size:0;height:16px" height="16">&nbsp;</td>
+</tr>
+<tr>
+<td style="padding:0px 20px">
+<table cellpadding="0" cellspacing="0" border="0" style="width:100%">
+<tbody>
+<tr>
+<td align="center">
+<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px">
+<tbody>
+<tr>
+<td style="width:100%;padding:0">
           ${creditsBodyImg}
-        </div>
-      </div>
-      <div class="spacer"></div>
-      <div class="email-content">
-        <div style="white-space: pre-wrap;">${greetingText.replace(
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td style="font-size:0;height:12px" height="12">&nbsp;</td>
+</tr>
+<tr>
+<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
+<span style="white-space:pre-wrap">${greetingText.replace(
     "Greetings from Helium,",
     'Greetings from <span style="font-weight:700">Helium</span>,'
-  )}<br></div>
-      </div>
-      ${mainText ? `<div class="spacer"></div>
-      <div class="email-content">
-        <div style="white-space: pre-wrap;">${formattedMainText}<br></div>
-      </div>` : ''}
-      ${secondaryText ? `<div class="spacer"></div>
-      <div class="email-content">
-        <div style="white-space: pre-wrap;">${formattedSecondaryText}<br></div>
-      </div>` : ''}
-      ${closingText ? `<div class="spacer"></div>
-      <div class="email-content">
-        <div style="white-space: pre-wrap;">${formattedClosingText}<br></div>
-      </div>` : ''}
-      <div class="spacer"></div>
-      <div class="email-content">
-        <div style="white-space: pre-wrap;">${formattedSignoffText}<br></div>
-      </div>
-      <div class="button-wrapper">
-        <a href="http://he2.ai" target="_blank" rel="noopener noreferrer" class="button">Get Started</a>
-      </div>
-    </div>
-    <div class="footer">
-      <div class="footer-content">
-        <div class="footer-text">Need help?<br></div>
-        <div class="footer-detail">
-          <span style="white-space: pre-wrap;">Our support team is here to assist you with onboarding, integrations, or deployment. You can reach us directly at </span><a href="mailto:support@he2.ai" class="footer-link">support@he2.ai</a><span style="white-space:pre-wrap"> or through the in-app assistant.</span><br>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+  )}<br></span>
+</td>
+</tr>
+${mainText ? `<tr>
+<td style="font-size:0;height:12px" height="12">&nbsp;</td>
+</tr>
+<tr>
+<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
+<span style="white-space:pre-wrap">${formattedMainText}<br></span>
+</td>
+</tr>` : ''}
+${secondaryText ? `<tr>
+<td style="font-size:0;height:12px" height="12">&nbsp;</td>
+</tr>
+<tr>
+<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
+<span style="white-space:pre-wrap">${formattedSecondaryText}<br></span>
+</td>
+</tr>` : ''}
+${closingText ? `<tr>
+<td style="font-size:0;height:12px" height="12">&nbsp;</td>
+</tr>
+<tr>
+<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
+<span style="white-space:pre-wrap">${formattedClosingText}<br></span>
+</td>
+</tr>` : ''}
+<tr>
+<td style="font-size:0;height:12px" height="12">&nbsp;</td>
+</tr>
+<tr>
+<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
+<span style="white-space:pre-wrap">${formattedSignoffText}<br></span>
+</td>
+</tr>
+<tr>
+<td style="font-size:0;height:12px" height="12">&nbsp;</td>
+</tr>
+<tr>
+<td style="padding:0px 20px">
+<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+<tbody>
+<tr>
+<td align="center" style="padding:0">
+<a href="http://he2.ai" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#4ade80;color:#ffffff;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:600;text-decoration:none;text-align:center;padding:14px 32px;border-radius:8px;line-height:1.2;letter-spacing:0.01em">Get Started</a>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" class="layout-0" align="center" style="display:table;border-spacing:0px;border-collapse:separate;width:100%;max-width:100%;table-layout:fixed;margin:0 auto;background-color:#f0f1f5">
+<tbody>
+<tr>
+<td style="text-align:center;padding:13px 20px">
+<table border="0" cellpadding="0" cellspacing="0" style="border-spacing:0px;border-collapse:separate;width:100%;max-width:522px;table-layout:fixed;margin:0 auto">
+<tbody>
+<tr>
+<td width="100.00%" style="width:100.00%;box-sizing:border-box;vertical-align:top">
+<table border="0" cellpadding="0" cellspacing="0" style="border-spacing:0px;border-collapse:separate;width:100%;table-layout:fixed">
+<tbody>
+<tr>
+<td style="padding:7px">
+<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="color:#000;font-style:normal;font-weight:normal;font-size:16px;line-height:1.4;letter-spacing:0;text-align:left;direction:ltr;border-collapse:collapse;font-family:Arial, Helvetica, sans-serif;white-space:normal;word-wrap:break-word;word-break:break-word">
+<tbody>
+<tr>
+<td dir="ltr" style="color:#0e1b10;font-size:16px;font-weight:700;letter-spacing:-0.01em;white-space:pre-wrap;line-height:1.2;text-align:left">Need help?<br></td>
+</tr>
+<tr>
+<td style="font-size:0;height:16px" height="16">&nbsp;</td>
+</tr>
+<tr>
+<td dir="ltr" style="color:#0e1b10;font-size:13.3333px;letter-spacing:-0.01em;line-height:1.2;text-align:left">
+<span style="white-space:pre-wrap">Our support team is here to assist you with onboarding, integrations, or deployment. You can reach us directly at </span><a href="mailto:support@he2.ai" style="color:#2563eb;font-weight:700;text-decoration:none;white-space:pre-wrap">support@he2.ai</a><span style="white-space:pre-wrap"> or through the in-app assistant.</span><span style="white-space:pre-wrap"><br></span>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
 </body>
 </html>`;
 }

@@ -117,6 +117,13 @@ export function CreditBalanceTable() {
     });
   };
 
+  const isHighCredits = (balanceDollars: number | null | undefined) => {
+    if (balanceDollars === null || balanceDollars === undefined || isNaN(balanceDollars)) {
+      return false;
+    }
+    return balanceDollars * 100 > 26000;
+  };
+
   if (loading) {
     return (
       <Card>
@@ -238,7 +245,11 @@ export function CreditBalanceTable() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono font-semibold text-foreground">
+                      <span
+                        className={`font-mono font-semibold text-foreground ${
+                          isHighCredits(balance.balanceDollars) ? 'text-red-600' : ''
+                        }`}
+                      >
                         {formatCredits(balance.balanceDollars)}
                       </span>
                     </TableCell>
