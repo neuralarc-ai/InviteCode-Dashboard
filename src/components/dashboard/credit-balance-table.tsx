@@ -245,9 +245,9 @@ export function CreditBalanceTable() {
                                 used · {remaining} remaining
                               </span>
                             </div>
-                            <div className="h-2 rounded-full bg-muted">
+                            <div className="h-2 rounded-full bg-white/30">
                               <div
-                                className="h-2 rounded-full bg-blue-500"
+                                className="h-2 rounded-full bg-[#A6C8D5]"
                                 style={{ width: `${usedPercent}%` }}
                               />
                             </div>
