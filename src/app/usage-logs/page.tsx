@@ -537,6 +537,27 @@ The AI Team`);
   const uniqueUsers = usageLogs.length; // Users on current page
   const overallTotalCredits = overallTotalCost * 100; // Overall total credits (external + internal users) × 100
 
+  // Order users by activity level for table display (high -> inactive)
+  const sortedUsageLogs = useMemo(() => {
+    const rank: Record<string, number> = {
+      high: 0,
+      medium: 1,
+      low: 2,
+      inactive: 3,
+    };
+
+    return [...usageLogs].sort((a, b) => {
+      const levelDiff = (rank[a.activityLevel] ?? 99) - (rank[b.activityLevel] ?? 99);
+      if (levelDiff !== 0) return levelDiff;
+
+      // Tie-breaker: higher activityScore first, then most recent activity
+      const scoreDiff = (b.activityScore ?? 0) - (a.activityScore ?? 0);
+      if (scoreDiff !== 0) return scoreDiff;
+
+      return b.latestActivity.getTime() - a.latestActivity.getTime();
+    });
+  }, [usageLogs]);
+
   // Activity level helper functions
   const getActivityIcon = (level: string) => {
     switch (level) {
@@ -977,7 +998,7 @@ The AI Team`);
                                </TableRow>
                              </TableHeader>
                              <TableBody>
-                               {usageLogs.map((log) => (
+                               {sortedUsageLogs.map((log) => (
                                  <TableRow key={log.userId}>
                                    <TableCell>
                                      <div className="flex items-center gap-2">

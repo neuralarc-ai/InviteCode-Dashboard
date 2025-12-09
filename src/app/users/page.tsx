@@ -11,6 +11,7 @@ import { UsersTableRealtime } from '@/components/dashboard/users-table-realtime'
 import { EmailCustomizationDialog, type EmailData } from '@/components/dashboard/email-customization-dialog';
 import { CreditAssignmentDialog } from '@/components/dashboard/credit-assignment-dialog';
 import { CreateUserDialog } from '@/components/dashboard/create-user-dialog';
+import { UserDemographics } from '@/components/dashboard/user-demographics';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +19,7 @@ import { useState, useEffect } from 'react';
 import { Mail, Loader2, Users, Building2, UserPlus, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/types';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function UsersPage() {
   const [showCustomizationDialog, setShowCustomizationDialog] = useState(false);
@@ -29,6 +31,9 @@ export default function UsersPage() {
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const [bulkCreditsInput, setBulkCreditsInput] = useState('');
   const [isAssigningCredits, setIsAssigningCredits] = useState(false);
+  const [activityTab, setActivityTab] = useState<'all' | 'new' | 'active' | 'partial'>('all');
+  const [usageActivityMap, setUsageActivityMap] = useState<Record<string, { usageCount: number; latestActivity: Date | null }>>({});
+  const [isLoadingActivity, setIsLoadingActivity] = useState(false);
   const { toast } = useToast();
 
   // Clear bulk credits input when selection is cleared or user type filter changes
@@ -37,6 +42,53 @@ export default function UsersPage() {
       setBulkCreditsInput('');
     }
   }, [selectedUserIds.size, userTypeFilter]);
+
+  // Fetch usage activity (aggregated) for current user type to drive activity tabs
+  useEffect(() => {
+    const fetchActivity = async () => {
+      setIsLoadingActivity(true);
+      try {
+        const response = await fetch('/api/usage-logs-aggregated', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            page: 1,
+            limit: 2000, // enough for typical dashboards; adjust if dataset grows
+            searchQuery: '',
+            activityFilter: 'all',
+            userTypeFilter,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load activity: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        const map: Record<string, { usageCount: number; latestActivity: Date | null }> = {};
+
+        (result.data || []).forEach((row: any) => {
+          map[row.user_id] = {
+            usageCount: Number(row.usage_count || 0),
+            latestActivity: row.latest_activity ? new Date(row.latest_activity) : null,
+          };
+        });
+
+        setUsageActivityMap(map);
+      } catch (err) {
+        console.error('Error fetching usage activity', err);
+        toast({
+          title: 'Error',
+          description: 'Failed to load activity data for user tabs.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingActivity(false);
+      }
+    };
+
+    fetchActivity();
+  }, [toast, userTypeFilter]);
 
   const handleSendEmail = async (emailData: EmailData, selectedOnly: boolean = false) => {
     setIsSending(true);
@@ -387,6 +439,7 @@ export default function UsersPage() {
             <h1 className="text-2xl font-bold">Users</h1>
           </PageHeader>
           <main className="flex-1 space-y-6 p-4 md:p-6">
+            <UserDemographics />
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">User Profiles</h2>
               <div className="flex items-center gap-2">
@@ -433,6 +486,21 @@ export default function UsersPage() {
                 <Building2 className="h-4 w-4" />
                 Internal Users
               </Button>
+            </div>
+
+            {/* Activity Tabs */}
+            <div className="w-full">
+              <Tabs value={activityTab} onValueChange={(val) => setActivityTab(val as typeof activityTab)}>
+                <TabsList className="grid grid-cols-4 w-full max-w-xl">
+                  <TabsTrigger value="all">All users</TabsTrigger>
+                  <TabsTrigger value="new">New users</TabsTrigger>
+                  <TabsTrigger value="active">Active users</TabsTrigger>
+                  <TabsTrigger value="partial">Partially active</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              {isLoadingActivity && (
+                <p className="text-xs text-muted-foreground mt-2">Loading activity data…</p>
+              )}
             </div>
 
             {/* Bulk Credit Assignment Controls */}
@@ -489,6 +557,8 @@ export default function UsersPage() {
               selectedUserIds={selectedUserIds}
               onSelectionChange={setSelectedUserIds}
               onAssignCredits={handleAssignCredits}
+              activityTab={activityTab}
+              usageActivityMap={usageActivityMap}
             />
           </main>
         </SidebarInset>

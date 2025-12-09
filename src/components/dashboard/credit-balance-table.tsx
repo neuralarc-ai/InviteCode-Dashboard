@@ -26,19 +26,6 @@ export function CreditBalanceTable() {
   const rowsPerPage = 10;
   const { toast } = useToast();
 
-  // Format currency
-  const formatCurrency = (amount: number | null | undefined): string => {
-    if (amount === null || amount === undefined || isNaN(amount)) {
-      return '$0.00';
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
-
   // Format credits (Balance × 100)
   const formatCredits = (balanceDollars: number | null | undefined): string => {
     if (balanceDollars === null || balanceDollars === undefined || isNaN(balanceDollars)) {
@@ -62,6 +49,12 @@ export function CreditBalanceTable() {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
+  };
+
+  // Credits helpers
+  const toCredits = (dollars: number | null | undefined): number => {
+    if (dollars === null || dollars === undefined || isNaN(dollars)) return 0;
+    return Math.max(0, Math.round(dollars * 100));
   };
 
   // Filter balances
@@ -115,13 +108,6 @@ export function CreditBalanceTable() {
       title: "Success",
       description: "Credits assigned successfully!",
     });
-  };
-
-  const isHighCredits = (balanceDollars: number | null | undefined) => {
-    if (balanceDollars === null || balanceDollars === undefined || isNaN(balanceDollars)) {
-      return false;
-    }
-    return balanceDollars * 100 > 26000;
   };
 
   if (loading) {
@@ -206,10 +192,8 @@ export function CreditBalanceTable() {
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead>Credits</TableHead>
-                <TableHead>Purchased Credits</TableHead>
-                <TableHead>Used Credits</TableHead>
+                <TableHead>Total Credits</TableHead>
+                <TableHead>Usage</TableHead>
                 <TableHead>Last Updated</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -217,7 +201,7 @@ export function CreditBalanceTable() {
             <TableBody>
               {paginatedBalances.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
@@ -240,28 +224,36 @@ export function CreditBalanceTable() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono font-semibold text-foreground">
-                        {formatCurrency(balance.balanceDollars)}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="font-mono font-semibold text-foreground">
+                          {formatCredits(balance.totalPurchased)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">total purchased</span>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <span
-                        className={`font-mono font-semibold text-foreground ${
-                          isHighCredits(balance.balanceDollars) ? 'text-red-600' : ''
-                        }`}
-                      >
-                        {formatCredits(balance.balanceDollars)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono font-semibold text-foreground">
-                        {formatCredits(balance.totalPurchased)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono font-semibold text-foreground">
-                        {formatCredits(balance.totalUsed)}
-                      </span>
+                      {(() => {
+                        const total = toCredits(balance.totalPurchased);
+                        const used = toCredits(balance.totalUsed);
+                        const remaining = toCredits(balance.balanceDollars);
+                        const usedPercent = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+                        return (
+                          <div className="space-y-1">
+                            <div className="flex items-baseline gap-2 text-sm">
+                              <span className="font-mono font-semibold text-foreground">{used}</span>
+                              <span className="text-xs text-muted-foreground">
+                                used · {remaining} remaining
+                              </span>
+                            </div>
+                            <div className="h-2 rounded-full bg-muted">
+                              <div
+                                className="h-2 rounded-full bg-blue-500"
+                                style={{ width: `${usedPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">

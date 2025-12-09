@@ -89,9 +89,9 @@ BEGIN
       ua.*,
       (ua.recency_score * 0.5 + ua.frequency_score * 0.3 + ua.volume_score * 0.2)::integer AS activity_score,
       CASE 
-        WHEN ua.days_since_last_activity <= 7 AND (ua.recency_score * 0.5 + ua.frequency_score * 0.3 + ua.volume_score * 0.2) >= 70 THEN 'high'
-        WHEN ua.days_since_last_activity <= 30 AND (ua.recency_score * 0.5 + ua.frequency_score * 0.3 + ua.volume_score * 0.2) >= 40 THEN 'medium'
-        WHEN ua.days_since_last_activity <= 90 AND (ua.recency_score * 0.5 + ua.frequency_score * 0.3 + ua.volume_score * 0.2) >= 20 THEN 'low'
+        WHEN ua.days_since_last_activity <= 2 THEN 'high'          -- Active within the last 2 days
+        WHEN ua.days_since_last_activity = 3 THEN 'medium'        -- No activity for exactly 3 days
+        WHEN ua.days_since_last_activity > 3 THEN 'low'           -- More than 3 days since last activity
         ELSE 'inactive'
       END AS activity_level
     FROM user_activity ua

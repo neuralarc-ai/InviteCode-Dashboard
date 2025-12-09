@@ -37,11 +37,29 @@ interface UsersTableRealtimeProps {
   onAssignCredits?: (user: UserProfile) => void;
 }
 
+type ActivityTab = 'all' | 'new' | 'active' | 'partial';
+
+type UsageActivity = {
+  usageCount: number;
+  latestActivity: Date | null;
+};
+
+interface UsersTableRealtimeProps {
+  userTypeFilter?: 'internal' | 'external';
+  selectedUserIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
+  onAssignCredits?: (user: UserProfile) => void;
+  activityTab?: ActivityTab;
+  usageActivityMap?: Record<string, UsageActivity>;
+}
+
 export function UsersTableRealtime({ 
   userTypeFilter = 'external',
   selectedUserIds: externalSelectedUserIds,
   onSelectionChange,
-  onAssignCredits
+  onAssignCredits,
+  activityTab = 'all',
+  usageActivityMap,
 }: UsersTableRealtimeProps) {
   const { userProfiles, loading, error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles } = useUserProfiles();
   const [filter, setFilter] = React.useState('');
@@ -98,6 +116,26 @@ export function UsersTableRealtime({
     const profileUserType = getUserType(profile.email);
     if (profileUserType !== userTypeFilter) {
       return false;
+    }
+
+    // Activity tab filters
+    if (activityTab !== 'all') {
+      const usageInfo = usageActivityMap?.[profile.userId];
+      const now = new Date();
+      const daysSinceActivity = usageInfo?.latestActivity
+        ? Math.floor((now.getTime() - usageInfo.latestActivity.getTime()) / (1000 * 60 * 60 * 24))
+        : Infinity;
+      const isRecent = daysSinceActivity <= 30;
+      const usageCount = usageInfo?.usageCount || 0;
+
+      const isNew = (() => {
+        const daysSinceCreated = Math.floor((now.getTime() - profile.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        return daysSinceCreated <= 7;
+      })();
+
+      if (activityTab === 'new' && !isNew) return false;
+      if (activityTab === 'active' && !(isRecent && usageCount >= 5)) return false;
+      if (activityTab === 'partial' && !(isRecent && usageCount >= 1 && usageCount <= 4)) return false;
     }
 
     // Filter by text search (only if filter is provided)
@@ -469,9 +507,9 @@ export function UsersTableRealtime({
                 </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
+              <TableHead>Country</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Referral Source</TableHead>
-                <TableHead>User ID</TableHead>
                 <TableHead className="text-right">Created</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -528,6 +566,14 @@ export function UsersTableRealtime({
                       </div>
                     </TableCell>
                     <TableCell>
+                      <span className="text-sm">
+                        {profile.countryName 
+                          || (profile.metadata as any)?.countryName 
+                          || (profile.metadata as any)?.country 
+                          || <span className="text-muted-foreground">N/A</span>}
+                      </span>
+                    </TableCell>
+                    <TableCell>
                       {getStatusBadge(profile)}
                     </TableCell>
                     <TableCell>
@@ -536,11 +582,6 @@ export function UsersTableRealtime({
                           <span className="text-muted-foreground">N/A</span>
                         )}
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      <code className="text-xs bg-muted px-2 py-1 rounded">
-                        {profile.userId.slice(0, 8)}...
-                      </code>
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="text-sm text-muted-foreground whitespace-nowrap">

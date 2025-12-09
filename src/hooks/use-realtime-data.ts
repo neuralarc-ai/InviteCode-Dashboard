@@ -369,7 +369,8 @@ export function useUserProfiles() {
       // Try user_profiles first
       const result1 = await supabase
         .from('user_profiles')
-        .select('id, user_id, full_name, preferred_name, work_description, personal_references, created_at, updated_at, avatar_url, referral_source, consent_given, consent_date, metadata, plan_type, account_type')
+        // Select all columns so we can include country fields regardless of exact column name
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (result1.error && result1.error.message.includes('relation "public.user_profiles" does not exist')) {
@@ -377,7 +378,8 @@ export function useUserProfiles() {
         // Try user_profile (singular)
         const result2 = await supabase
           .from('user_profile')
-          .select('id, user_id, full_name, preferred_name, work_description, personal_references, created_at, updated_at, avatar_url, referral_source, consent_given, consent_date, metadata, plan_type, account_type')
+          // Select all columns so we can include country fields regardless of exact column name
+          .select('*')
           .order('created_at', { ascending: false });
         
         profilesData = result2.data;
@@ -392,8 +394,14 @@ export function useUserProfiles() {
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
+        const errorMessage =
+          (profilesError as any)?.message ||
+          (profilesError as any)?.details ||
+          (profilesError as any)?.hint ||
+          JSON.stringify(profilesError);
+
         // Don't throw if table doesn't exist - just set empty array
-        if (profilesError.message.includes('does not exist')) {
+        if ((profilesError as any)?.message?.includes('does not exist')) {
           console.log('User profiles table does not exist, returning empty array');
           setUserProfiles([]);
           setError(null);
@@ -401,7 +409,13 @@ export function useUserProfiles() {
           setTableName(null);
           return;
         }
-        throw profilesError;
+
+        // Gracefully handle unknown/empty error objects
+        setUserProfiles([]);
+        setError(`Failed to fetch user profiles: ${errorMessage || 'Unknown error'}`);
+        setLoading(false);
+        setTableName(null);
+        return;
       }
 
       // Store the detected table name for use in subscriptions
@@ -475,6 +489,9 @@ export function useUserProfiles() {
         preferredName: row.preferred_name,
         workDescription: row.work_description,
         personalReferences: row.personal_references,
+        countryName: row.country_name || row.country || row.metadata?.countryName || row.metadata?.country || null,
+        countryCode: row.country_code || row.countryCode || row.metadata?.countryCode || null,
+        regionName: row.region || row.state || row.region_name || row.metadata?.region || row.metadata?.state || null,
         createdAt: new Date(row.created_at),
         updatedAt: new Date(row.updated_at),
         avatarUrl: row.avatar_url,
@@ -885,20 +902,16 @@ export function useCreditPurchases() {
   // Initial fetch function
   const fetchCreditPurchases = async () => {
     try {
-      console.log('Fetching credit purchases...');
+      console.log('Fetching credit purchases (via API)...');
       
-      const { data, error } = await supabase
-        .from('credit_purchases')
-        .select('*')
-        .eq('status', 'completed')  // Only fetch completed purchases
-        .order('created_at', { ascending: false });
+      const response = await fetch('/api/credit-purchases', { method: 'GET' });
+      const payload = await response.json();
 
-      console.log('Raw credit purchases query result:', { data, error });
-
-      if (error) {
-        console.error('Error fetching credit purchases:', error);
-        throw error;
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || `HTTP error ${response.status}`);
       }
+
+      const data = payload.data;
 
       if (!data || data.length === 0) {
         console.log('No credit purchases found in database');
@@ -1223,7 +1236,14 @@ The Helium Team 🌟`
   };
 
   // Optimized fetch function using server-side aggregation
-  const fetchUsageLogs = async (page: number = 1, limit: number = itemsPerPage, search: string = searchQuery, silent: boolean = false, userType: 'internal' | 'external' = userTypeFilter) => {
+  const fetchUsageLogs = async (
+    page: number = 1,
+    limit: number = itemsPerPage,
+    search: string = searchQuery,
+    silent: boolean = false,
+    userType: 'internal' | 'external' = userTypeFilter,
+    activity: string = activityFilter
+  ) => {
     try {
       // Silent loading: don't show loading spinner for background updates
       if (!silent) {
@@ -1247,7 +1267,7 @@ The Helium Team 🌟`
           page,
           limit,
           searchQuery: search,
-          activityFilter,
+          activityFilter: activity,
           userTypeFilter: userType,
         }),
       });
@@ -1279,31 +1299,50 @@ The Helium Team 🌟`
         return;
       }
 
-      // Transform the data from snake_case to camelCase
-      const transformedLogs = result.data.map((row: any) => ({
-        userId: row.user_id,
-        userName: row.user_name,
-        userEmail: row.user_email,
-        totalPromptTokens: parseInt(row.total_prompt_tokens),
-        totalCompletionTokens: parseInt(row.total_completion_tokens),
-        totalTokens: parseInt(row.total_tokens),
-        totalEstimatedCost: parseFloat(row.total_estimated_cost),
-        usageCount: parseInt(row.usage_count),
-        earliestActivity: new Date(row.earliest_activity),
-        latestActivity: new Date(row.latest_activity),
-        hasCompletedPayment: row.has_completed_payment,
-        activityLevel: row.activity_level,
-        daysSinceLastActivity: row.days_since_last_activity,
-        activityScore: row.activity_score,
-        userType: row.user_type as 'internal' | 'external',
-      }));
+      const deriveActivityLevel = (daysSince: number | null | undefined) => {
+        if (daysSince === null || daysSince === undefined) return 'inactive';
+        if (daysSince <= 2) return 'high';
+        if (daysSince === 3) return 'medium';
+        if (daysSince > 3) return 'low';
+        return 'inactive';
+      };
+
+      // Transform the data from snake_case to camelCase and re-derive activity level on the client
+      const transformedLogs = result.data.map((row: any) => {
+        const daysSince = row.days_since_last_activity as number | null | undefined;
+        return {
+          userId: row.user_id,
+          userName: row.user_name,
+          userEmail: row.user_email,
+          totalPromptTokens: parseInt(row.total_prompt_tokens),
+          totalCompletionTokens: parseInt(row.total_completion_tokens),
+          totalTokens: parseInt(row.total_tokens),
+          totalEstimatedCost: parseFloat(row.total_estimated_cost),
+          usageCount: parseInt(row.usage_count),
+          earliestActivity: new Date(row.earliest_activity),
+          latestActivity: new Date(row.latest_activity),
+          hasCompletedPayment: row.has_completed_payment,
+          daysSinceLastActivity: daysSince ?? null,
+          activityScore: row.activity_score,
+          activityLevel: deriveActivityLevel(daysSince),
+          userType: row.user_type as 'internal' | 'external',
+        };
+      });
+
+      // Enforce activity filter client-side to avoid server bucketing mismatches
+      const filteredLogs =
+        activityFilter && activityFilter !== 'all'
+          ? transformedLogs.filter((log) => log.activityLevel === activityFilter)
+          : transformedLogs;
 
       console.log('Transformed logs:', transformedLogs.length, 'users');
+      console.log('Filtered logs after activity filter:', filteredLogs.length, 'users');
       console.log('User type filter:', userType);
       console.log('Sample data:', transformedLogs.slice(0, 2));
       
-      setUsageLogs(transformedLogs);
-      setTotalCount(result.totalCount);
+      setUsageLogs(filteredLogs);
+      // Keep totalCount in sync with what we actually render
+      setTotalCount(filteredLogs.length);
       setCurrentPage(page);
       setLoading(false);
       setIsBackgroundRefreshing(false); // Clear background refresh indicator
@@ -1332,14 +1371,14 @@ The Helium Team 🌟`
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setCurrentPage(1); // Reset to first page when searching
-    fetchUsageLogs(1, itemsPerPage, query, false, userTypeFilter);
+    fetchUsageLogs(1, itemsPerPage, query, false, userTypeFilter, activityFilter);
   };
 
   // Activity filter function
   const handleActivityFilter = (filter: string) => {
     setActivityFilter(filter);
     setCurrentPage(1); // Reset to first page when filtering
-    fetchUsageLogs(1, itemsPerPage, searchQuery, false, userTypeFilter);
+    fetchUsageLogs(1, itemsPerPage, searchQuery, false, userTypeFilter, filter);
   };
 
   // User type filter function
@@ -1347,7 +1386,7 @@ The Helium Team 🌟`
     setUserTypeFilter(filter);
     setCurrentPage(1); // Reset to first page when filtering
     // Pass the new filter value directly to ensure immediate update
-    fetchUsageLogs(1, itemsPerPage, searchQuery, false, filter);
+    fetchUsageLogs(1, itemsPerPage, searchQuery, false, filter, activityFilter);
   };
 
   // Refresh function
@@ -1356,31 +1395,31 @@ The Helium Team 🌟`
     console.log('Current page:', currentPage);
     console.log('Items per page:', itemsPerPage);
     console.log('Search query:', searchQuery);
-    fetchUsageLogs(currentPage, itemsPerPage, searchQuery, false, userTypeFilter);
+    fetchUsageLogs(currentPage, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter);
   };
 
   // Load specific page
   const loadPage = (page: number) => {
-    fetchUsageLogs(page, itemsPerPage, searchQuery, false, userTypeFilter);
+    fetchUsageLogs(page, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter);
   };
 
   // Load next page
   const loadNextPage = () => {
     if (currentPage < Math.ceil(totalCount / itemsPerPage)) {
-      fetchUsageLogs(currentPage + 1, itemsPerPage, searchQuery, false, userTypeFilter);
+      fetchUsageLogs(currentPage + 1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter);
     }
   };
 
   // Load previous page
   const loadPreviousPage = () => {
     if (currentPage > 1) {
-      fetchUsageLogs(currentPage - 1, itemsPerPage, searchQuery, false, userTypeFilter);
+      fetchUsageLogs(currentPage - 1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter);
     }
   };
 
   // Initial fetch
   useEffect(() => {
-    fetchUsageLogs(1);
+    fetchUsageLogs(1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter);
   }, []);
 
   // Set up real-time subscription for usage_logs and credit_purchases changes
@@ -1396,7 +1435,7 @@ The Helium Team 🌟`
       updateTimeout = setTimeout(() => {
         console.log('🔄 Silent background refresh triggered by real-time event');
         // Use silent mode to avoid loading spinner on real-time updates
-        fetchUsageLogs(currentPage, itemsPerPage, searchQuery, true, userTypeFilter);
+    fetchUsageLogs(currentPage, itemsPerPage, searchQuery, true, userTypeFilter, activityFilter);
       }, 500); // 500ms debounce to batch rapid changes
     };
 
