@@ -225,9 +225,9 @@ export function CreditBalanceTable() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-mono font-semibold text-foreground">
-                          {formatCredits(balance.totalPurchased)}
-                        </span>
+                      <span className="font-mono font-semibold text-foreground">
+                        {formatCredits(balance.totalPurchased)}
+                      </span>
                         <span className="text-xs text-muted-foreground">total purchased</span>
                       </div>
                     </TableCell>
@@ -243,9 +243,9 @@ export function CreditBalanceTable() {
                               <span className="font-mono font-semibold text-foreground">{used}</span>
                               <span className="text-xs text-muted-foreground">
                                 used · {remaining} remaining
-                              </span>
+                      </span>
                             </div>
-                            <div className="h-2 rounded-full bg-white/30">
+                            <div className="h-2 rounded-full bg-white/20">
                               <div
                                 className="h-2 rounded-full bg-[#A6C8D5]"
                                 style={{ width: `${usedPercent}%` }}

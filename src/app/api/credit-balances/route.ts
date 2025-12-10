@@ -15,9 +15,40 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch credit balances using admin client (bypasses RLS)
-    const { data: balancesData, error: balancesError } = await supabaseAdmin
-      .from('credit_balance')
-      .select('*');
+    let balancesData: any[] = [];
+    let from = 0;
+    const limit = 1000;
+    let hasMore = true;
+    let balancesError = null;
+
+    try {
+      while (hasMore) {
+        console.log(`API: Fetching credit balances range ${from}-${from + limit - 1}...`);
+        const { data, error } = await supabaseAdmin
+          .from('credit_balance')
+          .select('*')
+          .range(from, from + limit - 1);
+
+        if (error) {
+          balancesError = error;
+          break;
+        }
+
+        if (data && data.length > 0) {
+          balancesData = [...balancesData, ...data];
+          if (data.length < limit) {
+            hasMore = false;
+          } else {
+            from += limit;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+    } catch (err: any) {
+      console.error('Unexpected error fetching credit balances:', err);
+      balancesError = { message: err.message } as any;
+    }
 
     if (balancesError) {
       console.error('Error fetching credit balances:', balancesError);

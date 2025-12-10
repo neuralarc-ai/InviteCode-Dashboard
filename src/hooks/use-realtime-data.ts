@@ -362,35 +362,59 @@ export function useUserProfiles() {
       console.log('Fetching user profiles...');
       
       // First, get user profiles - try both possible table names
-      let profilesData = null;
-      let profilesError = null;
+      let profilesData: any[] = [];
       let detectedTableName = 'user_profiles';
       
-      // Try user_profiles first
-      const result1 = await supabase
-        .from('user_profiles')
-        // Select all columns so we can include country fields regardless of exact column name
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (result1.error && result1.error.message.includes('relation "public.user_profiles" does not exist')) {
-        console.log('user_profiles table not found, trying user_profile...');
-        // Try user_profile (singular)
-        const result2 = await supabase
-          .from('user_profile')
-          // Select all columns so we can include country fields regardless of exact column name
-          .select('*')
-          .order('created_at', { ascending: false });
+      // Fetch logic with pagination
+      const fetchAllProfiles = async (table: string) => {
+        let allRows: any[] = [];
+        let from = 0;
+        const limit = 1000;
+        let hasMore = true;
         
-        profilesData = result2.data;
-        profilesError = result2.error;
-        detectedTableName = 'user_profile';
-      } else {
-        profilesData = result1.data;
-        profilesError = result1.error;
+        while (hasMore) {
+          console.log(`Fetching profiles from ${table} range ${from}-${from + limit - 1}...`);
+          const { data, error } = await supabase
+            .from(table)
+            .select('*')
+            .range(from, from + limit - 1)
+            .order('created_at', { ascending: false });
+            
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            allRows = [...allRows, ...data];
+            if (data.length < limit) {
+              hasMore = false;
+            } else {
+              from += limit;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+        return allRows;
+      };
+
+      try {
+        // Try user_profiles first
+        profilesData = await fetchAllProfiles('user_profiles');
+        detectedTableName = 'user_profiles';
+      } catch (err: any) {
+        if (err.message && err.message.includes('relation "public.user_profiles" does not exist')) {
+          console.log('user_profiles table not found, trying user_profile...');
+          // Try user_profile (singular)
+          profilesData = await fetchAllProfiles('user_profile');
+          detectedTableName = 'user_profile';
+        } else {
+          throw err; // Re-throw other errors
+        }
       }
 
-      console.log('Profiles query result:', { profilesData, profilesError, detectedTableName });
+      // Variable to simulate the result structure for existing code compatibility
+      const profilesError = null; // We handled errors above
+
+      console.log('Profiles query result:', { count: profilesData.length, detectedTableName });
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);

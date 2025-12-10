@@ -4,18 +4,27 @@ import { useMemo, useState, type ReactNode } from 'react';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { useUserProfiles } from '@/hooks/use-realtime-data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, PieChart, Pie, Cell, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, subDays, startOfDay } from 'date-fns';
 import { Users, Globe2, Clock3, PieChart as PieChartIcon } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 import * as FlagIcons from 'country-flag-icons/react/3x2';
 import { hasFlag } from 'country-flag-icons';
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp } from "lucide-react";
 
 type DateRangeKey = '30d' | '90d' | '365d' | 'all';
 
@@ -97,6 +106,35 @@ function ChartCard({
   );
 }
 
+const PLAN_COLORS: Record<string, string> = {
+  seed: '#A6C8D5',
+  edge: '#EFB25E',
+  quantum: '#A69CBE',
+  unknown: '#EEDBCD',
+};
+
+const chartConfig = {
+  visitors: {
+    label: "Users",
+  },
+  seed: {
+    label: "Seed",
+    color: PLAN_COLORS.seed,
+  },
+  edge: {
+    label: "Edge",
+    color: PLAN_COLORS.edge,
+  },
+  quantum: {
+    label: "Quantum",
+    color: PLAN_COLORS.quantum,
+  },
+  unknown: {
+    label: "Unknown",
+    color: PLAN_COLORS.unknown,
+  },
+} satisfies ChartConfig;
+
 export function UserDemographics() {
   const { userProfiles, loading, error } = useUserProfiles();
   const [userType, setUserType] = useState<'internal' | 'external'>('external');
@@ -173,7 +211,20 @@ export function UserDemographics() {
   }, [filteredProfiles]);
 
   const planData = useMemo(
-    () => aggregateCounts(filteredProfiles, (p) => p.planType || 'unknown'),
+    () => {
+      // First get basic counts
+      const counts = aggregateCounts(filteredProfiles, (p) => p.planType || 'unknown');
+      
+      // Transform for the new chart format
+      return counts.map((item, index) => {
+        const key = item.name.toLowerCase();
+        return {
+          name: item.name,
+          value: item.value,
+          fill: PLAN_COLORS[key] || COLORS[index % COLORS.length]
+        };
+      });
+    },
     [filteredProfiles]
   );
 
@@ -381,19 +432,69 @@ export function UserDemographics() {
             </ResponsiveContainer>
           </ChartCard>
 
-          <ChartCard title="Plan types" icon={<PieChartIcon className="h-4 w-4" />}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie dataKey="value" data={planData} cx="50%" cy="50%" outerRadius={90} label>
-                  {planData.map((entry, index) => (
-                    <Cell key={`plan-${entry.name}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Legend />
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          <Card className="flex flex-col">
+            <CardHeader className="items-center pb-0">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <PieChartIcon className="h-4 w-4" />
+                Plan types
+                <Badge
+                  variant="outline"
+                  className="text-green-500 bg-green-500/10 border-none ml-2"
+                >
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                  <span>
+                    {filteredProfiles.length > 0
+                      ? ((planData.find(p => p.name === 'seed')?.value || 0) / filteredProfiles.length * 100).toFixed(1)
+                      : 0}% Seed
+                  </span>
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 pb-0">
+              <ChartContainer
+                config={chartConfig}
+                className="[&_.recharts-text]:fill-background mx-auto aspect-square max-h-[250px]"
+              >
+                <PieChart>
+                  <ChartTooltip
+                    content={<ChartTooltipContent nameKey="value" hideLabel />}
+                  />
+                  <Pie
+                    data={planData}
+                    innerRadius={50}
+                    outerRadius={80}
+                    dataKey="value"
+                    cornerRadius={5}
+                    paddingAngle={2}
+                  >
+                    <LabelList
+                      dataKey="value"
+                      position="inside"
+                      stroke="none"
+                      fontSize={12}
+                      fontWeight={500}
+                      fill="white"
+                      formatter={(value: number) => {
+                        // Hide label if the value is very small relative to total
+                        const total = planData.reduce((acc, cur) => acc + cur.value, 0);
+                        if (total === 0) return '';
+                        const percent = value / total;
+                        return percent > 0.05 ? value.toString() : '';
+                      }}
+                    />
+                  </Pie>
+                  <Legend 
+                    layout="horizontal" 
+                    verticalAlign="bottom" 
+                    align="center"
+                    formatter={(value, entry: any) => {
+                        return <span className="text-xs text-muted-foreground mr-2">{value} <span className="font-semibold text-foreground">({entry.payload.value})</span></span>;
+                    }}
+                  />
+                </PieChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
 
           <ChartCard title="Account types" icon={<Users className="h-4 w-4" />}>
             <ResponsiveContainer width="100%" height="100%">
@@ -415,4 +516,3 @@ export function UserDemographics() {
     </div>
   );
 }
-
