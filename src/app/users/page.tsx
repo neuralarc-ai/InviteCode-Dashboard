@@ -16,12 +16,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
-import { Mail, Loader2, Users, Building2, UserPlus, CreditCard } from 'lucide-react';
+import { Mail, Loader2, Users, Building2, UserPlus, CreditCard, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useUserProfiles } from '@/hooks/use-realtime-data';
+import { getUserType } from '@/lib/utils';
 
 export default function UsersPage() {
+  const { userProfiles, loading, error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles } = useUserProfiles();
   const [showCustomizationDialog, setShowCustomizationDialog] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [userTypeFilter, setUserTypeFilter] = useState<'internal' | 'external'>('external'); // Default to external users
@@ -89,6 +92,62 @@ export default function UsersPage() {
 
     fetchActivity();
   }, [toast, userTypeFilter]);
+
+  const handleDownloadCsv = () => {
+    const filteredProfiles = userProfiles.filter((profile) => {
+      const profileUserType = getUserType(profile.email);
+      return profileUserType === userTypeFilter;
+    });
+
+    if (filteredProfiles.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No users found to download.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = ['Name', 'Email', 'Country', 'Status', 'Referral Source', 'Created'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredProfiles.map(profile => {
+        const sent = !!(profile.metadata?.credits_email_sent_at);
+        const assigned = !!(profile.metadata?.credits_assigned);
+        let status = 'Not Sent';
+        if (sent && assigned) status = 'Sent & Assigned';
+        else if (sent) status = 'Sent';
+        else if (assigned) status = 'Assigned';
+
+        const country = profile.countryName 
+          || (profile.metadata as any)?.countryName 
+          || (profile.metadata as any)?.country 
+          || 'N/A';
+
+        const referral = profile.referralSource || 'N/A';
+        const created = new Date(profile.createdAt).toLocaleDateString();
+
+        return [
+          `"${profile.fullName}"`,
+          `"${profile.email}"`,
+          `"${country}"`,
+          `"${status}"`,
+          `"${referral}"`,
+          `"${created}"`
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${userTypeFilter}_users_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleSendEmail = async (emailData: EmailData, selectedOnly: boolean = false) => {
     setIsSending(true);
@@ -398,7 +457,6 @@ export default function UsersPage() {
         toast({
           title: "Partial Success",
           description: `Assigned credits to ${successful} user${successful !== 1 ? 's' : ''} (emails sent), but ${failed} assignment${failed !== 1 ? 's' : ''} failed.`,
-          variant: "destructive",
         });
         // Clear selection for successful assignments
         setSelectedUserIds(new Set());
@@ -450,6 +508,14 @@ export default function UsersPage() {
                 >
                   <UserPlus className="h-4 w-4" />
                   Create User
+                </Button>
+                <Button 
+                  onClick={handleDownloadCsv}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download CSV
                 </Button>
                 <Button 
                   onClick={() => setShowCustomizationDialog(true)}
@@ -559,6 +625,12 @@ export default function UsersPage() {
               onAssignCredits={handleAssignCredits}
               activityTab={activityTab}
               usageActivityMap={usageActivityMap}
+              userProfiles={userProfiles}
+              loading={loading}
+              error={error}
+              refreshUserProfiles={refreshUserProfiles}
+              deleteUserProfile={deleteUserProfile}
+              bulkDeleteUserProfiles={bulkDeleteUserProfiles}
             />
           </main>
         </SidebarInset>

@@ -17,8 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Search, RefreshCw, User, Mail, CreditCard, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
-import { useUserProfiles } from '@/hooks/use-realtime-data';
 import { useToast } from '@/hooks/use-toast';
+import { getUserType } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,13 +29,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-interface UsersTableRealtimeProps {
-  userTypeFilter?: 'internal' | 'external';
-  selectedUserIds?: Set<string>;
-  onSelectionChange?: (selectedUserIds: Set<string>) => void;
-  onAssignCredits?: (user: UserProfile) => void;
-}
 
 type ActivityTab = 'all' | 'new' | 'active' | 'partial';
 
@@ -51,6 +44,12 @@ interface UsersTableRealtimeProps {
   onAssignCredits?: (user: UserProfile) => void;
   activityTab?: ActivityTab;
   usageActivityMap?: Record<string, UsageActivity>;
+  userProfiles: UserProfile[];
+  loading: boolean;
+  error: string | null;
+  refreshUserProfiles: () => Promise<void>;
+  deleteUserProfile: (id: string) => Promise<{ success: boolean; message: string }>;
+  bulkDeleteUserProfiles: (ids: string[]) => Promise<{ success: boolean; message: string; deletedCount?: number }>;
 }
 
 export function UsersTableRealtime({ 
@@ -60,8 +59,13 @@ export function UsersTableRealtime({
   onAssignCredits,
   activityTab = 'all',
   usageActivityMap,
+  userProfiles,
+  loading,
+  error,
+  refreshUserProfiles,
+  deleteUserProfile,
+  bulkDeleteUserProfiles,
 }: UsersTableRealtimeProps) {
-  const { userProfiles, loading, error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles } = useUserProfiles();
   const [filter, setFilter] = React.useState('');
   const [page, setPage] = React.useState(0);
   const rowsPerPage = 10;
@@ -98,18 +102,6 @@ export function UsersTableRealtime({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userTypeFilter]);
-
-  // Helper function to determine user type based on email domain
-  const getUserType = (email: string | undefined): 'internal' | 'external' => {
-    if (!email || typeof email !== 'string') {
-      return 'external'; // Default to external if email is missing
-    }
-    const emailLower = email.toLowerCase();
-    if (emailLower.endsWith('@he2.ai') || emailLower.endsWith('@neuralarc.ai')) {
-      return 'internal';
-    }
-    return 'external';
-  };
 
   const filteredProfiles = userProfiles.filter((profile) => {
     // Filter by user type (internal/external)
