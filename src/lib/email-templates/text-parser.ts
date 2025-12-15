@@ -18,14 +18,26 @@ export function parseEmailText(textContent: string): ParsedEmailContent {
     };
   }
 
-  // Remove title line if it exists (e.g., "System Uptime: Helium is back online")
-  let cleanedContent = textContent.replace(/^[^:]+:.*?\n\n?/i, '').trim();
+  // Remove title line only if it explicitly looks like a known system template title
+  // Avoid broad regex that might eat user content like "Here's what's new:"
+  let cleanedContent = textContent;
+  if (/^(System Uptime|Scheduled Downtime|Credits Added|Activity Update):/i.test(cleanedContent)) {
+     cleanedContent = textContent.replace(/^[^:]+:.*?\n\n?/i, '').trim();
+  }
   
   // Split by double newlines to get paragraphs, or single newlines if no double newlines exist
   const paragraphs = cleanedContent.split(/\n\n+/).map(p => p.trim()).filter(p => p.length > 0);
   
-  // If no paragraphs found with double newlines, try splitting by single newlines
-  let processedParagraphs = paragraphs.length > 0 ? paragraphs : cleanedContent.split(/\n+/).map(p => p.trim()).filter(p => p.length > 0);
+  // Logic to handle single-newline formatted text or text with no double newlines
+  let processedParagraphs = paragraphs;
+  // If we have very few paragraphs but the text is long, try splitting by single newlines
+  // This handles cases where user pastes text with single line breaks
+  if ((paragraphs.length <= 1 && cleanedContent.length > 150) || paragraphs.length === 0) {
+    const singleSplit = cleanedContent.split(/\n+/).map(p => p.trim()).filter(p => p.length > 0);
+    if (singleSplit.length > paragraphs.length) {
+      processedParagraphs = singleSplit;
+    }
+  }
   
   // Find greeting line - look for common greeting patterns or sale announcements
   let greeting = defaultGreeting;
@@ -36,7 +48,8 @@ export function parseEmailText(textContent: string): ParsedEmailContent {
   ];
   
   const greetingLineIndex = processedParagraphs.findIndex(p => 
-    greetingPatterns.some(pattern => pattern.test(p))
+    // Ensure the line is short enough to be a greeting (prevent consuming long paragraphs starting with Hi)
+    greetingPatterns.some(pattern => pattern.test(p)) && p.length < 100
   );
   
   if (greetingLineIndex !== -1) {
@@ -57,29 +70,25 @@ export function parseEmailText(textContent: string): ParsedEmailContent {
   // Find signoff (Thanks, Best regards, Sincerely, etc.)
   let signoff = defaultSignoff;
   const signoffPatterns = [
-    /^(thanks|thank you|best regards|sincerely|regards|yours truly)/i,
+    /^(thanks|thank you|best regards|sincerely|regards|yours truly|take care|with .* regards)/i,
   ];
   
   const signoffIndex = processedParagraphs.findIndex(p => 
-    signoffPatterns.some(pattern => pattern.test(p))
+    // Ensure signoff is reasonably short or at the end
+    signoffPatterns.some(pattern => pattern.test(p)) && p.length < 100
   );
   
   if (signoffIndex !== -1) {
-    const signoffLine = processedParagraphs[signoffIndex];
-    // Check if next line is "The Helium Team" or similar
-    if (processedParagraphs[signoffIndex + 1] && /(helium team|team|helium)/i.test(processedParagraphs[signoffIndex + 1])) {
-      signoff = `${signoffLine}<br>${processedParagraphs[signoffIndex + 1]}`;
-      processedParagraphs.splice(signoffIndex, 2);
-    } else {
-      // Try to extract from the same line
-      const teamMatch = signoffLine.match(/(thanks.*?)(the helium team)/i);
-      if (teamMatch) {
-        signoff = `${teamMatch[1]}<br>${teamMatch[2]}`;
-        processedParagraphs.splice(signoffIndex, 1);
-      } else {
-        signoff = signoffLine;
-        processedParagraphs.splice(signoffIndex, 1);
-      }
+    // If signoff is found, take it and everything after it (if it's not the last line)
+    // But usually signoff is the last distinct block.
+    // If "With warm regards" is its own line, and "The Helium Team" is next.
+    
+    // Check if there are lines after the detected signoff
+    const linesAfter = processedParagraphs.slice(signoffIndex);
+    if (linesAfter.length > 0) {
+       signoff = linesAfter.join('<br>');
+       // Remove signoff and subsequent lines from paragraphs
+       processedParagraphs.splice(signoffIndex, linesAfter.length);
     }
   } else if (processedParagraphs.length > 0) {
     // If last paragraph looks like a signoff, use it

@@ -889,7 +889,7 @@ The AI Team`);
                    </div>
 
       {/* Usage Logs Table */}
-      <Card>
+      {/* <Card>
                      <CardHeader>
                        <CardTitle>Usage Logs</CardTitle>
                        <CardDescription>
@@ -1060,7 +1060,6 @@ The AI Team`);
                              </TableBody>
               </Table>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between space-x-2 py-4">
                                <div className="text-sm text-muted-foreground">
@@ -1112,7 +1111,7 @@ The AI Team`);
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card> */}
           </div>
         </main>
       </SidebarInset>

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, subDays, startOfDay } from 'date-fns';
-import { Users, Globe2, Clock3, PieChart as PieChartIcon } from 'lucide-react';
+import { Users, Globe2, Clock3, PieChart as PieChartIcon, Calendar } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 import * as FlagIcons from 'country-flag-icons/react/3x2';
 import { hasFlag } from 'country-flag-icons';
@@ -36,6 +36,38 @@ const DATE_RANGE_OPTIONS: { label: string; value: DateRangeKey; days?: number }[
 ];
 
 const COLORS = ['#A6C8D5', '#EFB25E', '#A69CBE', '#EEDBCD', '#E0693D'];
+
+// Continent Mapping
+const CONTINENT_MAPPING: Record<string, string> = {
+  // North America
+  US: 'North America', CA: 'North America', MX: 'North America', GT: 'North America', CR: 'North America', PA: 'North America', DO: 'North America', JM: 'North America',
+  'United States': 'North America', 'USA': 'North America', 'Canada': 'North America', 'Mexico': 'North America',
+  // Europe
+  GB: 'Europe', DE: 'Europe', FR: 'Europe', IT: 'Europe', ES: 'Europe', NL: 'Europe', BE: 'Europe', CH: 'Europe', AT: 'Europe', SE: 'Europe', NO: 'Europe', DK: 'Europe', FI: 'Europe', IE: 'Europe', PL: 'Europe', PT: 'Europe', GR: 'Europe', CZ: 'Europe', HU: 'Europe', RO: 'Europe', UA: 'Europe', RU: 'Europe', TR: 'Europe',
+  'United Kingdom': 'Europe', 'UK': 'Europe', 'Germany': 'Europe', 'France': 'Europe', 'Italy': 'Europe', 'Spain': 'Europe', 'Netherlands': 'Europe', 'Russia': 'Europe',
+  // Asia
+  CN: 'Asia', JP: 'Asia', IN: 'Asia', KR: 'Asia', SG: 'Asia', ID: 'Asia', MY: 'Asia', TH: 'Asia', VN: 'Asia', PH: 'Asia', PK: 'Asia', BD: 'Asia', IR: 'Asia', SA: 'Asia', AE: 'Asia', IL: 'Asia', QA: 'Asia', HK: 'Asia', TW: 'Asia', NP: 'Asia',
+  'China': 'Asia', 'Japan': 'Asia', 'India': 'Asia', 'South Korea': 'Asia', 'Singapore': 'Asia', 'Indonesia': 'Asia', 'Vietnam': 'Asia', 'Thailand': 'Asia', 'Hong Kong': 'Asia', 'Taiwan': 'Asia',
+  // South America
+  BR: 'South America', AR: 'South America', CL: 'South America', CO: 'South America', PE: 'South America', VE: 'South America', EC: 'South America',
+  'Brazil': 'South America', 'Argentina': 'South America', 'Chile': 'South America', 'Colombia': 'South America', 'Peru': 'South America',
+  // Oceania
+  AU: 'Oceania', NZ: 'Oceania',
+  'Australia': 'Oceania', 'New Zealand': 'Oceania',
+  // Africa
+  ZA: 'Africa', EG: 'Africa', NG: 'Africa', KE: 'Africa', MA: 'Africa', GH: 'Africa', ET: 'Africa',
+  'South Africa': 'Africa', 'Egypt': 'Africa', 'Nigeria': 'Africa', 'Kenya': 'Africa', 'Morocco': 'Africa',
+};
+
+const CONTINENT_COLORS: Record<string, string> = {
+  'North America': '#3b82f6', // Blue
+  'Europe': '#10b981',        // Green
+  'Asia': '#f59e0b',          // Amber
+  'South America': '#ef4444', // Red
+  'Africa': '#8b5cf6',        // Purple
+  'Oceania': '#ec4899',       // Pink
+  'Unknown': '#9ca3af',       // Gray
+};
 
 const getUserType = (email: string | undefined): 'internal' | 'external' => {
   if (!email) return 'external';
@@ -154,32 +186,24 @@ export function UserDemographics() {
     [userProfiles, userType, referral, dateRange]
   );
 
-  const countryData = useMemo(() => {
-    const counts = new Map<
-      string,
-      {
-        code: string | null;
-        name: string;
-        displayKey: string;
-        value: number;
-      }
-    >();
+  const continentData = useMemo(() => {
+    const counts = new Map<string, { value: number; countries: Map<string, { count: number; code: string | null; name: string | null }> }>();
+    const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
     const normalizeCode = (code?: string | null) => {
       if (!code) return null;
       const upper = code.toString().trim().toUpperCase();
       if (!upper) return null;
       // Accept 2-3 letter codes (ISO country codes)
-      // We'll check hasFlag separately when rendering flags
       if (upper.length > 3) return null;
       return upper;
     };
 
     const normalizeName = (name?: string | null) => {
       const trimmed = name?.toString().trim();
-      if (!trimmed) return 'Unknown';
+      if (!trimmed) return null;
       const lower = trimmed.toLowerCase();
-      if (lower === 'unknown' || lower === 'n/a' || lower === 'na') return 'Unknown';
+      if (lower === 'unknown' || lower === 'n/a' || lower === 'na') return null;
       return trimmed;
     };
 
@@ -192,22 +216,68 @@ export function UserDemographics() {
     filteredProfiles.forEach((p) => {
       const code = resolveCountryCode(p);
       const name = resolveCountryName(p);
-      // Use code as key when available, otherwise use name
-      // This ensures proper grouping and flag display
-      const key = code || name || 'Unknown';
-      const existing = counts.get(key);
+      
+      let continent = 'Unknown';
+      
+      // Try to resolve by code first
+      if (code && CONTINENT_MAPPING[code]) {
+        continent = CONTINENT_MAPPING[code];
+      } 
+      // Then try to resolve by name
+      else if (name && CONTINENT_MAPPING[name]) {
+        continent = CONTINENT_MAPPING[name];
+      }
+      
+      // Get or create continent entry
+      if (!counts.has(continent)) {
+        counts.set(continent, { value: 0, countries: new Map() });
+      }
+      const entry = counts.get(continent)!;
+      entry.value += 1;
 
-      counts.set(key, {
-        code,
-        name,
-        // Use code for displayKey when available for better flag lookup
-        displayKey: code || name || 'Unknown',
-        value: (existing?.value || 0) + 1,
-      });
+      // Track country
+      // Use code as primary key if available, otherwise name
+      const countryKey = code || name || 'Unknown';
+      
+      if (!entry.countries.has(countryKey)) {
+        entry.countries.set(countryKey, { count: 0, code, name });
+      }
+      
+      const countryEntry = entry.countries.get(countryKey)!;
+      countryEntry.count += 1;
+      
+      // If we found a code later for a name-only entry (unlikely with this logic order but safe), update it
+      if (code && !countryEntry.code) countryEntry.code = code;
+      // Use the longest name found (likely most descriptive)
+      if (name && (!countryEntry.name || name.length > countryEntry.name.length)) countryEntry.name = name;
     });
 
-    // Return all countries (no top-10 truncation)
-    return Array.from(counts.values()).sort((a, b) => b.value - a.value);
+    return Array.from(counts.entries())
+      .map(([name, data]) => ({ 
+        name, 
+        value: data.value,
+        countries: Array.from(data.countries.values())
+          .map((c) => {
+            let displayName = c.name;
+            if (c.code) {
+              try {
+                // Try to get full name from code
+                displayName = regionNames.of(c.code) || c.name || c.code;
+              } catch (e) {
+                // Fallback if code is invalid for Intl
+                displayName = c.name || c.code;
+              }
+            }
+            return { 
+              name: displayName || 'Unknown', 
+              code: c.code, 
+              count: c.count 
+            };
+          })
+          .sort((a, b) => b.count - a.count), // Sort countries by count
+        fill: CONTINENT_COLORS[name] || CONTINENT_COLORS['Unknown']
+      }))
+      .sort((a, b) => b.value - a.value);
   }, [filteredProfiles]);
 
   const planData = useMemo(
@@ -331,86 +401,62 @@ export function UserDemographics() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <Globe2 className="h-4 w-4" />
-                Countries
+                User Demographics by Continent
               </CardTitle>
             </CardHeader>
             <CardContent className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
-                  data={countryData} 
-                  margin={{ left: 20, right: 20, top: 20, bottom: 60 }}
-                >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  type="category" 
-                  dataKey="displayKey"
-                  interval={0}
-                  tick={({ x, y, payload }) => {
-                    const codeFromPayload = payload?.payload?.code;
-                    const displayKeyValue = payload.value;
-                    
-                    let countryCode: string | null = null;
-                    if (codeFromPayload && typeof codeFromPayload === 'string') {
-                      const normalized = codeFromPayload.toUpperCase().trim();
-                      if (normalized.length <= 3 && hasFlag(normalized)) {
-                        countryCode = normalized;
+                <PieChart>
+                  <Pie
+                    data={continentData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {continentData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    offset={50} // Move tooltip further from cursor
+                    allowEscapeViewBox={{ x: true, y: true }} // Allow tooltip to escape container boundaries if needed
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-white/95 border border-border p-3 rounded-lg shadow-lg text-sm max-h-[300px] overflow-y-auto">
+                            <div className="font-bold mb-2 border-b pb-1 text-base text-black">{data.name}</div>
+                            <div className="mb-2 text-muted-foreground">
+                              Total: {data.value} users ({((data.value / filteredProfiles.length) * 100).toFixed(1)}%)
+                            </div>
+                            <div className="space-y-1.5">
+                              {data.countries.map((c: any, i: number) => {
+                                const Flag = c.code ? (FlagIcons as any)[c.code] : null;
+                                return (
+                                  <div key={i} className="flex justify-between items-center gap-4 text-xs text-black">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      {Flag && (
+                                        <div className="shrink-0 w-4 h-3 relative shadow-sm rounded-[1px] overflow-hidden">
+                                          <Flag className="w-full h-full object-cover" />
+                                        </div>
+                                      )}
+                                      <span className="truncate">{c.name}</span>
+                                    </div>
+                                    <span className="font-mono font-medium text-muted-foreground">{c.count}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
                       }
-                    }
-                    
-                    if (!countryCode && displayKeyValue && typeof displayKeyValue === 'string') {
-                      const normalized = displayKeyValue.toUpperCase().trim();
-                      if (normalized.length <= 3 && hasFlag(normalized)) {
-                        countryCode = normalized;
-                      }
-                    }
-                    
-                    const countryName = payload?.payload?.name || displayKeyValue || 'Unknown';
-                    
-                    const Flag = countryCode
-                      ? (FlagIcons as Record<string, React.ComponentType<{ title?: string; className?: string }>>)[
-                          countryCode
-                        ]
-                      : null;
-
-                    return (
-                      <g transform={`translate(${x},${y})`}>
-                        {Flag ? (
-                          <foreignObject x={-10} y={10} width={20} height={14}>
-                            <Flag
-                              title={countryName}
-                              className="h-3.5 w-5 rounded-sm shadow-sm"
-                            />
-                          </foreignObject>
-                        ) : null}
-                        <text 
-                          x={0} 
-                          y={Flag ? 35 : 20} 
-                          textAnchor="middle" 
-                          className="text-xs fill-current"
-                          style={{ fontSize: '12px' }}
-                        >
-                          {countryCode || (countryName.length > 3 ? countryName.substring(0, 3) : countryName)}
-                        </text>
-                      </g>
-                    );
-                  }}
-                />
-                <YAxis type="number" allowDecimals={false} />
-                <Tooltip
-                  formatter={(value: number, _name, props) => [value, props?.payload?.name || props?.payload?.displayKey]}
-                  labelFormatter={(label, payload) => payload?.[0]?.payload?.name || label}
-                  contentStyle={{ background: 'rgba(255,255,255,0.8)', border: 'none', boxShadow: 'none' }}
-                  labelStyle={{ color: '#1f2937' }}
-                  itemStyle={{ color: '#1f2937' }}
-                  wrapperStyle={{ outline: 'none' }}
-                  cursor={{ fill: 'transparent' }}
-                />
-                <Bar dataKey="value" fill={COLORS[0]}>
-                  {countryData.map((entry, index) => (
-                    <Cell key={`country-${entry.displayKey}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
+                      return null;
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -420,17 +466,6 @@ export function UserDemographics() {
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <PieChartIcon className="h-4 w-4" />
                 Plan types
-                <Badge
-                  variant="outline"
-                  className="text-green-500 bg-green-500/10 border-none ml-2"
-                >
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  <span>
-                    {filteredProfiles.length > 0
-                      ? ((planData.find(p => p.name === 'seed')?.value || 0) / filteredProfiles.length * 100).toFixed(1)
-                      : 0}% Seed
-                  </span>
-                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="h-[300px]">
@@ -465,21 +500,34 @@ export function UserDemographics() {
             </CardContent>
           </Card>
 
-          <ChartCard title="Account types" icon={<Users className="h-4 w-4" />}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={accountData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="value" fill={COLORS[2]}>
-                  {accountData.map((entry, index) => (
-                    <Cell key={`acct-${entry.name}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold">Subscription Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-4">
+                  <Calendar className="h-4 w-4" />
+                  Monthly Subscriptions
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { name: 'Seed', label: 'Seed (Free)', price: null },
+                    { name: 'Edge', label: 'Edge ($7.99)', price: 7.99 },
+                    { name: 'Quantum', label: 'Quantum ($14.99)', price: 14.99 },
+                  ].map((plan) => {
+                    const count = planData.find(p => p.name.toLowerCase() === plan.name.toLowerCase())?.value || 0;
+                    return (
+                      <div key={plan.name} className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border/50">
+                        <span className="font-medium text-sm text-foreground/80">{plan.label}</span>
+                        <span className="font-bold text-lg">{count.toLocaleString()}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

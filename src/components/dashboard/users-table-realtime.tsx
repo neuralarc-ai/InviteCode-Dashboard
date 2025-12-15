@@ -30,8 +30,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type ActivityTab = 'all' | 'new' | 'active' | 'partial';
-
 type UsageActivity = {
   usageCount: number;
   latestActivity: Date | null;
@@ -42,7 +40,6 @@ interface UsersTableRealtimeProps {
   selectedUserIds?: Set<string>;
   onSelectionChange?: (ids: Set<string>) => void;
   onAssignCredits?: (user: UserProfile) => void;
-  activityTab?: ActivityTab;
   usageActivityMap?: Record<string, UsageActivity>;
   userProfiles: UserProfile[];
   loading: boolean;
@@ -57,7 +54,6 @@ export function UsersTableRealtime({
   selectedUserIds: externalSelectedUserIds,
   onSelectionChange,
   onAssignCredits,
-  activityTab = 'all',
   usageActivityMap,
   userProfiles,
   loading,
@@ -108,26 +104,6 @@ export function UsersTableRealtime({
     const profileUserType = getUserType(profile.email);
     if (profileUserType !== userTypeFilter) {
       return false;
-    }
-
-    // Activity tab filters
-    if (activityTab !== 'all') {
-      const usageInfo = usageActivityMap?.[profile.userId];
-      const now = new Date();
-      const daysSinceActivity = usageInfo?.latestActivity
-        ? Math.floor((now.getTime() - usageInfo.latestActivity.getTime()) / (1000 * 60 * 60 * 24))
-        : Infinity;
-      const isRecent = daysSinceActivity <= 30;
-      const usageCount = usageInfo?.usageCount || 0;
-
-      const isNew = (() => {
-        const daysSinceCreated = Math.floor((now.getTime() - profile.createdAt.getTime()) / (1000 * 60 * 60 * 24));
-        return daysSinceCreated <= 7;
-      })();
-
-      if (activityTab === 'new' && !isNew) return false;
-      if (activityTab === 'active' && !(isRecent && usageCount >= 5)) return false;
-      if (activityTab === 'partial' && !(isRecent && usageCount >= 1 && usageCount <= 4)) return false;
     }
 
     // Filter by text search (only if filter is provided)
@@ -374,6 +350,52 @@ export function UsersTableRealtime({
     }
   };
 
+  const getUsageStatus = (userId: string) => {
+    const usageInfo = usageActivityMap?.[userId];
+    const latestActivity = usageInfo?.latestActivity;
+    
+    if (!latestActivity) {
+      return 'inactive';
+    }
+
+    const now = new Date();
+    const daysSinceActivity = Math.floor((now.getTime() - latestActivity.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysSinceActivity <= 3) {
+      return 'active';
+    } else if (daysSinceActivity <= 7) {
+      return 'partial';
+    } else {
+      return 'inactive';
+    }
+  };
+
+  const getUsageStatusBadge = (userId: string) => {
+    const status = getUsageStatus(userId);
+    
+    switch (status) {
+      case 'active':
+        return (
+          <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+            Active
+          </Badge>
+        );
+      case 'partial':
+        return (
+          <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">
+            Partial Active
+          </Badge>
+        );
+      case 'inactive':
+      default:
+        return (
+          <Badge variant="secondary" className="text-muted-foreground">
+            Inactive
+          </Badge>
+        );
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -499,8 +521,8 @@ export function UsersTableRealtime({
                 </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
-              <TableHead>Country</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Credit Status</TableHead>
+                <TableHead>Usage Status</TableHead>
                 <TableHead>Referral Source</TableHead>
                 <TableHead className="text-right">Created</TableHead>
                 <TableHead>Actions</TableHead>
@@ -509,7 +531,7 @@ export function UsersTableRealtime({
             <TableBody>
               {paginatedProfiles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
@@ -558,15 +580,10 @@ export function UsersTableRealtime({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm">
-                        {profile.countryName 
-                          || (profile.metadata as any)?.countryName 
-                          || (profile.metadata as any)?.country 
-                          || <span className="text-muted-foreground">N/A</span>}
-                      </span>
+                      {getStatusBadge(profile)}
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(profile)}
+                      {getUsageStatusBadge(profile.userId)}
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">

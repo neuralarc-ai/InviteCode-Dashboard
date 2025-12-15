@@ -7,17 +7,19 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { DollarSign, Users, CreditCard, TrendingUp } from 'lucide-react';
-import { useCreditBalances, useUserProfiles } from '@/hooks/use-realtime-data';
+import { DollarSign, Users, CreditCard, TrendingUp, UserPlus } from 'lucide-react';
+import { useCreditBalances, useUserProfiles, useCreditPurchases } from '@/hooks/use-realtime-data';
+import { supabase } from '@/lib/supabase';
 
 export function StatCardsRealtime() {
   const { creditBalances, loading: balancesLoading } = useCreditBalances();
   const { userProfiles, loading: usersLoading } = useUserProfiles();
+  const { creditPurchases, loading: purchasesLoading } = useCreditPurchases();
   const [externalCredits, setExternalCredits] = React.useState<number>(0);
   const [internalCredits, setInternalCredits] = React.useState<number>(0);
   const [usageCreditsLoading, setUsageCreditsLoading] = React.useState(true);
 
-  const loading = balancesLoading || usersLoading;
+  const loading = balancesLoading || usersLoading || purchasesLoading;
 
   // Fetch external and internal credits from usage logs (matching usage logs page calculation)
   React.useEffect(() => {
@@ -74,20 +76,46 @@ export function StatCardsRealtime() {
 
     fetchUsageCredits();
     
-    // Refresh every 30 seconds to keep it updated
+    // Refresh every 30 seconds to keep it updated (fallback)
     const interval = setInterval(fetchUsageCredits, 30000);
+
+    // Subscribe to usage_logs changes to update credits in real-time
+    const subscription = supabase
+      .channel('dashboard_stats_usage_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'usage_logs',
+        },
+        () => {
+          // Debounce updates to avoid excessive API calls
+          console.log('Real-time update: Refreshing dashboard credits...');
+          fetchUsageCredits();
+        }
+      )
+      .subscribe();
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Calculate stats from credit balances and user profiles
-  const stats = {
-    totalUsers: userProfiles.length,
-    totalCredits: creditBalances.reduce((sum, balance) => sum + Math.round(balance.balanceDollars * 100), 0),
-    totalPurchased: creditBalances.reduce((sum, balance) => sum + Math.round(balance.totalPurchased * 100), 0),
-    totalUsed: creditBalances.reduce((sum, balance) => sum + Math.round(balance.totalUsed * 100), 0),
-    totalBalance: creditBalances.reduce((sum, balance) => sum + balance.balanceDollars, 0),
-  };
+  const stats = React.useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return {
+      totalUsers: userProfiles.length,
+      totalCredits: creditBalances.reduce((sum, balance) => sum + Math.round(balance.balanceDollars * 100), 0),
+      newUsersToday: userProfiles.filter(user => user.createdAt >= today).length,
+      paidUsers: new Set(creditPurchases.map(purchase => purchase.userId)).size,
+      totalBalance: creditBalances.reduce((sum, balance) => sum + balance.balanceDollars, 0),
+    };
+  }, [userProfiles, creditBalances, creditPurchases]);
 
   // Format credits with 3 decimal places to match usage logs page format
   const formatCredits = (credits: number): string => {
@@ -132,16 +160,16 @@ export function StatCardsRealtime() {
         : `External: ${formatCredits(externalCredits)} | Internal: ${formatCredits(internalCredits)}`,
     },
     {
-      title: 'Total Purchased',
-      value: stats.totalPurchased.toLocaleString(),
-      icon: DollarSign,
-      description: 'Credits purchased',
+      title: 'New Users Today',
+      value: stats.newUsersToday.toLocaleString(),
+      icon: UserPlus,
+      description: 'Registered today',
     },
     {
-      title: 'Total Used',
-      value: stats.totalUsed.toLocaleString(),
-      icon: TrendingUp,
-      description: 'Credits used',
+      title: 'Paid Users',
+      value: stats.paidUsers.toLocaleString(),
+      icon: DollarSign,
+      description: 'Made a purchase',
     },
   ];
 

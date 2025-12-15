@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { supabaseAdmin } from '@/lib/supabase';
-import { createDowntimeHtmlTemplate, createUptimeHtmlTemplate } from '@/lib/email-templates';
+import { createDowntimeHtmlTemplate, createUptimeHtmlTemplate, createInactiveHtmlTemplate, createPartialHtmlTemplate } from '@/lib/email-templates';
 import { createEmailAttachments, EMAIL_IMAGES } from '@/lib/email-utils';
 
 export async function POST(request: NextRequest) {
@@ -468,6 +468,16 @@ The Helium Team`
     // Attach updates body if present
     if (emailContent.includes('cid:updates-body')) {
       attachments.push(...createEmailAttachments([EMAIL_IMAGES.updatesBody]));
+    }
+    
+    // Attach inactive body if present
+    if (emailContent.includes('cid:inactive-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.inactiveBody]));
+    }
+    
+    // Attach partial body if present
+    if (emailContent.includes('cid:partial-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.partialBody]));
     }
 
     // Plain text version

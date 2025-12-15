@@ -20,7 +20,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { createUptimeHtmlTemplate, createDowntimeHtmlTemplate, createCreditsHtmlTemplate, createUpdatesHtmlTemplate, convertTextToHtml } from '@/lib/email-templates';
+import { createUptimeHtmlTemplate, createDowntimeHtmlTemplate, createCreditsHtmlTemplate, createUpdatesHtmlTemplate, createInactiveHtmlTemplate, createPartialHtmlTemplate, convertTextToHtml } from '@/lib/email-templates';
 
 interface EmailCustomizationDialogProps {
   open: boolean;
@@ -29,6 +29,12 @@ interface EmailCustomizationDialogProps {
   onSendToIndividual: (emailData: EmailData, emailAddress: string) => Promise<void>;
   isSending: boolean;
   selectedCount?: number;
+  initialTab?: EmailSectionKey;
+  overrideContent?: {
+    section: EmailSectionKey;
+    subject?: string;
+    textContent: string;
+  } | null;
 }
 
 export type EmailSectionKey = 'uptime' | 'downtime' | 'creditsAdded' | 'activity' | 'updates';
@@ -126,6 +132,48 @@ Thank you once again for choosing Helium AI. We look forward to supporting you a
 
 Warm regards,
 The Helium Team`,
+};
+
+const activitySubTemplates = {
+  partial: `Hi there! 👋
+
+We've been thinking about you and noticed you haven't been as active on Helium recently. We completely understand that life gets busy, but we wanted to reach out because we genuinely miss having you as part of our community!
+
+We think you might love exploring some of the exciting new features we've added since you last visited.
+
+Here's what's new that might interest you:
+✨ Enhanced AI capabilities with better responses
+🎨 New creative tools for your projects
+📊 Improved analytics to track your progress
+🤝 A more vibrant community of creators
+
+We believe in your potential and would love to see you back in action.
+
+Remember, every great journey has its pauses - and that's perfectly okay! When you're ready to continue, we'll be here with open arms and exciting new possibilities.
+
+Take care, and we hope to see you back soon! 🌟
+
+With warm regards,
+The Helium Team 💙`,
+
+  inactive: `Hello,
+
+We hope this message finds you well. We've noticed you haven't been active on Helium lately, and we wanted to reach out - not to pressure you, but simply to let you know that you're missed and valued.
+
+We want you to know that there's absolutely no rush to return. Life has its seasons, and we understand that sometimes you need to step back and focus on other things.
+
+When you're ready (and only when you're ready), we'll be here with:
+🌱 A welcoming community that understands
+☕ A platform that adapts to your pace
+💡 Tools that grow with your needs
+🤗 Support without any pressure
+
+We believe in the power of taking breaks and coming back when the time feels right. Your journey with AI and creativity is uniquely yours, and we respect that completely.
+
+Whether you return tomorrow, next month, or next year, know that you'll always have a place here at Helium. We're not going anywhere, and we'll be excited to welcome you back whenever you're ready.
+
+With understanding and care,
+The Helium Team`
 };
 
 const createDefaultEmailData = (logoBase64?: string | null, uptimeBodyBase64?: string | null, downtimeBodyBase64?: string | null, creditsBodyBase64?: string | null, updatesBodyBase64?: string | null): EmailData => {
@@ -292,19 +340,32 @@ export function EmailCustomizationDialog({
   onSendEmail, 
   onSendToIndividual,
   isSending,
-  selectedCount = 0
+  selectedCount = 0,
+  initialTab = 'uptime',
+  overrideContent = null
 }: EmailCustomizationDialogProps) {
-  const [emailImages, setEmailImages] = useState<{ logo: string | null; uptimeBody: string | null; downtimeBody: string | null; creditsBody: string | null; updatesBody: string | null }>({
+  const [emailImages, setEmailImages] = useState<{ 
+    logo: string | null; 
+    uptimeBody: string | null; 
+    downtimeBody: string | null; 
+    creditsBody: string | null; 
+    updatesBody: string | null;
+    partialBody: string | null;
+    inactiveBody: string | null;
+  }>({
     logo: null,
     uptimeBody: null,
     downtimeBody: null,
     creditsBody: null,
     updatesBody: null,
+    partialBody: null,
+    inactiveBody: null,
   });
   const [emailData, setEmailData] = useState<EmailData>(createDefaultEmailData());
 // ... existing code ...
   const [individualEmail, setIndividualEmail] = useState('');
-  const [activeTab, setActiveTab] = useState<EmailSectionKey>('uptime');
+  const [activeTab, setActiveTab] = useState<EmailSectionKey>(initialTab);
+  const [activitySubTab, setActivitySubTab] = useState<'partial' | 'inactive'>('partial');
   const [isEnhancing, setIsEnhancing] = useState<Record<EmailSectionKey, boolean>>({
     uptime: false,
     downtime: false,
@@ -312,6 +373,68 @@ export function EmailCustomizationDialog({
     activity: false,
     updates: false,
   });
+
+  // Apply override content when provided
+  useEffect(() => {
+    if (open && overrideContent) {
+      setActiveTab(overrideContent.section);
+      
+      // Auto-detect sub-tab based on content if it's the activity section
+      let newSubTab = activitySubTab;
+      if (overrideContent.section === 'activity') {
+        if (overrideContent.subject?.toLowerCase().includes('miss you')) {
+          newSubTab = 'partial';
+          setActivitySubTab('partial');
+        } else if (overrideContent.subject?.toLowerCase().includes('ready')) {
+          newSubTab = 'inactive';
+          setActivitySubTab('inactive');
+        }
+      }
+      
+      setEmailData(prev => {
+        const newData = { ...prev };
+        
+        if (overrideContent.subject) {
+          newData.subject = overrideContent.subject;
+        }
+        
+        let htmlContent;
+        if (overrideContent.section === 'activity') {
+           htmlContent = newSubTab === 'partial' 
+              ? createPartialHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  partialBodyBase64: emailImages.partialBody,
+                  textContent: overrideContent.textContent,
+                  useCid: false
+                })
+              : createInactiveHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  inactiveBodyBase64: emailImages.inactiveBody,
+                  textContent: overrideContent.textContent,
+                  useCid: false
+                });
+        } else {
+           htmlContent = convertTextToHtml(overrideContent.textContent);
+        }
+
+        newData.sections = {
+          ...newData.sections,
+          [overrideContent.section]: {
+            textContent: overrideContent.textContent,
+            htmlContent
+          }
+        };
+        
+        return newData;
+      });
+    } else if (open && !overrideContent) {
+      // If no override, ensure we respect initialTab if provided, or default to uptime
+      // But don't reset content if it was edited
+      if (initialTab) {
+        setActiveTab(initialTab);
+      }
+    }
+  }, [open, overrideContent, initialTab, emailImages]);
 
   // Fetch base64 images on component mount
   useEffect(() => {
@@ -327,6 +450,8 @@ export function EmailCustomizationDialog({
               downtimeBody: data.images.downtimeBody,
               creditsBody: data.images.creditsBody,
               updatesBody: data.images.updatesBody,
+              partialBody: data.images.partialBody,
+              inactiveBody: data.images.inactiveBody,
             });
             // Update Uptime, Downtime, Credits, and Updates sections with HTML templates containing base64 images
             setEmailData(prev => ({
@@ -369,6 +494,16 @@ export function EmailCustomizationDialog({
                     useCid: false, // Use base64 for preview
                   }),
                 },
+                activity: {
+                  // Initialize with Partial content as it is the default sub-tab
+                  textContent: (defaultSectionContent as any).partial || prev.sections.activity.textContent,
+                  htmlContent: createPartialHtmlTemplate({
+                    logoBase64: data.images.logo,
+                    partialBodyBase64: data.images.partialBody,
+                    textContent: (defaultSectionContent as any).partial || prev.sections.activity.textContent,
+                    useCid: false
+                  })
+                }
               },
             }));
           }
@@ -380,6 +515,41 @@ export function EmailCustomizationDialog({
 
     fetchImages();
   }, []);
+
+  const handleActivitySubTabChange = (subTab: 'partial' | 'inactive') => {
+    setActivitySubTab(subTab);
+    
+    // Update content to default for the selected sub-tab
+    const defaultText = activitySubTemplates[subTab];
+    const defaultSubject = subTab === 'partial' 
+      ? 'We miss you! Come back to Helium' 
+      : 'We\'re here when you\'re ready';
+    
+    handleSubjectChange(defaultSubject);
+    
+    setEmailData(prev => ({
+      ...prev,
+      sections: {
+        ...prev.sections,
+        activity: {
+          textContent: defaultText,
+          htmlContent: subTab === 'partial' 
+            ? createPartialHtmlTemplate({
+                logoBase64: emailImages.logo,
+                partialBodyBase64: emailImages.partialBody,
+                textContent: defaultText,
+                useCid: false
+              })
+            : createInactiveHtmlTemplate({
+                logoBase64: emailImages.logo,
+                inactiveBodyBase64: emailImages.inactiveBody,
+                textContent: defaultText,
+                useCid: false
+              })
+        }
+      }
+    }));
+  };
 
   const handleSubjectChange = (subject: string) => {
     setEmailData(prev => ({ ...prev, subject }));
@@ -451,6 +621,30 @@ export function EmailCustomizationDialog({
               textContent,
               useCid: false, // Use base64 for preview
             }),
+          },
+        },
+      }));
+    } else if (sectionKey === 'activity') {
+      // For Activity section, use the appropriate template based on sub-tab
+      setEmailData(prev => ({
+        ...prev,
+        sections: {
+          ...prev.sections,
+          [sectionKey]: {
+            textContent,
+            htmlContent: activitySubTab === 'partial'
+              ? createPartialHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  partialBodyBase64: emailImages.partialBody,
+                  textContent,
+                  useCid: false,
+                })
+              : createInactiveHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  inactiveBodyBase64: emailImages.inactiveBody,
+                  textContent,
+                  useCid: false,
+                }),
           },
         },
       }));
@@ -536,6 +730,31 @@ export function EmailCustomizationDialog({
               textContent: defaultContent,
               useCid: false, // Use base64 for preview
             }),
+          },
+        },
+      }));
+    } else if (sectionKey === 'activity') {
+      // For Activity section, reset using current sub-tab
+      const defaultText = activitySubTemplates[activitySubTab] || defaultSectionContent.activity;
+      setEmailData(prev => ({
+        ...prev,
+        sections: {
+          ...prev.sections,
+          [sectionKey]: {
+            textContent: defaultText,
+            htmlContent: activitySubTab === 'partial'
+              ? createPartialHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  partialBodyBase64: emailImages.partialBody,
+                  textContent: defaultText,
+                  useCid: false,
+                })
+              : createInactiveHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  inactiveBodyBase64: emailImages.inactiveBody,
+                  textContent: defaultText,
+                  useCid: false,
+                }),
           },
         },
       }));
@@ -648,6 +867,29 @@ export function EmailCustomizationDialog({
             },
           },
         }));
+      } else if (sectionKey === 'activity') {
+        setEmailData(prev => ({
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [sectionKey]: {
+              textContent: enhancedContent,
+              htmlContent: activitySubTab === 'partial'
+                ? createPartialHtmlTemplate({
+                    logoBase64: emailImages.logo,
+                    partialBodyBase64: emailImages.partialBody,
+                    textContent: enhancedContent,
+                    useCid: false,
+                  })
+                : createInactiveHtmlTemplate({
+                    logoBase64: emailImages.logo,
+                    inactiveBodyBase64: emailImages.inactiveBody,
+                    textContent: enhancedContent,
+                    useCid: false,
+                  }),
+            },
+          },
+        }));
       } else {
         setEmailData(prev => ({
           ...prev,
@@ -717,6 +959,25 @@ export function EmailCustomizationDialog({
         textContent: section.textContent,
         useCid: forSending, // Use CID when sending, base64 for preview
       });
+      return {
+        textContent: section.textContent,
+        htmlContent: regeneratedHtml,
+      };
+    } else if (activeTab === 'activity') {
+      // For activity section, regenerate HTML with appropriate image mode based on sub-tab
+      const regeneratedHtml = activitySubTab === 'partial'
+        ? createPartialHtmlTemplate({
+            logoBase64: emailImages.logo,
+            partialBodyBase64: emailImages.partialBody,
+            textContent: section.textContent,
+            useCid: forSending,
+          })
+        : createInactiveHtmlTemplate({
+            logoBase64: emailImages.logo,
+            inactiveBodyBase64: emailImages.inactiveBody,
+            textContent: section.textContent,
+            useCid: forSending,
+          });
       return {
         textContent: section.textContent,
         htmlContent: regeneratedHtml,
@@ -894,6 +1155,22 @@ export function EmailCustomizationDialog({
             </TabsContent>
 
             <TabsContent value="activity" className="mt-4">
+              <div className="flex space-x-4 mb-4">
+                <Button 
+                  variant={activitySubTab === 'partial' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleActivitySubTabChange('partial')}
+                >
+                  Partial Users
+                </Button>
+                <Button 
+                  variant={activitySubTab === 'inactive' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleActivitySubTabChange('inactive')}
+                >
+                  Inactive Users
+                </Button>
+              </div>
               <EmailSection
                 sectionKey="activity"
                 sectionData={emailData.sections.activity}

@@ -57,6 +57,18 @@ export const EMAIL_IMAGES: Record<string, ImageAttachment> = {
     cid: 'reminder',
     contentType: 'image/png',
   },
+  inactiveBody: {
+    filename: 'inactive.png',
+    path: 'inactive.png',
+    cid: 'inactive-body',
+    contentType: 'image/png',
+  },
+  partialBody: {
+    filename: 'partial.png',
+    path: 'partial.png',
+    cid: 'partial-body',
+    contentType: 'image/png',
+  },
 };
 
 /**
@@ -70,6 +82,9 @@ export function getImageBuffer(imageName: string): Buffer | null {
     path.join(process.cwd(), 'src', 'public', 'images', imageName),
     path.join(__dirname, '..', '..', 'public', 'images', imageName),
     path.join(__dirname, '..', '..', 'src', 'public', 'images', imageName),
+    // Fallback for case-insensitivity or slightly different paths
+    path.join(process.cwd(), 'public', 'images', imageName.toLowerCase()),
+    path.join(process.cwd(), 'public', 'images', imageName.charAt(0).toUpperCase() + imageName.slice(1)),
   ];
 
   // Special handling for logo: check both email-logo.png and Email.png

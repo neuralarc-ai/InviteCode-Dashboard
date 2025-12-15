@@ -152,6 +152,12 @@ export async function POST(request: NextRequest) {
     if (emailContent.includes('cid:updates-body')) {
       attachments.push(...createEmailAttachments([EMAIL_IMAGES.updatesBody]));
     }
+    if (emailContent.includes('cid:inactive-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.inactiveBody]));
+    }
+    if (emailContent.includes('cid:partial-body')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.partialBody]));
+    }
 
     // Send email to individual user
     try {

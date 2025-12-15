@@ -10,6 +10,7 @@ import {
   CreditCard,
   ShoppingCart,
   FileText,
+  Activity,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -72,7 +73,7 @@ export function SharedSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
+          {/* <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/purchased-credits">
                 <ShoppingCart />
@@ -87,15 +88,23 @@ export function SharedSidebar() {
                 Usage Logs
               </Link>
             </SidebarMenuButton>
-          </SidebarMenuItem>
+          </SidebarMenuItem> */}
           <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link href="/recent-activities">
+                <Activity />
+                Recent Activities
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          {/* <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/settings">
                 <Settings />
                 Settings
               </Link>
             </SidebarMenuButton>
-          </SidebarMenuItem>
+          </SidebarMenuItem> */}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
