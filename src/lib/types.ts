@@ -15,6 +15,22 @@ export type CreditUsageGrouped = {
   userName?: string;
 };
 
+export type CreditUsage = {
+  id: string;
+  userId: string;
+  amountDollars: number;
+  threadId: string | null;
+  messageId: string | null;
+  description: string | null;
+  usageType: 'token_overage' | 'manual_deduction' | 'adjustment';
+  createdAt: Date;
+  subscriptionTier: string | null;
+  metadata: Record<string, any>;
+  // Additional fields
+  userEmail?: string;
+  userName?: string;
+};
+
 export type CreditPurchase = {
   id: string;
   userId: string;

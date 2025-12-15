@@ -16,7 +16,7 @@ interface Transaction {
 }
 
 export function RecentCreditTransactions() {
-  const { creditUsage, loading: usageLoading, error: usageError } = useCreditUsage();
+  const { rawUsage, loading: usageLoading, error: usageError } = useCreditUsage();
   const { creditPurchases, loading: purchasesLoading, error: purchasesError } = useCreditPurchases();
 
   const loading = usageLoading || purchasesLoading;
@@ -27,13 +27,13 @@ export function RecentCreditTransactions() {
     const transactions: Transaction[] = [];
 
     // Add credit usage transactions (these are deductions/used)
-    creditUsage.forEach(usage => {
+    rawUsage.forEach(usage => {
       transactions.push({
         userId: usage.userId,
         userName: usage.userName || `User ${usage.userId.slice(0, 8)}`,
         userEmail: usage.userEmail || 'Email not available',
-        amountDollars: usage.totalAmountDollars,
-        date: usage.latestCreatedAt,
+        amountDollars: usage.amountDollars,
+        date: usage.createdAt,
         type: 'used',
       });
     });
@@ -54,7 +54,7 @@ export function RecentCreditTransactions() {
     return transactions
       .sort((a, b) => b.date.getTime() - a.date.getTime())
       .slice(0, 5);
-  }, [creditUsage, creditPurchases]);
+  }, [rawUsage, creditPurchases]);
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-US', {
@@ -87,9 +87,9 @@ export function RecentCreditTransactions() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
-            Recent Credit Transactions
+            Recent Credit Consumption
           </CardTitle>
-          <CardDescription>Latest 5 credit transactions</CardDescription>
+          <CardDescription>Latest 5 credit consumption</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -115,9 +115,9 @@ export function RecentCreditTransactions() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
-            Recent Credit Transactions
+            Recent Credit Consumption
           </CardTitle>
-          <CardDescription>Latest 5 credit transactions</CardDescription>
+          <CardDescription>Latest 5 credit consumption</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-destructive">
@@ -133,9 +133,9 @@ export function RecentCreditTransactions() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="h-5 w-5" />
-          Recent Credit Transactions
+          Recent Credit Consumption
         </CardTitle>
-        <CardDescription>Latest 5 credit transactions</CardDescription>
+        <CardDescription>Latest 5 credit consumption</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">

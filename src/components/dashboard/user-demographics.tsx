@@ -327,32 +327,28 @@ export function UserDemographics() {
         </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
+          <Card className="col-span-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <Globe2 className="h-4 w-4" />
                 Countries
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[600px]">
+            <CardContent className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
                   data={countryData} 
-                  layout="vertical"
-                  margin={{ left: 100, right: 20, top: 20, bottom: 20 }}
+                  margin={{ left: 20, right: 20, top: 20, bottom: 60 }}
                 >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" allowDecimals={false} />
-                <YAxis
-                  type="category"
+                <XAxis 
+                  type="category" 
                   dataKey="displayKey"
-                  width={90}
+                  interval={0}
                   tick={({ x, y, payload }) => {
-                    // Get code from payload data, or use displayKey (payload.value) which is set to code when available
                     const codeFromPayload = payload?.payload?.code;
                     const displayKeyValue = payload.value;
                     
-                    // Try payload code first, then displayKey (which should be the code if available)
                     let countryCode: string | null = null;
                     if (codeFromPayload && typeof codeFromPayload === 'string') {
                       const normalized = codeFromPayload.toUpperCase().trim();
@@ -361,7 +357,6 @@ export function UserDemographics() {
                       }
                     }
                     
-                    // If no code from payload, try displayKey (it's set to code when available)
                     if (!countryCode && displayKeyValue && typeof displayKeyValue === 'string') {
                       const normalized = displayKeyValue.toUpperCase().trim();
                       if (normalized.length <= 3 && hasFlag(normalized)) {
@@ -371,7 +366,6 @@ export function UserDemographics() {
                     
                     const countryName = payload?.payload?.name || displayKeyValue || 'Unknown';
                     
-                    // Get the Flag component if we have a valid code
                     const Flag = countryCode
                       ? (FlagIcons as Record<string, React.ComponentType<{ title?: string; className?: string }>>)[
                           countryCode
@@ -381,7 +375,7 @@ export function UserDemographics() {
                     return (
                       <g transform={`translate(${x},${y})`}>
                         {Flag ? (
-                          <foreignObject x={-85} y={-9} width={20} height={14}>
+                          <foreignObject x={-10} y={10} width={20} height={14}>
                             <Flag
                               title={countryName}
                               className="h-3.5 w-5 rounded-sm shadow-sm"
@@ -389,18 +383,19 @@ export function UserDemographics() {
                           </foreignObject>
                         ) : null}
                         <text 
-                          x={Flag ? -60 : -85} 
-                          y={4} 
-                          textAnchor="start" 
+                          x={0} 
+                          y={Flag ? 35 : 20} 
+                          textAnchor="middle" 
                           className="text-xs fill-current"
                           style={{ fontSize: '12px' }}
                         >
-                          {countryName.length > 15 ? countryName.substring(0, 15) + '...' : countryName}
+                          {countryCode || (countryName.length > 3 ? countryName.substring(0, 3) : countryName)}
                         </text>
                       </g>
                     );
                   }}
                 />
+                <YAxis type="number" allowDecimals={false} />
                 <Tooltip
                   formatter={(value: number, _name, props) => [value, props?.payload?.name || props?.payload?.displayKey]}
                   labelFormatter={(label, payload) => payload?.[0]?.payload?.name || label}
@@ -420,18 +415,6 @@ export function UserDemographics() {
             </CardContent>
           </Card>
 
-          <ChartCard title="Signups over time" icon={<Clock3 className="h-4 w-4" />}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={signupSeries}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey="value" stroke={COLORS[1]} strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
           <Card className="flex flex-col">
             <CardHeader className="items-center pb-0">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -450,49 +433,35 @@ export function UserDemographics() {
                 </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 pb-0">
-              <ChartContainer
-                config={chartConfig}
-                className="[&_.recharts-text]:fill-background mx-auto aspect-square max-h-[250px]"
-              >
-                <PieChart>
-                  <ChartTooltip
-                    content={<ChartTooltipContent nameKey="value" hideLabel />}
+            <CardContent className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={planData}
+                  layout="vertical"
+                  margin={{ top: 0, right: 30, left: 10, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} vertical={false} />
+                  <XAxis type="number" hide />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    tickLine={false}
+                    axisLine={false}
+                    width={80}
+                    tick={{ fontSize: 12 }}
                   />
-                  <Pie
-                    data={planData}
-                    innerRadius={50}
-                    outerRadius={80}
-                    dataKey="value"
-                    cornerRadius={5}
-                    paddingAngle={2}
-                  >
-                    <LabelList
-                      dataKey="value"
-                      position="inside"
-                      stroke="none"
-                      fontSize={12}
-                      fontWeight={500}
-                      fill="white"
-                      formatter={(value: number) => {
-                        // Hide label if the value is very small relative to total
-                        const total = planData.reduce((acc, cur) => acc + cur.value, 0);
-                        if (total === 0) return '';
-                        const percent = value / total;
-                        return percent > 0.05 ? value.toString() : '';
-                      }}
-                    />
-                  </Pie>
-                  <Legend 
-                    layout="horizontal" 
-                    verticalAlign="bottom" 
-                    align="center"
-                    formatter={(value, entry: any) => {
-                        return <span className="text-xs text-muted-foreground mr-2">{value} <span className="font-semibold text-foreground">({entry.payload.value})</span></span>;
-                    }}
+                  <Tooltip
+                    cursor={{ fill: 'transparent' }}
+                    contentStyle={{ background: 'rgba(255,255,255,0.9)', border: 'none', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', borderRadius: '8px' }}
                   />
-                </PieChart>
-              </ChartContainer>
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={30}>
+                    <LabelList dataKey="value" position="right" fontSize={12} fill="#666" formatter={(val: number) => val > 0 ? val : ''} />
+                    {planData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
 

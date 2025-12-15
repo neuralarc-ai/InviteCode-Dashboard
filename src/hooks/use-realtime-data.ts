@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
-import type { WaitlistUser, DashboardStats, InviteCode, UserProfile, CreditUsageGrouped, CreditPurchase, UsageLog, CreditBalance } from '@/lib/types';
+import type { WaitlistUser, DashboardStats, InviteCode, UserProfile, CreditUsageGrouped, CreditUsage, CreditPurchase, UsageLog, CreditBalance } from '@/lib/types';
 
 export function useWaitlistUsers() {
   const [users, setUsers] = useState<WaitlistUser[]>([]);
@@ -664,6 +664,7 @@ export function useUserProfiles() {
 
 export function useCreditUsage() {
   const [creditUsage, setCreditUsage] = useState<CreditUsageGrouped[]>([]);
+  const [rawUsage, setRawUsage] = useState<CreditUsage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -671,35 +672,53 @@ export function useCreditUsage() {
   const fetchCreditUsage = async () => {
     try {
       console.log('Fetching credit usage...');
-      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-      console.log('Supabase Key (first 10 chars):', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 10));
       
-      const { data, error, count } = await supabase
-        .from('credit_usage')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
+      // Pagination logic to fetch all records
+      let allData: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      console.log('Raw query result:', { data, error, count });
-      console.log('Data length:', data?.length);
-      console.log('Error details:', error);
+      while (hasMore) {
+        console.log(`Fetching credit usage page ${page + 1}...`);
+        const { data, error } = await supabase
+          .from('credit_usage')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (error) {
-        console.error('Error fetching credit usage:', error);
-        throw error;
+        if (error) {
+          console.error('Error fetching credit usage:', error);
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
       }
+
+      const data = allData;
 
       if (!data || data.length === 0) {
         console.log('No credit usage found in database');
         setCreditUsage([]);
+        setRawUsage([]);
         setError(null);
         setLoading(false);
         return;
       }
 
-      console.log(`Found ${data.length} credit usage records`);
+      console.log(`Found ${data.length} total credit usage records`);
 
-      // Get user IDs to fetch emails and names
-      const userIds = data.map(usage => usage.user_id);
+      // Get unique user IDs to fetch emails and names
+      const userIds = [...new Set(data.map(usage => usage.user_id))];
       
       // Create maps for user data
       const userIdToEmail = new Map<string, string>();
@@ -820,6 +839,9 @@ export function useCreditUsage() {
         userName: userIdToName.get(row.user_id) || `User ${row.user_id.slice(0, 8)}`,
       }));
 
+      // Store raw usage before grouping
+      setRawUsage(transformedUsage);
+
       // Group by user ID and combine totals
       const groupedUsage = transformedUsage.reduce((acc: Record<string, CreditUsageGrouped>, usage) => {
         const userId = usage.userId;
@@ -915,7 +937,7 @@ export function useCreditUsage() {
     };
   }, []);
 
-  return { creditUsage, loading, error, refreshCreditUsage };
+  return { creditUsage, rawUsage, loading, error, refreshCreditUsage };
 }
 
 export function useCreditPurchases() {

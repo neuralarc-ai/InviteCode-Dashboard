@@ -31,7 +31,7 @@ const generateUserRegistrationData = (users: any[]) => {
 };
 
 // Generate credit usage data for the last 7 days
-const generateCreditUsageData = (creditUsage: any[], creditPurchases: any[]) => {
+const generateCreditUsageData = (rawUsage: any[], creditPurchases: any[]) => {
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
@@ -41,12 +41,12 @@ const generateCreditUsageData = (creditUsage: any[], creditPurchases: any[]) => 
     dayEnd.setHours(23, 59, 59, 999);
     
     // Get usage transactions for this day
-    const dayUsage = creditUsage.filter(transaction => {
-      const transactionDate = new Date(transaction.latestCreatedAt);
+    const dayUsage = rawUsage.filter(transaction => {
+      const transactionDate = new Date(transaction.createdAt);
       return transactionDate >= date && transactionDate <= dayEnd;
     });
     
-    const used = dayUsage.reduce((sum, t) => sum + Math.round(t.totalAmountDollars * 100), 0);
+    const used = dayUsage.reduce((sum, t) => sum + Math.round(t.amountDollars * 100), 0);
     
     // Get purchase transactions for this day
     const dayPurchases = creditPurchases.filter(purchase => {
@@ -68,11 +68,11 @@ const generateCreditUsageData = (creditUsage: any[], creditPurchases: any[]) => 
 
 export function AnalyticsCharts() {
   const { userProfiles, loading: usersLoading, error: usersError } = useUserProfiles();
-  const { creditUsage, loading: creditLoading, error: creditError } = useCreditUsage();
+  const { rawUsage, loading: creditLoading, error: creditError } = useCreditUsage();
   const { creditPurchases, loading: purchasesLoading, error: purchasesError } = useCreditPurchases();
 
   const userData = React.useMemo(() => generateUserRegistrationData(userProfiles), [userProfiles]);
-  const creditData = React.useMemo(() => generateCreditUsageData(creditUsage, creditPurchases), [creditUsage, creditPurchases]);
+  const creditData = React.useMemo(() => generateCreditUsageData(rawUsage, creditPurchases), [rawUsage, creditPurchases]);
 
   if (usersLoading || creditLoading || purchasesLoading) {
     return (
