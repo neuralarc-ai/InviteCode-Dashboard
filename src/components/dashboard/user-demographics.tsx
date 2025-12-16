@@ -365,7 +365,7 @@ export function UserDemographics() {
 
   return (
     <div className="space-y-4">
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>User Demographics</CardTitle>
         </CardHeader>
@@ -421,7 +421,7 @@ export function UserDemographics() {
             </Select>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {noData ? (
         <Card>
