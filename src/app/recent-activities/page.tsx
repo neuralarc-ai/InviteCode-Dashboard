@@ -4,8 +4,9 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { PageHeader } from '@/components/page-header';
-import { RecentUsers } from '@/components/dashboard/recent-users';
-import { RecentCreditTransactions } from '@/components/dashboard/recent-credit-transactions';
+import { RecentTransactions } from '@/components/dashboard/recent-transactions';
+import { RecentlyOnboardedUsers } from '@/components/dashboard/recently-onboarded-users';
+import { RecentlyUsedCredits } from '@/components/dashboard/recently-used-credits';
 import { SharedSidebar } from '@/components/shared-sidebar';
 
 export default function RecentActivitiesPage() {
@@ -18,13 +19,13 @@ export default function RecentActivitiesPage() {
           <h1 className="text-2xl font-bold">Recent Activities</h1>
         </PageHeader>
         <main className="flex-1 space-y-6 p-4 md:p-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <RecentUsers />
-            <RecentCreditTransactions />
-          </div>
+          <RecentTransactions />
+          <RecentlyOnboardedUsers />
+          <RecentlyUsedCredits />
         </main>
       </SidebarInset>
     </SidebarProvider>
   );
 }
+
 

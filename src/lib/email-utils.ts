@@ -69,6 +69,30 @@ export const EMAIL_IMAGES: Record<string, ImageAttachment> = {
     cid: 'partial-body',
     contentType: 'image/png',
   },
+  patternBg: {
+    filename: 'pattern1.png',
+    path: 'pattern1.png',
+    cid: 'pattern-bg',
+    contentType: 'image/png',
+  },
+  pattern2Bg: {
+    filename: 'pattern2.png',
+    path: 'pattern2.png',
+    cid: 'pattern2-bg',
+    contentType: 'image/png',
+  },
+  pattern3Bg: {
+    filename: 'pattern3.png',
+    path: 'pattern3.png',
+    cid: 'pattern3-bg',
+    contentType: 'image/png',
+  },
+  pattern4Bg: {
+    filename: 'pattern4.png',
+    path: 'pattern4.png',
+    cid: 'pattern4-bg',
+    contentType: 'image/png',
+  },
 };
 
 /**

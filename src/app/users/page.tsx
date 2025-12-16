@@ -9,6 +9,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SharedSidebar } from '@/components/shared-sidebar';
 import { UsersTableRealtime } from '@/components/dashboard/users-table-realtime';
 import { EmailCustomizationDialog, type EmailData } from '@/components/dashboard/email-customization-dialog';
+import { WelcomeEmailDialog } from '@/components/dashboard/welcome-email-dialog';
 import { CreditAssignmentDialog } from '@/components/dashboard/credit-assignment-dialog';
 import { CreateUserDialog } from '@/components/dashboard/create-user-dialog';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import { supabase } from '@/lib/supabase';
 export default function UsersPage() {
   const { userProfiles, loading, error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles } = useUserProfiles();
   const [showCustomizationDialog, setShowCustomizationDialog] = useState(false);
+  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [userTypeFilter, setUserTypeFilter] = useState<'internal' | 'external'>('external'); // Default to external users
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
@@ -54,7 +56,7 @@ export default function UsersPage() {
     }
   }, [selectedUserIds.size, userTypeFilter]);
 
-  const handleOpenEmailForGroup = (group: 'partial' | 'inactive') => {
+  const handleOpenEmailForGroup = (group: 'active' | 'partial' | 'inactive') => {
     // 1. Identify users
     const filteredProfiles = userProfiles.filter((profile) => {
       const profileUserType = getUserType(profile.email);
@@ -62,21 +64,24 @@ export default function UsersPage() {
     });
 
     const now = new Date();
-    const activeThreshold = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days
+    const activeThreshold = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days
+    const partialThreshold = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000); // 60 days
 
     const targetUserIds = new Set<string>();
 
     filteredProfiles.forEach(user => {
       const activity = usageActivityMap[user.userId];
-      const isInactive = !activity || activity.usageCount === 0;
-      const isPartial = !isInactive && activity.latestActivity && new Date(activity.latestActivity) <= activeThreshold;
+      const lastActive = activity?.latestActivity ? new Date(activity.latestActivity) : null;
       
-      // Note: 'active' logic in original code was: > activeThreshold. 
-      // So partial is <= activeThreshold but NOT inactive.
+      const isInactive = !activity || activity.usageCount === 0 || (lastActive && lastActive <= partialThreshold);
+      const isPartial = !isInactive && lastActive && lastActive <= activeThreshold && lastActive > partialThreshold;
+      const isActive = !isInactive && !isPartial && lastActive && lastActive > activeThreshold;
       
       if (group === 'inactive' && isInactive) {
         targetUserIds.add(user.userId);
       } else if (group === 'partial' && isPartial) {
+        targetUserIds.add(user.userId);
+      } else if (group === 'active' && isActive) {
         targetUserIds.add(user.userId);
       }
     });
@@ -94,7 +99,10 @@ export default function UsersPage() {
     setSelectedUserIds(targetUserIds);
 
     // 3. Prepare content
-    if (group === 'partial') {
+    if (group === 'active') {
+      setShowWelcomeDialog(true);
+      return;
+    } else if (group === 'partial') {
       setEmailDialogOverride({
         section: 'activity',
         subject: "We miss you! Come back to Helium",
@@ -640,13 +648,16 @@ The Helium Team 🌟`
   });
 
   const now = new Date();
-  const activeThreshold = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // 7 days
+  const activeThreshold = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days
+  const partialThreshold = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000); // 60 days
 
   filteredProfilesForStats.forEach(user => {
     const activity = usageActivityMap[user.userId];
-    if (!activity || activity.usageCount === 0) {
+    const lastActive = activity?.latestActivity ? new Date(activity.latestActivity) : null;
+
+    if (!activity || activity.usageCount === 0 || (lastActive && lastActive <= partialThreshold)) {
       userStats.inactive++;
-    } else if (activity.latestActivity && new Date(activity.latestActivity) > activeThreshold) {
+    } else if (lastActive && lastActive > activeThreshold) {
       userStats.active++;
     } else {
       userStats.partial++;
@@ -675,9 +686,19 @@ The Helium Team 🌟`
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{userStats.active}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Active in last 7 days
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Active in last 30 days
                   </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full h-8 text-xs"
+                    onClick={() => handleOpenEmailForGroup('active')}
+                    disabled={userStats.active === 0}
+                  >
+                    <Mail className="h-3 w-3 mr-2" />
+                    Send Email
+                  </Button>
                 </CardContent>
               </Card>
               <Card>
@@ -690,7 +711,7 @@ The Helium Team 🌟`
                 <CardContent>
                   <div className="text-2xl font-bold">{userStats.partial}</div>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Inactive for &gt; 7 days
+                    Inactive for 30-60 days
                   </p>
                   <Button 
                     variant="outline" 
@@ -714,7 +735,7 @@ The Helium Team 🌟`
                 <CardContent>
                   <div className="text-2xl font-bold">{userStats.inactive}</div>
                   <p className="text-xs text-muted-foreground mb-4">
-                    No activity recorded
+                    No recent activity (&gt; 60 days)
                   </p>
                   <Button 
                     variant="outline" 
@@ -866,6 +887,14 @@ The Helium Team 🌟`
         selectedCount={selectedUserIds.size}
         initialTab={emailDialogOverride ? 'activity' : 'uptime'}
         overrideContent={emailDialogOverride}
+      />
+
+      <WelcomeEmailDialog
+        open={showWelcomeDialog}
+        onOpenChange={setShowWelcomeDialog}
+        onSendEmail={handleSendEmail}
+        isSending={isSending}
+        selectedCount={selectedUserIds.size}
       />
 
       {/* Credit Assignment Dialog */}

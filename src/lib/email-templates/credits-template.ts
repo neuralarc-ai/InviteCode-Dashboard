@@ -2,13 +2,14 @@ import { parseEmailText } from "./text-parser";
 
 interface CreditsTemplateOptions {
   logoBase64?: string | null; // Optional: for base64 data URIs (Resend API)
-  creditsBodyBase64?: string | null; // Optional: for base64 data URIs (Resend API)
+  creditsBodyBase64?: string | null; // Optional: for base64 data URIs (Resend API) - Deprecated/Unused in new layout
+  pattern3Base64?: string | null; // Optional: for background pattern
   useCid?: boolean; // If true, use CID references (for SMTP). Default: true
   textContent?: string;
   defaultGreeting?: string;
   defaultParagraphs?: string[];
   defaultSignoff?: string;
-  useCustomImage?: boolean; // If true, use credits-custom CID instead of credits-body
+  useCustomImage?: boolean; // If true, use credits-custom CID instead of credits-body - Deprecated/Unused in new layout
 }
 
 export function createCreditsHtmlTemplate(
@@ -16,9 +17,8 @@ export function createCreditsHtmlTemplate(
 ): string {
   const {
     logoBase64,
-    creditsBodyBase64,
+    pattern3Base64,
     useCid = true, // Default to CID for SMTP compatibility
-    useCustomImage = false,
     textContent,
     defaultGreeting = "Greetings from Helium,",
     defaultParagraphs = [
@@ -29,6 +29,20 @@ export function createCreditsHtmlTemplate(
     defaultSignoff = "Thanks,<br>The Helium Team",
   } = options;
 
+  // Use CID references for SMTP (default), or base64 data URIs for Resend API
+  const logoImg = useCid
+    ? `<img src="cid:email-logo" width="56" height="57" style="display:block;width:56px;height:auto;max-width:56px;margin:0 auto;" alt="Helium Logo">`
+    : logoBase64
+    ? `<img src="${logoBase64}" width="56" height="57" style="display:block;width:56px;height:auto;max-width:56px;margin:0 auto;" alt="Helium Logo">`
+    : "";
+
+  // Background Image Logic for pattern3
+  const bgImageStyle = useCid
+    ? "background-image:url(cid:pattern3-bg);background-repeat:repeat;background-position:top center;"
+    : pattern3Base64
+    ? `background-image:url('${pattern3Base64}');background-repeat:repeat;background-position:top center;`
+    : "";
+
   // Parse text content
   const parsed = parseEmailText(textContent || "");
   const greetingText = parsed.greeting || defaultGreeting;
@@ -36,21 +50,20 @@ export function createCreditsHtmlTemplate(
     parsed.paragraphs.length > 0 ? parsed.paragraphs : defaultParagraphs;
   const signoffText = parsed.signoff || defaultSignoff;
 
-  // Distribute paragraphs - use first paragraph as main text, second as secondary, rest as closing
   const mainText = paragraphs[0] || "";
   const secondaryText = paragraphs[1] || "";
-  const closingText = paragraphs.slice(2).join(" ") || "";
+  const closingText = paragraphs[2] || "";
+  // New: Post-card content (any paragraphs after the 3rd one)
+  const postCardText = paragraphs.slice(3).join('<br><br>') || "";
 
   // Function to add bold formatting to specific terms
   const addBoldFormatting = (text: string): string => {
     if (!text) return text;
     let formatted = text;
-    // Make "Added" bold (case-insensitive)
-    formatted = formatted.replace(/\bAdded\b/gi, '<span style="font-weight:700">Added</span>');
-    // Make "credit balance" bold
-    formatted = formatted.replace(/\bcredit balance\b/gi, '<span style="font-weight:700">credit balance</span>');
-    // Make "valued" bold
-    formatted = formatted.replace(/\bvalued\b/gi, '<span style="font-weight:700">valued</span>');
+    // Make "credits" bold
+    formatted = formatted.replace(/\bcredits\b/gi, '<span style="font-weight:700">credits</span>');
+    // Make "account dashboard" bold
+    formatted = formatted.replace(/\baccount dashboard\b/gi, '<span style="font-weight:700">account dashboard</span>');
     // Make "The Helium Team" bold
     formatted = formatted.replace(/\bThe Helium Team\b/gi, '<span style="font-weight:700">The Helium Team</span>');
     return formatted;
@@ -60,22 +73,13 @@ export function createCreditsHtmlTemplate(
   const formattedMainText = addBoldFormatting(mainText);
   const formattedSecondaryText = addBoldFormatting(secondaryText);
   const formattedClosingText = addBoldFormatting(closingText);
+  const formattedPostCardText = addBoldFormatting(postCardText);
   const formattedSignoffText = addBoldFormatting(signoffText);
 
-  // Use CID references for SMTP (default), or base64 data URIs for Resend API
-  const logoImg = useCid
-    ? `<img src="cid:email-logo" width="56" height="57" style="display:block;width:56px;height:auto;max-width:56px;margin:0 auto;" alt="Helium Logo">`
-    : logoBase64
-    ? `<img src="${logoBase64}" width="56" height="57" style="display:block;width:56px;height:auto;max-width:56px;margin:0 auto;" alt="Helium Logo">`
-    : "";
-
-  // Use custom image CID if useCustomImage is true, otherwise use default credits-body CID
-  const creditsCid = useCustomImage ? 'credits-custom' : 'credits-body';
-  const creditsBodyImg = useCid
-    ? `<img src="cid:${creditsCid}" width="560" height="220" style="display:block;width:100%;height:auto;max-width:100%" alt="Credits Added">`
-    : creditsBodyBase64
-    ? `<img src="${creditsBodyBase64}" width="560" height="220" style="display:block;width:100%;height:auto;max-width:100%" alt="Credits Added">`
-    : "";
+  // Combine main and secondary text for the Dark Card (#262626)
+  const darkCardContent = [formattedMainText, formattedSecondaryText]
+    .filter(Boolean)
+    .join('<br><br>');
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
@@ -92,174 +96,99 @@ export function createCreditsHtmlTemplate(
 }
 </style>
 </head>
-<body style="width:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;background-color:#f0f1f5;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif">
-<table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f0f1f5" style="background-color:#f0f1f5">
+<body style="width:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%;background-color:#f5f5f5;margin:0;padding:0;font-family:Arial, Helvetica, sans-serif">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f5f5f5" style="background-color:#f5f5f5;">
 <tbody>
 <tr>
-<td style="background-color:#f0f1f5">
-<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;background-color:#ffffff">
+<td style="padding:40px 20px">
+<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;background-color:#E0693D;${bgImageStyle}border-radius:20px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
 <tbody>
 <tr>
-<td style="padding:10px 0px 0px 0px">
+<td>
+<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background-color:#ffffff;border-radius:12px;overflow:hidden">
+<tbody>
+<tr>
+<td style="padding:40px 30px">
 <table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
 <tbody>
+<!-- Logo -->
 <tr>
-<td style="padding:12px 0">
-<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="color:#000;font-style:normal;font-weight:normal;font-size:16px;line-height:1.4;letter-spacing:0;text-align:left;direction:ltr;border-collapse:collapse;font-family:Arial, Helvetica, sans-serif;white-space:normal;word-wrap:break-word;word-break:break-word">
-<tbody>
-<tr>
-<td style="padding:0px 20px">
-<table cellpadding="0" cellspacing="0" border="0" style="width:100%">
-<tbody>
-<tr>
-<td align="center">
-<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:56px">
-<tbody>
-<tr>
-<td style="width:100%;padding:0">
-        ${logoImg}
+<td style="padding-bottom:30px;text-align:center">
+  ${logoImg}
 </td>
 </tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
+
+<!-- Greeting -->
 <tr>
-<td style="font-size:0;height:16px" height="16">&nbsp;</td>
-</tr>
-<tr>
-<td style="padding:0px 20px">
-<table cellpadding="0" cellspacing="0" border="0" style="width:100%">
-<tbody>
-<tr>
-<td align="center">
-<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px">
-<tbody>
-<tr>
-<td style="width:100%;padding:0">
-          ${creditsBodyImg}
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-<tr>
-<td style="font-size:0;height:12px" height="12">&nbsp;</td>
-</tr>
-<tr>
-<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
+<td dir="ltr" style="color:#333333;font-size:18px;line-height:1.6;text-align:left;padding-bottom:20px;font-weight:600">
 <span style="white-space:pre-wrap">${greetingText.replace(
     "Greetings from Helium,",
     'Greetings from <span style="font-weight:700">Helium</span>,'
-  )}<br></span>
+  )}</span>
 </td>
 </tr>
-${mainText ? `<tr>
-<td style="font-size:0;height:12px" height="12">&nbsp;</td>
-</tr>
+
+<!-- Dark Card (#262626) -->
+${darkCardContent ? `
 <tr>
-<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
-<span style="white-space:pre-wrap">${formattedMainText}<br></span>
-</td>
-</tr>` : ''}
-${secondaryText ? `<tr>
-<td style="font-size:0;height:12px" height="12">&nbsp;</td>
-</tr>
+<td style="padding-bottom:20px">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#262626;border-radius:12px">
 <tr>
-<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
-<span style="white-space:pre-wrap">${formattedSecondaryText}<br></span>
-</td>
-</tr>` : ''}
-${closingText ? `<tr>
-<td style="font-size:0;height:12px" height="12">&nbsp;</td>
-</tr>
-<tr>
-<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
-<span style="white-space:pre-wrap">${formattedClosingText}<br></span>
-</td>
-</tr>` : ''}
-<tr>
-<td style="font-size:0;height:12px" height="12">&nbsp;</td>
-</tr>
-<tr>
-<td dir="ltr" style="color:#333333;font-size:18.6667px;line-height:1.84;text-align:left;padding:0px 20px">
-<span style="white-space:pre-wrap">${formattedSignoffText}<br></span>
+<td style="padding:24px;color:#ffffff;font-size:16px;line-height:1.6">
+${darkCardContent}
 </td>
 </tr>
-<tr>
-<td style="font-size:0;height:12px" height="12">&nbsp;</td>
-</tr>
-<tr>
-<td style="padding:0px 20px">
-<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
-<tbody>
-<tr>
-<td align="center" style="padding:0">
-<a href="http://he2.ai" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#4ade80;color:#ffffff;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:600;text-decoration:none;text-align:center;padding:14px 32px;border-radius:8px;line-height:1.2;letter-spacing:0.01em">Get Started</a>
+</table>
 </td>
 </tr>
+` : ''}
+
+<!-- Red Card (#C63E3E) -->
+${formattedClosingText ? `
+<tr>
+<td style="padding-bottom:30px">
+<table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color:#C63E3E;border-radius:12px">
+<tr>
+<td style="padding:24px;color:#ffffff;font-size:16px;line-height:1.6">
+${formattedClosingText}
+</td>
+</tr>
+</table>
+</td>
+</tr>
+` : ''}
+
+<!-- Post-Card Text -->
+${formattedPostCardText ? `
+<tr>
+<td dir="ltr" style="color:#333333;font-size:16px;line-height:1.6;text-align:left;padding-bottom:30px">
+<span style="white-space:pre-wrap">${formattedPostCardText}</span>
+</td>
+</tr>
+` : ''}
+
+<!-- Signoff -->
+<tr>
+<td dir="ltr" style="color:#333333;font-size:16px;line-height:1.6;text-align:left">
+<span style="white-space:pre-wrap">${formattedSignoffText}</span>
+</td>
+</tr>
+
 </tbody>
 </table>
 </td>
 </tr>
 </tbody>
 </table>
-</td>
-</tr>
+
+
 </tbody>
 </table>
 </td>
 </tr>
 </tbody>
 </table>
-<table border="0" cellpadding="0" cellspacing="0" class="layout-0" align="center" style="display:table;border-spacing:0px;border-collapse:separate;width:100%;max-width:100%;table-layout:fixed;margin:0 auto;background-color:#f0f1f5">
-<tbody>
-<tr>
-<td style="text-align:center;padding:13px 20px">
-<table border="0" cellpadding="0" cellspacing="0" style="border-spacing:0px;border-collapse:separate;width:100%;max-width:522px;table-layout:fixed;margin:0 auto">
-<tbody>
-<tr>
-<td width="100.00%" style="width:100.00%;box-sizing:border-box;vertical-align:top">
-<table border="0" cellpadding="0" cellspacing="0" style="border-spacing:0px;border-collapse:separate;width:100%;table-layout:fixed">
-<tbody>
-<tr>
-<td style="padding:7px">
-<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="color:#000;font-style:normal;font-weight:normal;font-size:16px;line-height:1.4;letter-spacing:0;text-align:left;direction:ltr;border-collapse:collapse;font-family:Arial, Helvetica, sans-serif;white-space:normal;word-wrap:break-word;word-break:break-word">
-<tbody>
-<tr>
-<td dir="ltr" style="color:#0e1b10;font-size:16px;font-weight:700;letter-spacing:-0.01em;white-space:pre-wrap;line-height:1.2;text-align:left">Need help?<br></td>
-</tr>
-<tr>
-<td style="font-size:0;height:16px" height="16">&nbsp;</td>
-</tr>
-<tr>
-<td dir="ltr" style="color:#0e1b10;font-size:13.3333px;letter-spacing:-0.01em;line-height:1.2;text-align:left">
-<span style="white-space:pre-wrap">Our support team is here to assist you with onboarding, integrations, or deployment. You can reach us directly at </span><a href="mailto:support@he2.ai" style="color:#2563eb;font-weight:700;text-decoration:none;white-space:pre-wrap">support@he2.ai</a><span style="white-space:pre-wrap"> or through the in-app assistant.</span><span style="white-space:pre-wrap"><br></span>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
-</td>
-</tr>
-</tbody>
-</table>
+
 </td>
 </tr>
 </tbody>

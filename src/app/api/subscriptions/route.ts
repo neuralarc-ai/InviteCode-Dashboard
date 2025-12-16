@@ -7,11 +7,10 @@ export async function GET() {
       throw new Error('Supabase admin client not configured');
     }
 
-    // Fetch completed purchases with admin client to bypass RLS
+    // Fetch all subscriptions with admin client to bypass RLS
     const { data, error } = await supabaseAdmin
-      .from('credit_purchases')
+      .from('subscriptions')
       .select('*')
-      .eq('status', 'completed')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -23,21 +22,15 @@ export async function GET() {
       data: data ?? [],
     });
   } catch (err) {
-    console.error('Error fetching credit purchases (admin):', err);
+    console.error('Error fetching subscriptions (admin):', err);
     return NextResponse.json(
       {
         success: false,
-        error: err instanceof Error ? err.message : 'Failed to fetch credit purchases',
+        error: err instanceof Error ? err.message : 'Failed to fetch subscriptions',
         data: [],
       },
       { status: 500 }
     );
   }
 }
-
-
-
-
-
-
 

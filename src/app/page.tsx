@@ -6,6 +6,7 @@ import {
 import { PageHeader } from '@/components/page-header';
 import { StatCardsRealtime } from '@/components/dashboard/stat-cards-realtime';
 import { AnalyticsCharts } from '@/components/dashboard/analytics-charts';
+import { TopActiveUsers } from '@/components/dashboard/top-active-users';
 import { SharedSidebar } from '@/components/shared-sidebar';
 
 export default function Dashboard() {
@@ -22,6 +23,9 @@ export default function Dashboard() {
           
           {/* Analytics Charts */}
           <AnalyticsCharts />
+
+          {/* Top Active Users */}
+          <TopActiveUsers />
         </main>
       </SidebarInset>
     </SidebarProvider>

@@ -12,6 +12,10 @@ export async function GET() {
     const updatesBodyBase64 = getImageBase64('Updates.png');
     const inactiveBodyBase64 = getImageBase64('inactive.png');
     const partialBodyBase64 = getImageBase64('partial.png');
+    const patternBase64 = getImageBase64('pattern1.png');
+    const pattern2Base64 = getImageBase64('pattern2.png');
+    const pattern3Base64 = getImageBase64('pattern3.png');
+    const pattern4Base64 = getImageBase64('pattern4.png');
 
     return NextResponse.json({
       success: true,
@@ -24,6 +28,10 @@ export async function GET() {
         updatesBody: updatesBodyBase64,
         inactiveBody: inactiveBodyBase64,
         partialBody: partialBodyBase64,
+        pattern: patternBase64,
+        pattern2: pattern2Base64,
+        pattern3: pattern3Base64,
+        pattern4: pattern4Base64,
       },
     });
   } catch (error) {

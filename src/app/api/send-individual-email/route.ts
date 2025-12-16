@@ -146,6 +146,18 @@ export async function POST(request: NextRequest) {
     if (emailContent.includes('cid:downtime-body')) {
       attachments.push(...createEmailAttachments([EMAIL_IMAGES.downtimeBody]));
     }
+    if (emailContent.includes('cid:pattern-bg')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.patternBg]));
+    }
+    if (emailContent.includes('cid:pattern2-bg')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.pattern2Bg]));
+    }
+    if (emailContent.includes('cid:pattern3-bg')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.pattern3Bg]));
+    }
+    if (emailContent.includes('cid:pattern4-bg')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.pattern4Bg]));
+    }
     if (emailContent.includes('cid:credits-body')) {
       attachments.push(...createEmailAttachments([EMAIL_IMAGES.creditsBody]));
     }

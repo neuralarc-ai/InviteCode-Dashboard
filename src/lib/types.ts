@@ -48,6 +48,22 @@ export type CreditPurchase = {
   userName?: string;
 };
 
+export type Subscription = {
+  id: string;
+  userId: string;
+  stripeSubscriptionId: string | null;
+  stripeCustomerId: string | null;
+  status: string | null;
+  currentPeriodStart: Date | null;
+  currentPeriodEnd: Date | null;
+  trialEnd: Date | null;
+  planName: string | null;
+  planType: string | null;
+  monthlyCreditAllocation: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type UsageLog = {
   userId: string;
   userName: string;
@@ -281,6 +297,53 @@ export interface Database {
           metadata?: Record<string, any> | null;
           plan_type?: 'seed' | 'edge' | 'quantum';
           account_type?: 'individual' | 'business';
+        };
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          stripe_subscription_id: string | null;
+          stripe_customer_id: string | null;
+          status: string | null;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          trial_end: string | null;
+          plan_name: string | null;
+          plan_type: string | null;
+          monthly_credit_allocation: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          stripe_subscription_id?: string | null;
+          stripe_customer_id?: string | null;
+          status?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          trial_end?: string | null;
+          plan_name?: string | null;
+          plan_type?: string | null;
+          monthly_credit_allocation?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          stripe_subscription_id?: string | null;
+          stripe_customer_id?: string | null;
+          status?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          trial_end?: string | null;
+          plan_name?: string | null;
+          plan_type?: string | null;
+          monthly_credit_allocation?: number | null;
+          created_at?: string;
+          updated_at?: string;
         };
       };
       credit_usage: {

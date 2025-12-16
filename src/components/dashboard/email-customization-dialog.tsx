@@ -67,8 +67,12 @@ All systems are running smoothly, and you can now access all features and servic
 
 If you experience any issues, please don't hesitate to reach out to our support team.
 
-Thanks,
-The Helium Team`,
+We encourage you to take advantage of these benefits and make the most of your Helium experience. If you need any assistance or have questions before the webinar, please do not hesitate to reach out.
+
+Helium Community Team
+Your Partner in Innovation
+
+© 2025 Helium. All rights reserved.`,
 
   downtime: `Scheduled Downtime: Helium will be unavailable for 1 hour
 
@@ -80,8 +84,12 @@ During this window, you won't be able to access Helium. Once the maintenance is 
 
 We appreciate your patience and understanding as we work to make Helium even better for you.
 
-Thanks,
-The Helium Team`,
+We encourage you to take advantage of these benefits and make the most of your Helium experience. If you need any assistance or have questions before the webinar, please do not hesitate to reach out.
+
+Helium Community Team
+Your Partner in Innovation
+
+© 2025 Helium. All rights reserved.`,
 
   creditsAdded: `Credits Added to Your Account
 
@@ -352,6 +360,10 @@ export function EmailCustomizationDialog({
     updatesBody: string | null;
     partialBody: string | null;
     inactiveBody: string | null;
+    pattern: string | null; // Added pattern
+    pattern2: string | null; // Added pattern2
+    pattern3: string | null; // Added pattern3
+    pattern4: string | null; // Added pattern4
   }>({
     logo: null,
     uptimeBody: null,
@@ -360,9 +372,12 @@ export function EmailCustomizationDialog({
     updatesBody: null,
     partialBody: null,
     inactiveBody: null,
+    pattern: null, // Initialize pattern
+    pattern2: null, // Initialize pattern2
+    pattern3: null, // Initialize pattern3
+    pattern4: null, // Initialize pattern4
   });
   const [emailData, setEmailData] = useState<EmailData>(createDefaultEmailData());
-// ... existing code ...
   const [individualEmail, setIndividualEmail] = useState('');
   const [activeTab, setActiveTab] = useState<EmailSectionKey>(initialTab);
   const [activitySubTab, setActivitySubTab] = useState<'partial' | 'inactive'>('partial');
@@ -404,12 +419,14 @@ export function EmailCustomizationDialog({
               ? createPartialHtmlTemplate({
                   logoBase64: emailImages.logo,
                   partialBodyBase64: emailImages.partialBody,
+                  pattern4Base64: emailImages.pattern4,
                   textContent: overrideContent.textContent,
                   useCid: false
                 })
               : createInactiveHtmlTemplate({
                   logoBase64: emailImages.logo,
                   inactiveBodyBase64: emailImages.inactiveBody,
+                  pattern4Base64: emailImages.pattern4,
                   textContent: overrideContent.textContent,
                   useCid: false
                 });
@@ -452,6 +469,10 @@ export function EmailCustomizationDialog({
               updatesBody: data.images.updatesBody,
               partialBody: data.images.partialBody,
               inactiveBody: data.images.inactiveBody,
+              pattern: data.images.pattern, // Added pattern
+              pattern2: data.images.pattern2, // Added pattern2
+              pattern3: data.images.pattern3, // Added pattern3
+              pattern4: data.images.pattern4, // Added pattern4
             });
             // Update Uptime, Downtime, Credits, and Updates sections with HTML templates containing base64 images
             setEmailData(prev => ({
@@ -463,6 +484,7 @@ export function EmailCustomizationDialog({
                   htmlContent: createUptimeHtmlTemplate({
                     logoBase64: data.images.logo,
                     uptimeBodyBase64: data.images.uptimeBody,
+                    patternBase64: data.images.pattern, // Pass pattern to Uptime template
                     textContent: prev.sections.uptime.textContent,
                     useCid: false, // Use base64 for preview
                   }),
@@ -472,6 +494,7 @@ export function EmailCustomizationDialog({
                   htmlContent: createDowntimeHtmlTemplate({
                     logoBase64: data.images.logo,
                     downtimeBodyBase64: data.images.downtimeBody || data.images.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
+                    pattern2Base64: data.images.pattern2, // Pass pattern2 to Downtime template
                     textContent: prev.sections.downtime.textContent,
                     useCid: false, // Use base64 for preview
                   }),
@@ -481,6 +504,7 @@ export function EmailCustomizationDialog({
                   htmlContent: createCreditsHtmlTemplate({
                     logoBase64: data.images.logo,
                     creditsBodyBase64: data.images.creditsBody,
+                    pattern3Base64: data.images.pattern3, // Pass pattern3 to Credits template
                     textContent: prev.sections.creditsAdded.textContent,
                     useCid: false, // Use base64 for preview
                   }),
@@ -500,6 +524,7 @@ export function EmailCustomizationDialog({
                   htmlContent: createPartialHtmlTemplate({
                     logoBase64: data.images.logo,
                     partialBodyBase64: data.images.partialBody,
+                    pattern4Base64: data.images.pattern4, // Pass pattern4 to Partial template
                     textContent: (defaultSectionContent as any).partial || prev.sections.activity.textContent,
                     useCid: false
                   })
@@ -537,12 +562,14 @@ export function EmailCustomizationDialog({
             ? createPartialHtmlTemplate({
                 logoBase64: emailImages.logo,
                 partialBodyBase64: emailImages.partialBody,
+                pattern4Base64: emailImages.pattern4,
                 textContent: defaultText,
                 useCid: false
               })
             : createInactiveHtmlTemplate({
                 logoBase64: emailImages.logo,
                 inactiveBodyBase64: emailImages.inactiveBody,
+                pattern4Base64: emailImages.pattern4,
                 textContent: defaultText,
                 useCid: false
               })
@@ -567,6 +594,7 @@ export function EmailCustomizationDialog({
             htmlContent: createUptimeHtmlTemplate({
               logoBase64: emailImages.logo,
               uptimeBodyBase64: emailImages.uptimeBody,
+              patternBase64: emailImages.pattern, // Pass pattern
               textContent,
               useCid: false, // Use base64 for preview
             }),
@@ -584,6 +612,7 @@ export function EmailCustomizationDialog({
             htmlContent: createDowntimeHtmlTemplate({
               logoBase64: emailImages.logo,
               downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
+              pattern2Base64: emailImages.pattern2, // Pass pattern2
               textContent,
               useCid: false, // Use base64 for preview
             }),
@@ -601,6 +630,7 @@ export function EmailCustomizationDialog({
             htmlContent: createCreditsHtmlTemplate({
               logoBase64: emailImages.logo,
               creditsBodyBase64: emailImages.creditsBody,
+              pattern3Base64: emailImages.pattern3, // Pass pattern3
               textContent,
               useCid: false, // Use base64 for preview
             }),
@@ -636,12 +666,14 @@ export function EmailCustomizationDialog({
               ? createPartialHtmlTemplate({
                   logoBase64: emailImages.logo,
                   partialBodyBase64: emailImages.partialBody,
+                  pattern4Base64: emailImages.pattern4, // Pass pattern4
                   textContent,
                   useCid: false,
                 })
               : createInactiveHtmlTemplate({
                   logoBase64: emailImages.logo,
                   inactiveBodyBase64: emailImages.inactiveBody,
+                  pattern4Base64: emailImages.pattern4, // Pass pattern4
                   textContent,
                   useCid: false,
                 }),
@@ -676,6 +708,7 @@ export function EmailCustomizationDialog({
             htmlContent: createUptimeHtmlTemplate({
               logoBase64: emailImages.logo,
               uptimeBodyBase64: emailImages.uptimeBody,
+              patternBase64: emailImages.pattern, // Pass pattern
               textContent: defaultContent,
               useCid: false, // Use base64 for preview
             }),
@@ -693,6 +726,7 @@ export function EmailCustomizationDialog({
             htmlContent: createDowntimeHtmlTemplate({
               logoBase64: emailImages.logo,
               downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
+              pattern2Base64: emailImages.pattern2, // Pass pattern2
               textContent: defaultContent,
               useCid: false, // Use base64 for preview
             }),
@@ -710,6 +744,7 @@ export function EmailCustomizationDialog({
             htmlContent: createCreditsHtmlTemplate({
               logoBase64: emailImages.logo,
               creditsBodyBase64: emailImages.creditsBody,
+              pattern3Base64: emailImages.pattern3, // Pass pattern3
               textContent: defaultContent,
               useCid: false, // Use base64 for preview
             }),
@@ -746,12 +781,14 @@ export function EmailCustomizationDialog({
               ? createPartialHtmlTemplate({
                   logoBase64: emailImages.logo,
                   partialBodyBase64: emailImages.partialBody,
+                  pattern4Base64: emailImages.pattern4, // Pass pattern4
                   textContent: defaultText,
                   useCid: false,
                 })
               : createInactiveHtmlTemplate({
                   logoBase64: emailImages.logo,
                   inactiveBodyBase64: emailImages.inactiveBody,
+                  pattern4Base64: emailImages.pattern4, // Pass pattern4
                   textContent: defaultText,
                   useCid: false,
                 }),
@@ -813,6 +850,7 @@ export function EmailCustomizationDialog({
               htmlContent: createUptimeHtmlTemplate({
                 logoBase64: emailImages.logo,
                 uptimeBodyBase64: emailImages.uptimeBody,
+                patternBase64: emailImages.pattern, // Pass pattern
                 textContent: enhancedContent,
                 useCid: false, // Use base64 for preview
               }),
@@ -829,6 +867,7 @@ export function EmailCustomizationDialog({
               htmlContent: createDowntimeHtmlTemplate({
                 logoBase64: emailImages.logo,
                 downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody,
+                pattern2Base64: emailImages.pattern2, // Pass pattern2
                 textContent: enhancedContent,
                 useCid: false, // Use base64 for preview
               }),
@@ -845,6 +884,7 @@ export function EmailCustomizationDialog({
               htmlContent: createCreditsHtmlTemplate({
                 logoBase64: emailImages.logo,
                 creditsBodyBase64: emailImages.creditsBody,
+                pattern3Base64: emailImages.pattern3, // Pass pattern3
                 textContent: enhancedContent,
                 useCid: false, // Use base64 for preview
               }),
@@ -875,18 +915,20 @@ export function EmailCustomizationDialog({
             [sectionKey]: {
               textContent: enhancedContent,
               htmlContent: activitySubTab === 'partial'
-                ? createPartialHtmlTemplate({
-                    logoBase64: emailImages.logo,
-                    partialBodyBase64: emailImages.partialBody,
-                    textContent: enhancedContent,
-                    useCid: false,
-                  })
-                : createInactiveHtmlTemplate({
-                    logoBase64: emailImages.logo,
-                    inactiveBodyBase64: emailImages.inactiveBody,
-                    textContent: enhancedContent,
-                    useCid: false,
-                  }),
+              ? createPartialHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  partialBodyBase64: emailImages.partialBody,
+                  pattern4Base64: emailImages.pattern4, // Pass pattern4
+                  textContent: enhancedContent,
+                  useCid: false,
+                })
+              : createInactiveHtmlTemplate({
+                  logoBase64: emailImages.logo,
+                  inactiveBodyBase64: emailImages.inactiveBody,
+                  pattern4Base64: emailImages.pattern4, // Pass pattern4
+                  textContent: enhancedContent,
+                  useCid: false,
+                }),
             },
           },
         }));
@@ -920,6 +962,7 @@ export function EmailCustomizationDialog({
       const regeneratedHtml = createUptimeHtmlTemplate({
         logoBase64: emailImages.logo,
         uptimeBodyBase64: emailImages.uptimeBody,
+        patternBase64: emailImages.pattern, // Pass pattern (not used if useCid=true, template logic handles it)
         textContent: section.textContent,
         useCid: forSending, // Use CID when sending, base64 for preview
       });
@@ -932,6 +975,7 @@ export function EmailCustomizationDialog({
       const regeneratedHtml = createDowntimeHtmlTemplate({
         logoBase64: emailImages.logo,
         downtimeBodyBase64: emailImages.downtimeBody || emailImages.uptimeBody, // Use downtime image if available, otherwise fallback to uptime image
+        pattern2Base64: emailImages.pattern2, // Pass pattern2
         textContent: section.textContent,
         useCid: forSending, // Use CID when sending, base64 for preview
       });
@@ -944,6 +988,7 @@ export function EmailCustomizationDialog({
       const regeneratedHtml = createCreditsHtmlTemplate({
         logoBase64: emailImages.logo,
         creditsBodyBase64: emailImages.creditsBody,
+        pattern3Base64: emailImages.pattern3, // Pass pattern3
         textContent: section.textContent,
         useCid: forSending, // Use CID when sending, base64 for preview
       });
@@ -969,12 +1014,14 @@ export function EmailCustomizationDialog({
         ? createPartialHtmlTemplate({
             logoBase64: emailImages.logo,
             partialBodyBase64: emailImages.partialBody,
+            pattern4Base64: emailImages.pattern4, // Pass pattern4
             textContent: section.textContent,
             useCid: forSending,
           })
         : createInactiveHtmlTemplate({
             logoBase64: emailImages.logo,
             inactiveBodyBase64: emailImages.inactiveBody,
+            pattern4Base64: emailImages.pattern4, // Pass pattern4
             textContent: section.textContent,
             useCid: forSending,
           });

@@ -470,6 +470,20 @@ The Helium Team`
       attachments.push(...createEmailAttachments([EMAIL_IMAGES.updatesBody]));
     }
     
+    // Attach pattern background if present
+    if (emailContent.includes('cid:pattern-bg')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.patternBg]));
+    }
+    if (emailContent.includes('cid:pattern2-bg')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.pattern2Bg]));
+    }
+    if (emailContent.includes('cid:pattern3-bg')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.pattern3Bg]));
+    }
+    if (emailContent.includes('cid:pattern4-bg')) {
+      attachments.push(...createEmailAttachments([EMAIL_IMAGES.pattern4Bg]));
+    }
+    
     // Attach inactive body if present
     if (emailContent.includes('cid:inactive-body')) {
       attachments.push(...createEmailAttachments([EMAIL_IMAGES.inactiveBody]));

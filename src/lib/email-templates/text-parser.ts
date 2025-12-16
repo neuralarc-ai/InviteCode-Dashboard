@@ -70,7 +70,7 @@ export function parseEmailText(textContent: string): ParsedEmailContent {
   // Find signoff (Thanks, Best regards, Sincerely, etc.)
   let signoff = defaultSignoff;
   const signoffPatterns = [
-    /^(thanks|thank you|best regards|sincerely|regards|yours truly|take care|with .* regards)/i,
+    /^(thanks|thank you|best regards|sincerely|regards|yours truly|take care|with .* regards|helium community team|your partner in innovation)/i,
   ];
   
   const signoffIndex = processedParagraphs.findIndex(p => 

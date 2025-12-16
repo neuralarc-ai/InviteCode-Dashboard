@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
-import type { WaitlistUser, DashboardStats, InviteCode, UserProfile, CreditUsageGrouped, CreditUsage, CreditPurchase, UsageLog, CreditBalance } from '@/lib/types';
+import type { WaitlistUser, DashboardStats, InviteCode, UserProfile, CreditUsageGrouped, CreditUsage, CreditPurchase, UsageLog, CreditBalance, Subscription } from '@/lib/types';
 
 export function useWaitlistUsers() {
   const [users, setUsers] = useState<WaitlistUser[]>([]);
@@ -579,7 +579,7 @@ export function useUserProfiles() {
   };
 
   // Bulk delete user profiles
-  const bulkDeleteUserProfiles = async (profileIds: string[]): Promise<{ success: boolean; message: string; deletedCount?: number }> => {
+  const bulkDeleteUserProfiles = async (profileIds: string[]): Promise<{ success: boolean; message: string; deletedCount?: number; authDeleteErrors?: any[]; failedUserIds?: string[] }> => {
     try {
       if (!profileIds || profileIds.length === 0) {
         return { success: false, message: 'No profiles selected for deletion' };
@@ -803,24 +803,40 @@ export function useCreditUsage() {
         }
       }
 
-      // Final fallback: Try to get names from auth.users metadata if available
-      if (userIdToName.size === 0 && supabaseAdmin) {
+      // Identify users who still don't have names
+      const usersWithoutNames = userIds.filter(id => !userIdToName.has(id));
+      
+      // Final fallback: Fetch names/emails via API for missing users
+      if (usersWithoutNames.length > 0) {
         try {
-          const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-          
-          if (authError) {
-            console.warn('Could not fetch auth users for names:', authError);
-          } else if (authUsers?.users) {
-            authUsers.users.forEach(user => {
-              if (user.user_metadata?.full_name || user.user_metadata?.name) {
-                const name = user.user_metadata.full_name || user.user_metadata.name;
+          console.log(`Fetching missing names for ${usersWithoutNames.length} users via API...`);
+          const response = await fetch('/api/fetch-user-emails', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userIds: usersWithoutNames }),
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            userData.forEach((user: any) => {
+              // Map email if missing
+              if (!userIdToEmail.has(user.id)) {
+                userIdToEmail.set(user.id, user.email);
+              }
+              // Map name if missing
+              if (!userIdToName.has(user.id)) {
+                const name = user.full_name || user.name || user.email; // Fallback to email as name if full_name missing
                 userIdToName.set(user.id, name);
               }
             });
-            console.log(`Mapped ${userIdToName.size} user names from auth metadata`);
+            console.log(`Mapped additional names via API`);
+          } else {
+            console.warn('Failed to fetch missing names via API:', response.status);
           }
         } catch (authErr) {
-          console.warn('Failed to fetch auth users for names:', authErr);
+          console.warn('Failed to fetch auth users for names via API:', authErr);
         }
       }
 
@@ -970,7 +986,7 @@ export function useCreditPurchases() {
       console.log(`Found ${data.length} credit purchase records`);
 
       // Get user IDs to fetch emails and names
-      const userIds = data.map(purchase => purchase.user_id);
+      const userIds = data.map((purchase: any) => purchase.user_id);
       
       // Create maps for user data
       const userIdToEmail = new Map<string, string>();
@@ -1069,7 +1085,11 @@ export function useCreditPurchases() {
 }
 
 // Server-side aggregation for usage logs (no client-side caching needed)
-export function useUsageLogs() {
+export function useUsageLogs(initialConfig?: { 
+  sort?: string; 
+  range?: string; 
+  limit?: number 
+}) {
   const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1077,11 +1097,14 @@ export function useUsageLogs() {
   const [grandTotalTokens, setGrandTotalTokens] = useState(0);
   const [grandTotalCost, setGrandTotalCost] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // Show 10 users per page
+  const [itemsPerPage] = useState(initialConfig?.limit || 10); // Show 10 users per page
   const [searchQuery, setSearchQuery] = useState('');
   const [activityFilter, setActivityFilter] = useState<string>('all');
   const [userTypeFilter, setUserTypeFilter] = useState<'internal' | 'external'>('external'); // Default to external users
   const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false); // Track background updates
+
+  const [sortBy, setSortBy] = useState<string>(initialConfig?.sort || 'latest_activity'); // 'latest_activity', 'activity_score', 'usage_count', 'total_cost'
+  const [timeRange, setTimeRange] = useState<string>(initialConfig?.range || 'all'); // 'all', 'weekly', 'monthly'
 
   // Cache clearing function (kept for backward compatibility but not used)
   const clearActivityCache = () => {
@@ -1288,7 +1311,9 @@ The Helium Team 🌟`
     search: string = searchQuery,
     silent: boolean = false,
     userType: 'internal' | 'external' = userTypeFilter,
-    activity: string = activityFilter
+    activity: string = activityFilter,
+    sort: string = sortBy,
+    range: string = timeRange
   ) => {
     try {
       // Silent loading: don't show loading spinner for background updates
@@ -1300,7 +1325,7 @@ The Helium Team 🌟`
       }
       setError(null);
       
-      console.log(`⚡ Fetching usage logs (${silent ? 'silent' : 'normal'}) - page ${page}, limit ${limit}...`);
+      console.log(`⚡ Fetching usage logs (${silent ? 'silent' : 'normal'}) - page ${page}, limit ${limit}, sort ${sort}...`);
       console.log('Fetch started at:', new Date().toISOString());
       
       // Use server-side aggregation API for much faster performance
@@ -1315,11 +1340,22 @@ The Helium Team 🌟`
           searchQuery: search,
           activityFilter: activity,
           userTypeFilter: userType,
+          sortBy: sort,
+          timeRange: range,
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -1378,7 +1414,7 @@ The Helium Team 🌟`
       // Enforce activity filter client-side to avoid server bucketing mismatches
       const filteredLogs =
         activityFilter && activityFilter !== 'all'
-          ? transformedLogs.filter((log) => log.activityLevel === activityFilter)
+          ? transformedLogs.filter((log: any) => log.activityLevel === activityFilter)
           : transformedLogs;
 
       console.log('Transformed logs:', transformedLogs.length, 'users');
@@ -1417,14 +1453,14 @@ The Helium Team 🌟`
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setCurrentPage(1); // Reset to first page when searching
-    fetchUsageLogs(1, itemsPerPage, query, false, userTypeFilter, activityFilter);
+    fetchUsageLogs(1, itemsPerPage, query, false, userTypeFilter, activityFilter, sortBy, timeRange);
   };
 
   // Activity filter function
   const handleActivityFilter = (filter: string) => {
     setActivityFilter(filter);
     setCurrentPage(1); // Reset to first page when filtering
-    fetchUsageLogs(1, itemsPerPage, searchQuery, false, userTypeFilter, filter);
+    fetchUsageLogs(1, itemsPerPage, searchQuery, false, userTypeFilter, filter, sortBy, timeRange);
   };
 
   // User type filter function
@@ -1432,7 +1468,21 @@ The Helium Team 🌟`
     setUserTypeFilter(filter);
     setCurrentPage(1); // Reset to first page when filtering
     // Pass the new filter value directly to ensure immediate update
-    fetchUsageLogs(1, itemsPerPage, searchQuery, false, filter, activityFilter);
+    fetchUsageLogs(1, itemsPerPage, searchQuery, false, filter, activityFilter, sortBy, timeRange);
+  };
+
+  // Sort function
+  const handleSort = (sort: string) => {
+    setSortBy(sort);
+    setCurrentPage(1); // Reset to first page when sorting
+    fetchUsageLogs(1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter, sort, timeRange);
+  };
+
+  // Time range filter function
+  const handleTimeRange = (range: string) => {
+    setTimeRange(range);
+    setCurrentPage(1); // Reset to first page when filtering
+    fetchUsageLogs(1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter, sortBy, range);
   };
 
   // Refresh function
@@ -1441,31 +1491,31 @@ The Helium Team 🌟`
     console.log('Current page:', currentPage);
     console.log('Items per page:', itemsPerPage);
     console.log('Search query:', searchQuery);
-    fetchUsageLogs(currentPage, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter);
+    fetchUsageLogs(currentPage, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter, sortBy, timeRange);
   };
 
   // Load specific page
   const loadPage = (page: number) => {
-    fetchUsageLogs(page, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter);
+    fetchUsageLogs(page, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter, sortBy, timeRange);
   };
 
   // Load next page
   const loadNextPage = () => {
     if (currentPage < Math.ceil(totalCount / itemsPerPage)) {
-      fetchUsageLogs(currentPage + 1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter);
+      fetchUsageLogs(currentPage + 1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter, sortBy, timeRange);
     }
   };
 
   // Load previous page
   const loadPreviousPage = () => {
     if (currentPage > 1) {
-      fetchUsageLogs(currentPage - 1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter);
+      fetchUsageLogs(currentPage - 1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter, sortBy, timeRange);
     }
   };
 
   // Initial fetch
   useEffect(() => {
-    fetchUsageLogs(1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter);
+    fetchUsageLogs(1, itemsPerPage, searchQuery, false, userTypeFilter, activityFilter, sortBy, timeRange);
   }, []);
 
   // Set up real-time subscription for usage_logs and credit_purchases changes
@@ -1481,7 +1531,7 @@ The Helium Team 🌟`
       updateTimeout = setTimeout(() => {
         console.log('🔄 Silent background refresh triggered by real-time event');
         // Use silent mode to avoid loading spinner on real-time updates
-    fetchUsageLogs(currentPage, itemsPerPage, searchQuery, true, userTypeFilter, activityFilter);
+    fetchUsageLogs(currentPage, itemsPerPage, searchQuery, true, userTypeFilter, activityFilter, sortBy, timeRange);
       }, 500); // 500ms debounce to batch rapid changes
     };
 
@@ -1540,7 +1590,7 @@ The Helium Team 🌟`
       usageLogsSubscription.unsubscribe();
       creditPurchasesSubscription.unsubscribe();
     };
-  }, [currentPage, searchQuery, userTypeFilter, activityFilter]);
+  }, [currentPage, searchQuery, userTypeFilter, activityFilter, sortBy, timeRange]);
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   const hasNextPage = currentPage < totalPages;
@@ -1573,7 +1623,11 @@ The Helium Team 🌟`
     getCacheStats,
     sendActivityReminder,
     sendCustomReminder,
-    enhanceCustomEmail
+    enhanceCustomEmail,
+    handleSort,
+    sortBy,
+    handleTimeRange,
+    timeRange
   };
 }
 
@@ -1670,4 +1724,94 @@ export function useCreditBalances() {
   }, []);
 
   return { creditBalances, loading, error, refreshCreditBalances };
+}
+
+export function useSubscriptions() {
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Initial fetch function
+  const fetchSubscriptions = async () => {
+    try {
+      console.log('Fetching subscriptions (via API)...');
+      
+      const response = await fetch('/api/subscriptions', { method: 'GET' });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || `HTTP error ${response.status}`);
+      }
+
+      const data = payload.data;
+
+      if (!data || data.length === 0) {
+        console.log('No subscriptions found in database');
+        setSubscriptions([]);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      console.log(`Found ${data.length} subscription records`);
+
+      const transformedSubscriptions = data.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        stripeSubscriptionId: row.stripe_subscription_id,
+        stripeCustomerId: row.stripe_customer_id,
+        status: row.status,
+        currentPeriodStart: row.current_period_start ? new Date(row.current_period_start) : null,
+        currentPeriodEnd: row.current_period_end ? new Date(row.current_period_end) : null,
+        trialEnd: row.trial_end ? new Date(row.trial_end) : null,
+        planName: row.plan_name,
+        planType: row.plan_type,
+        monthlyCreditAllocation: row.monthly_credit_allocation,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+      }));
+
+      console.log('Transformed subscriptions:', transformedSubscriptions);
+      setSubscriptions(transformedSubscriptions);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching subscriptions:', err);
+      setError(`Failed to fetch subscriptions: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const refreshSubscriptions = async () => {
+    setLoading(true);
+    await fetchSubscriptions();
+  };
+
+  useEffect(() => {
+    fetchSubscriptions();
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('subscriptions_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscriptions',
+        },
+        (payload) => {
+          console.log('Real-time subscriptions update:', payload);
+          fetchSubscriptions(); // Refetch on any change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return { subscriptions, loading, error, refreshSubscriptions };
 }

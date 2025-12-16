@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, RefreshCw, User, Mail, CreditCard, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
+import { Search, RefreshCw, User, Mail, CreditCard, Trash2, Loader2, CheckCircle2, ChevronUp, ChevronDown } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getUserType } from '@/lib/utils';
@@ -72,6 +72,10 @@ export function UsersTableRealtime({
   const [userToDelete, setUserToDelete] = React.useState<UserProfile | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
   
+  // Sorting state
+  const [sortField, setSortField] = React.useState<'name' | 'email' | 'created' | 'usageStatus' | 'usageCount' | 'latestActivity'>('created');
+  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('desc');
+  
   // Use external selection state if provided, otherwise use internal state
   const selectedUserIds = externalSelectedUserIds ?? internalSelectedUserIds;
   const setSelectedUserIds = onSelectionChange ?? setInternalSelectedUserIds;
@@ -99,178 +103,23 @@ export function UsersTableRealtime({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userTypeFilter]);
 
-  const filteredProfiles = userProfiles.filter((profile) => {
-    // Filter by user type (internal/external)
-    const profileUserType = getUserType(profile.email);
-    if (profileUserType !== userTypeFilter) {
-      return false;
-    }
-
-    // Filter by text search (only if filter is provided)
-    if (filter.trim()) {
-      const matchesText = Object.values(profile).some(
-        (value) =>
-          value !== null &&
-          value !== undefined &&
-          typeof value === 'string' &&
-          value.toLowerCase().includes(filter.toLowerCase())
-      );
-      if (!matchesText) {
-        return false;
-      }
-    }
-    return true;
-  });
-
-  const paginatedProfiles = filteredProfiles.slice(
-    page * rowsPerPage,
-    (page + 1) * rowsPerPage
-  );
-
-  const totalPages = Math.ceil(filteredProfiles.length / rowsPerPage);
-
-  // Selection handlers (moved after filteredProfiles is defined)
-  const handleToggleSelect = (userId: string) => {
-    const newSelection = new Set(selectedUserIds);
-    if (newSelection.has(userId)) {
-      newSelection.delete(userId);
+  // Handle sorting
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      newSelection.add(userId);
+      setSortField(field);
+      setSortDirection('desc');
     }
-    setSelectedUserIds(newSelection);
+    setPage(0); // Reset to first page when sorting
   };
 
-  const handleSelectAll = () => {
-    const allFilteredUserIds = new Set(filteredProfiles.map(profile => profile.userId));
-    if (selectedUserIds.size === filteredProfiles.length && 
-        filteredProfiles.every(profile => selectedUserIds.has(profile.userId))) {
-      // All are selected, deselect all
-      setSelectedUserIds(new Set());
-    } else {
-      // Select all filtered users
-      setSelectedUserIds(allFilteredUserIds);
-    }
+  const getSortIcon = (field: typeof sortField) => {
+    if (sortField !== field) return null;
+    return sortDirection === 'asc' ? 
+      <ChevronUp className="h-4 w-4" /> : 
+      <ChevronDown className="h-4 w-4" />;
   };
-
-  const isAllSelected = filteredProfiles.length > 0 && 
-    filteredProfiles.every(profile => selectedUserIds.has(profile.userId));
-  const isSomeSelected = filteredProfiles.some(profile => selectedUserIds.has(profile.userId));
-
-  const handleRefresh = async () => {
-    try {
-      await refreshUserProfiles();
-      toast({
-        title: "Success",
-        description: "User profiles refreshed successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to refresh user profiles",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteClick = (profile: UserProfile) => {
-    setUserToDelete(profile);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!userToDelete) return;
-
-    setIsDeleting(true);
-    try {
-      const result = await deleteUserProfile(userToDelete.id);
-      
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: result.message || "User profile deleted successfully",
-        });
-        setDeleteDialogOpen(false);
-        setUserToDelete(null);
-      } else {
-        toast({
-          title: "Error",
-          description: result.message || "Failed to delete user profile",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while deleting the user profile",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleBulkDeleteClick = () => {
-    if (selectedUserIds.size === 0) {
-      toast({
-        title: "No Selection",
-        description: "Please select users to delete",
-        variant: "destructive",
-      });
-      return;
-    }
-    setBulkDeleteDialogOpen(true);
-  };
-
-  const handleBulkDeleteConfirm = async () => {
-    if (selectedUserIds.size === 0) return;
-
-    setIsDeleting(true);
-    try {
-      // Get profile IDs from selected user IDs
-      const selectedProfiles = filteredProfiles.filter(profile => 
-        selectedUserIds.has(profile.userId)
-      );
-      const profileIds = selectedProfiles.map(profile => profile.id);
-
-      const result = await bulkDeleteUserProfiles(profileIds);
-      
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: result.message || `Successfully deleted ${result.deletedCount || profileIds.length} user profile(s)`,
-        });
-        setSelectedUserIds(new Set());
-        setBulkDeleteDialogOpen(false);
-      } else {
-        // Check if some users were deleted but some failed
-        if (result.deletedCount && result.deletedCount > 0) {
-          toast({
-            title: "Partial Success",
-            description: result.message || `Deleted ${result.deletedCount} user(s), but some failed. Check the error details.`,
-            variant: "destructive",
-          });
-          // Still clear selection for successfully deleted users
-          setSelectedUserIds(new Set());
-          setBulkDeleteDialogOpen(false);
-        } else {
-          toast({
-            title: "Error",
-            description: result.message || "Failed to delete user profiles",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while deleting user profiles",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
@@ -361,9 +210,9 @@ export function UsersTableRealtime({
     const now = new Date();
     const daysSinceActivity = Math.floor((now.getTime() - latestActivity.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (daysSinceActivity <= 3) {
+    if (daysSinceActivity <= 30) {
       return 'active';
-    } else if (daysSinceActivity <= 7) {
+    } else if (daysSinceActivity <= 60) {
       return 'partial';
     } else {
       return 'inactive';
@@ -393,6 +242,234 @@ export function UsersTableRealtime({
             Inactive
           </Badge>
         );
+    }
+  };
+
+  const filteredProfiles = userProfiles.filter((profile) => {
+    // Filter by user type (internal/external)
+    const profileUserType = getUserType(profile.email);
+    if (profileUserType !== userTypeFilter) {
+      return false;
+    }
+
+    // Filter by text search (only if filter is provided)
+    if (filter.trim()) {
+      const matchesText = Object.values(profile).some(
+        (value) =>
+          value !== null &&
+          value !== undefined &&
+          typeof value === 'string' &&
+          value.toLowerCase().includes(filter.toLowerCase())
+      );
+      if (!matchesText) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // Sort the filtered profiles
+  const sortedProfiles = [...filteredProfiles].sort((a, b) => {
+    let aValue: any;
+    let bValue: any;
+
+    switch (sortField) {
+      case 'name':
+        aValue = a.fullName.toLowerCase();
+        bValue = b.fullName.toLowerCase();
+        break;
+      case 'email':
+        aValue = a.email.toLowerCase();
+        bValue = b.email.toLowerCase();
+        break;
+      case 'created':
+        aValue = a.createdAt.getTime();
+        bValue = b.createdAt.getTime();
+        break;
+      case 'usageStatus':
+        // Sort by usage status priority: active > partial > inactive
+        const getStatusPriority = (userId: string) => {
+          const status = getUsageStatus(userId);
+          switch (status) {
+            case 'active': return 3;
+            case 'partial': return 2;
+            case 'inactive': return 1;
+            default: return 0;
+          }
+        };
+        aValue = getStatusPriority(a.userId);
+        bValue = getStatusPriority(b.userId);
+        break;
+      case 'usageCount':
+        aValue = usageActivityMap?.[a.userId]?.usageCount || 0;
+        bValue = usageActivityMap?.[b.userId]?.usageCount || 0;
+        break;
+      case 'latestActivity':
+        aValue = usageActivityMap?.[a.userId]?.latestActivity?.getTime() || 0;
+        bValue = usageActivityMap?.[b.userId]?.latestActivity?.getTime() || 0;
+        break;
+      default:
+        return 0;
+    }
+
+    // Handle null/undefined values
+    if (aValue === null || aValue === undefined) return 1;
+    if (bValue === null || bValue === undefined) return -1;
+
+    // Sort based on direction
+    if (sortDirection === 'asc') {
+      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+    } else {
+      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+    }
+  });
+
+  const paginatedProfiles = sortedProfiles.slice(
+    page * rowsPerPage,
+    (page + 1) * rowsPerPage
+  );
+
+  const totalPages = Math.ceil(sortedProfiles.length / rowsPerPage);
+
+  // Selection handlers (moved after filteredProfiles is defined)
+  const handleToggleSelect = (userId: string) => {
+    const newSelection = new Set(selectedUserIds);
+    if (newSelection.has(userId)) {
+      newSelection.delete(userId);
+    } else {
+      newSelection.add(userId);
+    }
+    setSelectedUserIds(newSelection);
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredUserIds = new Set(sortedProfiles.map(profile => profile.userId));
+    if (selectedUserIds.size === sortedProfiles.length && 
+        sortedProfiles.every(profile => selectedUserIds.has(profile.userId))) {
+      // All are selected, deselect all
+      setSelectedUserIds(new Set());
+    } else {
+      // Select all filtered users
+      setSelectedUserIds(allFilteredUserIds);
+    }
+  };
+
+  const isAllSelected = sortedProfiles.length > 0 && 
+    sortedProfiles.every(profile => selectedUserIds.has(profile.userId));
+  const isSomeSelected = sortedProfiles.some(profile => selectedUserIds.has(profile.userId));
+
+  const handleRefresh = async () => {
+    try {
+      await refreshUserProfiles();
+      toast({
+        title: "Success",
+        description: "User profiles refreshed successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to refresh user profiles",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteClick = (profile: UserProfile) => {
+    setUserToDelete(profile);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const result = await deleteUserProfile(userToDelete.id);
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message || "User profile deleted successfully",
+        });
+        setDeleteDialogOpen(false);
+        setUserToDelete(null);
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to delete user profile",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting the user profile",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (selectedUserIds.size === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select users to delete",
+        variant: "destructive",
+      });
+      return;
+    }
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedUserIds.size === 0) return;
+
+    setIsDeleting(true);
+    try {
+      // Get profile IDs from selected user IDs
+      const selectedProfiles = sortedProfiles.filter(profile => 
+        selectedUserIds.has(profile.userId)
+      );
+      const profileIds = selectedProfiles.map(profile => profile.id);
+
+      const result = await bulkDeleteUserProfiles(profileIds);
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message || `Successfully deleted ${result.deletedCount || profileIds.length} user profile(s)`,
+        });
+        setSelectedUserIds(new Set());
+        setBulkDeleteDialogOpen(false);
+      } else {
+        // Check if some users were deleted but some failed
+        if (result.deletedCount && result.deletedCount > 0) {
+          toast({
+            title: "Partial Success",
+            description: result.message || `Deleted ${result.deletedCount} user(s), but some failed. Check the error details.`,
+            variant: "destructive",
+          });
+          // Still clear selection for successfully deleted users
+          setSelectedUserIds(new Set());
+          setBulkDeleteDialogOpen(false);
+        } else {
+          toast({
+            title: "Error",
+            description: result.message || "Failed to delete user profiles",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting user profiles",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -448,7 +525,7 @@ export function UsersTableRealtime({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              User Profiles ({filteredProfiles.length} {userTypeFilter === 'internal' ? 'internal' : 'external'} user{filteredProfiles.length !== 1 ? 's' : ''})
+              User Profiles ({sortedProfiles.length} {userTypeFilter === 'internal' ? 'internal' : 'external'} user{sortedProfiles.length !== 1 ? 's' : ''})
               {selectedUserIds.size > 0 && (
                 <Badge variant="secondary" className="ml-2">
                   {selectedUserIds.size} selected
@@ -519,12 +596,60 @@ export function UsersTableRealtime({
                     aria-label="Select all users"
                   />
                 </TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Name
+                      {getSortIcon('name')}
+                    </div>
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                    onClick={() => handleSort('email')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Email
+                      {getSortIcon('email')}
+                    </div>
+                  </Button>
+                </TableHead>
                 <TableHead>Credit Status</TableHead>
-                <TableHead>Usage Status</TableHead>
+                <TableHead>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                    onClick={() => handleSort('usageStatus')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Usage Status
+                      {getSortIcon('usageStatus')}
+                    </div>
+                  </Button>
+                </TableHead>
                 <TableHead>Referral Source</TableHead>
-                <TableHead className="text-right">Created</TableHead>
+                <TableHead className="text-right">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-auto p-0 font-semibold hover:bg-transparent justify-end"
+                    onClick={() => handleSort('created')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Created
+                      {getSortIcon('created')}
+                    </div>
+                  </Button>
+                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -541,7 +666,7 @@ export function UsersTableRealtime({
                       </p>
                       {userProfiles.length > 0 && (
                         <p className="text-xs text-muted-foreground mt-2">
-                          Showing {userTypeFilter} users only. {userProfiles.length - filteredProfiles.length} {userTypeFilter === 'internal' ? 'external' : 'internal'} user{userProfiles.length - filteredProfiles.length !== 1 ? 's' : ''} hidden.
+                          Showing {userTypeFilter} users only. {userProfiles.length - sortedProfiles.length} {userTypeFilter === 'internal' ? 'external' : 'internal'} user{userProfiles.length - sortedProfiles.length !== 1 ? 's' : ''} hidden.
                         </p>
                       )}
                     </div>
@@ -633,7 +758,7 @@ export function UsersTableRealtime({
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {page * rowsPerPage + 1} to {Math.min((page + 1) * rowsPerPage, filteredProfiles.length)} of {filteredProfiles.length} users
+              Showing {page * rowsPerPage + 1} to {Math.min((page + 1) * rowsPerPage, sortedProfiles.length)} of {sortedProfiles.length} users
             </p>
             <div className="flex items-center gap-2">
               <Button

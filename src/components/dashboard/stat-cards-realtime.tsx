@@ -8,18 +8,19 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { DollarSign, Users, CreditCard, TrendingUp, UserPlus } from 'lucide-react';
-import { useCreditBalances, useUserProfiles, useCreditPurchases } from '@/hooks/use-realtime-data';
+import { useCreditBalances, useUserProfiles, useCreditPurchases, useSubscriptions } from '@/hooks/use-realtime-data';
 import { supabase } from '@/lib/supabase';
 
 export function StatCardsRealtime() {
   const { creditBalances, loading: balancesLoading } = useCreditBalances();
   const { userProfiles, loading: usersLoading } = useUserProfiles();
   const { creditPurchases, loading: purchasesLoading } = useCreditPurchases();
+  const { subscriptions, loading: subscriptionsLoading } = useSubscriptions();
   const [externalCredits, setExternalCredits] = React.useState<number>(0);
   const [internalCredits, setInternalCredits] = React.useState<number>(0);
   const [usageCreditsLoading, setUsageCreditsLoading] = React.useState(true);
 
-  const loading = balancesLoading || usersLoading || purchasesLoading;
+  const loading = balancesLoading || usersLoading || purchasesLoading || subscriptionsLoading;
 
   // Fetch external and internal credits from usage logs (matching usage logs page calculation)
   React.useEffect(() => {
@@ -108,14 +109,19 @@ export function StatCardsRealtime() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const paidUserIds = new Set([
+      ...creditPurchases.map(purchase => purchase.userId),
+      ...subscriptions.map(sub => sub.userId)
+    ]);
+
     return {
       totalUsers: userProfiles.length,
       totalCredits: creditBalances.reduce((sum, balance) => sum + Math.round(balance.balanceDollars * 100), 0),
       newUsersToday: userProfiles.filter(user => user.createdAt >= today).length,
-      paidUsers: new Set(creditPurchases.map(purchase => purchase.userId)).size,
+      paidUsers: paidUserIds.size,
       totalBalance: creditBalances.reduce((sum, balance) => sum + balance.balanceDollars, 0),
     };
-  }, [userProfiles, creditBalances, creditPurchases]);
+  }, [userProfiles, creditBalances, creditPurchases, subscriptions]);
 
   // Format credits with 3 decimal places to match usage logs page format
   const formatCredits = (credits: number): string => {

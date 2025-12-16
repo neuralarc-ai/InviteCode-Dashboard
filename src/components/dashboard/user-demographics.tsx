@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useUserProfiles } from '@/hooks/use-realtime-data';
+import { useUserProfiles, useSubscriptions } from '@/hooks/use-realtime-data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -169,6 +169,7 @@ const chartConfig = {
 
 export function UserDemographics() {
   const { userProfiles, loading, error } = useUserProfiles();
+  const { subscriptions, loading: subscriptionsLoading } = useSubscriptions();
   const [userType, setUserType] = useState<'internal' | 'external'>('external');
   const [dateRange, setDateRange] = useState<DateRangeKey>('all');
   const [referral, setReferral] = useState<string>('all');
@@ -282,20 +283,53 @@ export function UserDemographics() {
 
   const planData = useMemo(
     () => {
-      // First get basic counts
-      const counts = aggregateCounts(filteredProfiles, (p) => p.planType || 'unknown');
-      
-      // Transform for the new chart format
-      return counts.map((item, index) => {
-        const key = item.name.toLowerCase();
-        return {
-          name: item.name,
-          value: item.value,
-          fill: PLAN_COLORS[key] || COLORS[index % COLORS.length]
-        };
+      // Create a map of user_id -> subscription plan type
+      const subscriptionMap = new Map<string, string>();
+      subscriptions.forEach(sub => {
+        if (sub.status === 'active' || sub.status === 'trialing') {
+          // Normalize plan type from subscription
+          let type = 'unknown';
+          const planName = (sub.planName || '').toLowerCase();
+          const planType = (sub.planType || '').toLowerCase();
+          
+          if (planName.includes('edge') || planType.includes('edge')) type = 'edge';
+          else if (planName.includes('quantum') || planType.includes('quantum')) type = 'quantum';
+          else if (planName.includes('seed') || planType.includes('seed')) type = 'seed';
+          
+          if (type !== 'unknown') {
+            subscriptionMap.set(sub.userId, type);
+          }
+        }
       });
+
+      // Aggregate counts based on filtered profiles
+      const counts = { seed: 0, edge: 0, quantum: 0 };
+      
+      filteredProfiles.forEach(p => {
+        // Check active subscription first, then fall back to profile plan type, then default to seed
+        const subPlan = subscriptionMap.get(p.userId);
+        const profilePlan = (p.planType || '').toLowerCase();
+        
+        let plan = 'seed'; // Default
+        
+        if (subPlan) {
+          plan = subPlan;
+        } else if (profilePlan === 'edge' || profilePlan === 'quantum') {
+          plan = profilePlan;
+        }
+        
+        if (plan === 'seed') counts.seed++;
+        else if (plan === 'edge') counts.edge++;
+        else if (plan === 'quantum') counts.quantum++;
+      });
+      
+      return [
+        { name: 'Seed', value: counts.seed, fill: PLAN_COLORS.seed },
+        { name: 'Edge', value: counts.edge, fill: PLAN_COLORS.edge },
+        { name: 'Quantum', value: counts.quantum, fill: PLAN_COLORS.quantum },
+      ];
     },
-    [filteredProfiles]
+    [filteredProfiles, subscriptions]
   );
 
   const accountData = useMemo(
@@ -305,7 +339,7 @@ export function UserDemographics() {
 
   const signupSeries = useMemo(() => buildSignupSeries(filteredProfiles), [filteredProfiles]);
 
-  if (loading) {
+  if (loading || subscriptionsLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2">
         <Skeleton className="h-80 w-full" />
@@ -397,11 +431,11 @@ export function UserDemographics() {
         </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="col-span-2">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <Globe2 className="h-4 w-4" />
-                User Demographics by Continent
+                User Demographics by Region
               </CardTitle>
             </CardHeader>
             <CardContent className="h-[350px]">
@@ -465,67 +499,41 @@ export function UserDemographics() {
             <CardHeader className="items-center pb-0">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <PieChartIcon className="h-4 w-4" />
-                Plan types
+                Subscription Plans Distribution
               </CardTitle>
             </CardHeader>
-            <CardContent className="h-[300px]">
+            <CardContent className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={planData}
-                  layout="vertical"
-                  margin={{ top: 0, right: 30, left: 10, bottom: 0 }}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} vertical={false} />
-                  <XAxis type="number" hide />
-                  <YAxis 
-                    type="category" 
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
+                  <XAxis 
                     dataKey="name" 
                     tickLine={false}
                     axisLine={false}
-                    width={80}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: '#888' }}
+                  />
+                  <YAxis 
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 12, fill: '#888' }}
                   />
                   <Tooltip
                     cursor={{ fill: 'transparent' }}
-                    contentStyle={{ background: 'rgba(255,255,255,0.9)', border: 'none', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', borderRadius: '8px' }}
+                    contentStyle={{ background: '#1e1e1e', border: '1px solid #333', borderRadius: '8px', color: '#fff' }}
+                    itemStyle={{ color: '#fff' }}
+                    labelStyle={{ color: '#aaa', marginBottom: '0.5rem' }}
                   />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={30}>
-                    <LabelList dataKey="value" position="right" fontSize={12} fill="#666" formatter={(val: number) => val > 0 ? val : ''} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={50}>
+                    <LabelList dataKey="value" position="top" fontSize={12} fill="#888" formatter={(val: number) => val > 0 ? val : ''} />
                     {planData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold">Subscription Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-4">
-                  <Calendar className="h-4 w-4" />
-                  Monthly Subscriptions
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { name: 'Seed', label: 'Seed (Free)', price: null },
-                    { name: 'Edge', label: 'Edge ($7.99)', price: 7.99 },
-                    { name: 'Quantum', label: 'Quantum ($14.99)', price: 14.99 },
-                  ].map((plan) => {
-                    const count = planData.find(p => p.name.toLowerCase() === plan.name.toLowerCase())?.value || 0;
-                    return (
-                      <div key={plan.name} className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border/50">
-                        <span className="font-medium text-sm text-foreground/80">{plan.label}</span>
-                        <span className="font-bold text-lg">{count.toLocaleString()}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
