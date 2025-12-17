@@ -100,8 +100,15 @@ export function createCreditsHtmlTemplate(
 <table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f5f5f5" style="background-color:#f5f5f5;">
 <tbody>
 <tr>
-<td style="padding:40px 20px">
-<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;margin:0 auto;background-color:#E0693D;${bgImageStyle}border-radius:20px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+<td style="padding:24px 8px">
+<table align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation"
+style="
+  max-width:860px;
+  margin:0 auto;
+  background-color:#27584F;
+  ${bgImageStyle}
+  padding:40px 36px;
+">
 <tbody>
 <tr>
 <td>
