@@ -27,7 +27,7 @@ export function LogoutButton() {
       className="flex items-center gap-2 border-neon-orange text-neon-orange hover:bg-neon-orange hover:text-black"
     >
       <LogOut className="h-4 w-4" />
-      Logout
+      
     </Button>
   );
 }

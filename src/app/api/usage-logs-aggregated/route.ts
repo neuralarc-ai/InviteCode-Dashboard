@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// Helper to determine user type
+const getUserType = (email: string | undefined): 'internal' | 'external' => {
+  if (!email) return 'external';
+  const lower = email.toLowerCase();
+  if (lower.endsWith('@he2.ai') || lower.endsWith('@neuralarc.ai')) return 'internal';
+  return 'external';
+};
+
 // Fallback function for JS aggregation if SQL function is broken
 async function fetchAndAggregateManually(
   page: number, 
@@ -99,7 +107,7 @@ async function fetchAndAggregateManually(
   // 5. Fetch user details (names/emails) - Batch fetch
   const userIds = aggregatedUsers.map(u => u.user_id);
   
-  // Try to get profiles
+  // Try to get profiles for names
   const { data: profiles } = await supabaseAdmin
     .from('user_profiles')
     .select('user_id, full_name')
@@ -107,37 +115,75 @@ async function fetchAndAggregateManually(
     
   const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
 
-  // Try to get emails from auth (if possible, otherwise rely on previous data or just IDs)
-  // Note: We can't easily join auth.users in client/admin client without RPC usually, 
-  // but we can try listing users if permissions allow, or skip email if strictly necessary.
-  // For now, we'll try to fetch emails via admin API if possible, or just leave as placeholders
-  // if we can't efficiently batch fetch them without the RPC.
-  // Ideally, we'd use the `listUsers` admin method but that's pagination heavy.
-  // We'll skip complex email fetching in fallback to keep it simple/fast enough.
+  // Fetch emails from auth.users (Paginated)
+  const userIdToEmail = new Map<string, string>();
+  if (supabaseAdmin) {
+    let pageNum = 1;
+    const perPage = 1000;
+    let hasMoreUsers = true;
+    
+    try {
+      while (hasMoreUsers) {
+        const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+          page: pageNum,
+          perPage: perPage
+        });
+        
+        if (authError || !authUsers?.users || authUsers.users.length === 0) {
+          hasMoreUsers = false;
+          break;
+        }
+        
+        authUsers.users.forEach(user => {
+          if (user.email) {
+             userIdToEmail.set(user.id, user.email);
+          }
+        });
+        
+        if (authUsers.users.length < perPage) {
+          hasMoreUsers = false;
+        }
+        pageNum++;
+      }
+    } catch (err) {
+      console.error('Error fetching auth users in fallback:', err);
+    }
+  }
+
+  // Update users with email and type
+  aggregatedUsers.forEach(u => {
+    // Name
+    if (profileMap.has(u.user_id)) {
+      u.user_name = profileMap.get(u.user_id);
+    }
+    
+    // Email & Type
+    const email = userIdToEmail.get(u.user_id);
+    if (email) {
+      u.user_email = email;
+      u.user_type = getUserType(email);
+    }
+  });
   
   // 6. Apply filters
   aggregatedUsers = aggregatedUsers.filter(user => {
     // Activity Filter
     if (activityFilter !== 'all' && user.activity_level !== activityFilter) return false;
     
+    // User Type Filter
+    if (userTypeFilter !== 'all' && user.user_type !== userTypeFilter) return false;
+    
     // Search Filter (basic implementation)
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const name = (profileMap.get(user.user_id) || user.user_name).toLowerCase();
+      const name = (user.user_name).toLowerCase();
       return name.includes(q) || user.user_id.includes(q);
     }
     
     return true;
   });
 
-  // Update names from profiles
-  aggregatedUsers.forEach(u => {
-    if (profileMap.has(u.user_id)) {
-      u.user_name = profileMap.get(u.user_id);
-    }
-  });
-
-  // 7. Calculate Grand Totals
+  // 7. Calculate Grand Totals (based on filtered data)
   const grandTotalTokens = aggregatedUsers.reduce((sum, u) => sum + u.total_tokens, 0);
   const grandTotalCost = aggregatedUsers.reduce((sum, u) => sum + u.total_estimated_cost, 0);
   const totalCount = aggregatedUsers.length;
@@ -205,7 +251,7 @@ export async function POST(request: Request) {
         limit,
       });
     }
-
+    
     // Use Supabase RPC function for server-side aggregation
     const { data: aggregatedData, error: rpcError } = await supabaseAdmin
       .rpc('get_aggregated_usage_logs', {
