@@ -7,7 +7,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <div className={cn("flex pb-4 px-6 mt-2", className)}>
       <Image
-        src="/images/Helium_logo.svg"
+        src="/images/Helium_Logo.svg"
         alt="Helium Logo"
         width={96}
         height={60}

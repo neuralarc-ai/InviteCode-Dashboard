@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   FileText,
   Activity,
+  PanelLeft,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -29,19 +30,17 @@ export function SharedSidebar() {
   const { toggleSidebar } = useSidebar();
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="flex flex-row items-center justify-between pb-2 pr-4">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      <SidebarHeader className="flex flex-row items-center justify-between pb-2 pr-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!pr-2">
         <div className="group-data-[collapsible=icon]:hidden">
           <Logo />
         </div>
         <button 
           onClick={toggleSidebar}
-          className="p-2 rounded-md hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
+          className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
           aria-label="Toggle Sidebar"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-            <path d="M21 3C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H21ZM20 5H4V19H20V5ZM18 7V17H16V7H18Z"></path>
-          </svg>
+          <PanelLeft className="w-4 h-4 mr-3" />
         </button>
       </SidebarHeader>
       <SidebarContent>

@@ -163,7 +163,12 @@ export function StatCardsRealtime() {
       icon: CreditCard,
       description: usageCreditsLoading 
         ? 'Loading...' 
-        : `External: ${formatCredits(externalCredits)} | Internal: ${formatCredits(internalCredits)}`,
+        : (
+          <>
+            <span>External: {formatCredits(externalCredits)}</span>
+            <span>Internal: {formatCredits(internalCredits)}</span>
+          </>
+        ),
     },
     {
       title: 'New Users Today',
@@ -190,8 +195,8 @@ export function StatCardsRealtime() {
             <stat.icon className={`h-4 w-4 text-${themeColors[index]}`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold text-${themeColors[index]}`}>{stat.value}</div>
-            <p className="text-lg text-muted-foreground">{stat.description}</p>
+            <div className={`text-2xl font-bold text-${themeColors[index]} `}>{stat.value}</div>
+            <p className="text-lg text-muted-foreground flex flex-col gap-0.5">{stat.description}</p>
           </CardContent>
         </Card>
       ))}
