@@ -35,7 +35,7 @@ const DATE_RANGE_OPTIONS: { label: string; value: DateRangeKey; days?: number }[
   { label: 'All time', value: 'all' },
 ];
 
-const COLORS = ['#A6C8D5', '#EFB25E', '#A69CBE', '#EEDBCD', '#E0693D'];
+const COLORS = ['#FFFFFF', '#E4E4E7', '#A1A1AA', '#71717A', '#3F3F46'];
 
 // Continent Mapping
 const CONTINENT_MAPPING: Record<string, string> = {
@@ -60,13 +60,13 @@ const CONTINENT_MAPPING: Record<string, string> = {
 };
 
 const CONTINENT_COLORS: Record<string, string> = {
-  'North America': '#3b82f6', // Blue
-  'Europe': '#10b981',        // Green
-  'Asia': '#f59e0b',          // Amber
-  'South America': '#ef4444', // Red
-  'Africa': '#8b5cf6',        // Purple
-  'Oceania': '#ec4899',       // Pink
-  'Unknown': '#9ca3af',       // Gray
+  'North America': '#FFFFFF', // White
+  'Europe': '#E4E4E7',        // Zinc 200
+  'Asia': '#A1A1AA',          // Zinc 400
+  'South America': '#71717A', // Zinc 500
+  'Africa': '#52525B',        // Zinc 600
+  'Oceania': '#3F3F46',       // Zinc 700
+  'Unknown': '#27272A',       // Zinc 800
 };
 
 const getUserType = (email: string | undefined): 'internal' | 'external' => {
@@ -139,10 +139,10 @@ function ChartCard({
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  seed: '#A6C8D5',
-  edge: '#EFB25E',
-  quantum: '#A69CBE',
-  unknown: '#EEDBCD',
+  seed: '#FFFFFF',
+  edge: '#A1A1AA',
+  quantum: '#52525B',
+  unknown: '#27272A',
 };
 
 const chartConfig = {
