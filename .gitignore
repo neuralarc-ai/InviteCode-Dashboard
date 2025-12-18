@@ -47,3 +47,6 @@ firestore-debug.log
 .env
 .env.*
 !.env.example
+
+# .gitignore
+helium-0086-f896f70d1ec1.json

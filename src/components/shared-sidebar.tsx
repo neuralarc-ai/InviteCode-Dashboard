@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   FileText,
   Activity,
+  BarChart,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -107,6 +108,14 @@ export function SharedSidebar() {
               <Link href="/recent-activities">
                 <Activity />
                 <span>Recent Activities</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Analytics">
+              <Link href="/analytics">
+                <BarChart />
+                <span>Analytics</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
