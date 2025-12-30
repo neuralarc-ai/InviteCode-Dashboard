@@ -251,8 +251,10 @@ export function useUserProfiles() {
         try {
             const cached = await dbOperations.getAll('user_profiles');
             if (cached && cached.length > 0) {
-                setLoading(false);
+                // Show cached data immediately for better UX
                 setUserProfiles(cached);
+                // DON'T set loading = false here - wait for fresh data
+                // This prevents showing incorrect cached count before fresh data arrives
             }
         } catch (e) { console.warn(e); }
     };
@@ -275,31 +277,44 @@ export function useUserProfiles() {
           table: tableName,
         },
         async (payload) => {
-          console.log('Real-time user profiles update (Delta):', payload);
-          
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              // Fetch email for this user
-              const userId = payload.new.user_id;
-              const emailMap = await fetchEmailsForUsers([userId]);
-              const email = emailMap.get(userId);
-              const newProfile = transformRow(payload.new, email);
-              
-              if (payload.eventType === 'INSERT') {
-                  setUserProfiles(prev => [newProfile, ...prev]);
-                  await dbOperations.put('user_profiles', newProfile);
-              } else {
-                  setUserProfiles(prev => prev.map(p => p.id === newProfile.id ? newProfile : p));
-                  await dbOperations.put('user_profiles', newProfile);
-              }
+          try {
+            console.log('Real-time user profiles update (Delta):', payload);
+            
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                // Fetch email for this user
+                const userId = payload.new.user_id;
+                const emailMap = await fetchEmailsForUsers([userId]);
+                const email = emailMap.get(userId);
+                const newProfile = transformRow(payload.new, email);
+                
+                if (payload.eventType === 'INSERT') {
+                    setUserProfiles(prev => [newProfile, ...prev]);
+                    await dbOperations.put('user_profiles', newProfile);
+                } else {
+                    setUserProfiles(prev => prev.map(p => p.id === newProfile.id ? newProfile : p));
+                    await dbOperations.put('user_profiles', newProfile);
+                }
 
-          } else if (payload.eventType === 'DELETE') {
-              const deletedId = payload.old.id;
-              setUserProfiles(prev => prev.filter(p => p.id !== deletedId));
-              await dbOperations.delete('user_profiles', deletedId);
+            } else if (payload.eventType === 'DELETE') {
+                const deletedId = payload.old.id;
+                setUserProfiles(prev => prev.filter(p => p.id !== deletedId));
+                await dbOperations.delete('user_profiles', deletedId);
+            }
+          } catch (error) {
+            console.error('Error handling realtime update for user_profiles:', error);
+            setError(`Realtime update error: ${error instanceof Error ? error.message : 'Unknown error'}`);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Subscribed to user_profiles realtime changes');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Only log once to prevent spam
+          console.warn('⚠️ Realtime not available for user_profiles. This is normal if realtime isn\'t enabled. The app will still work with manual refresh.');
+          // DO NOT set error state or unsubscribe here - it can cause issues
+        }
+      });
 
     return () => {
       subscription.unsubscribe();
@@ -308,5 +323,9 @@ export function useUserProfiles() {
 
   return { userProfiles, loading, error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles };
 }
+
+
+
+
 
 

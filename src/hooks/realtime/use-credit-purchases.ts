@@ -126,59 +126,121 @@ export function useCreditPurchases() {
     // 2. Fetch Fresh
     fetchCreditPurchases();
 
-    // 3. Realtime
-    const subscription = supabase
-      .channel('credit_purchases_changes_optimized')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'credit_purchases' },
-        async (payload) => {
-            console.log('Real-time credit purchases update (Delta):', payload);
-            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                const row = payload.new;
-                // Basic transform without metadata fetch for speed
-                const newItem: CreditPurchase = {
-                    id: row.id,
-                    userId: row.user_id,
-                    amountDollars: parseFloat(row.amount_dollars),
-                    stripePaymentIntentId: row.stripe_payment_intent_id,
-                    stripeChargeId: row.stripe_charge_id,
-                    status: row.status,
-                    description: row.description,
-                    metadata: row.metadata || {},
-                    createdAt: new Date(row.created_at),
-                    completedAt: row.completed_at ? new Date(row.completed_at) : null,
-                    expiresAt: row.expires_at ? new Date(row.expires_at) : null,
-                    userEmail: 'Fetching...', 
-                    userName: 'Fetching...',
-                };
+    // 3. Realtime - Try to detect which table name exists
+    let tableName: string | null = null;
+    let subscription: any = null;
 
-                setCreditPurchases(prev => {
-                    const updated = payload.eventType === 'INSERT' 
-                        ? [newItem, ...prev]
-                        : prev.map(p => p.id === newItem.id ? newItem : p);
-                    
-                    dbOperations.put('credit_purchases', newItem);
-                    return updated;
-                });
-            } else if (payload.eventType === 'DELETE') {
-                const deletedId = payload.old.id;
-                setCreditPurchases(prev => {
-                    const updated = prev.filter(p => p.id !== deletedId);
-                    dbOperations.delete('credit_purchases', deletedId);
-                    return updated;
-                });
-            }
+    const setupRealtime = async () => {
+      // Try to determine which table exists
+      try {
+        // Try credit_purchases first (plural)
+        const { data: pluralCheck } = await supabase
+          .from('credit_purchases')
+          .select('*')
+          .limit(1);
+        
+        if (pluralCheck !== null) {
+          tableName = 'credit_purchases';
         }
-      )
-      .subscribe();
+      } catch (e) {
+        // Try credit_purchase (singular)
+        try {
+          const { data: singularCheck } = await supabase
+            .from('credit_purchase')
+            .select('*')
+            .limit(1);
+          
+          if (singularCheck !== null) {
+            tableName = 'credit_purchase';
+          }
+        } catch (e2) {
+          console.warn('Could not determine credit purchases table name, skipping realtime subscription');
+          return;
+        }
+      }
+
+      if (!tableName) return;
+
+      // Set up subscription with error handling
+      let hasLoggedWarning = false;
+      subscription = supabase
+        .channel(`credit_purchases_changes_${tableName}_optimized`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: tableName },
+          async (payload) => {
+            try {
+              console.log('Real-time credit purchases update (Delta):', payload);
+              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                  const row = payload.new;
+                  // Basic transform without metadata fetch for speed
+                  const newItem: CreditPurchase = {
+                      id: row.id,
+                      userId: row.user_id,
+                      amountDollars: parseFloat(row.amount_dollars),
+                      stripePaymentIntentId: row.stripe_payment_intent_id,
+                      stripeChargeId: row.stripe_charge_id,
+                      status: row.status,
+                      description: row.description,
+                      metadata: row.metadata || {},
+                      createdAt: new Date(row.created_at),
+                      completedAt: row.completed_at ? new Date(row.completed_at) : null,
+                      expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+                      userEmail: 'Fetching...', 
+                      userName: 'Fetching...',
+                  };
+
+                  setCreditPurchases(prev => {
+                      const updated = payload.eventType === 'INSERT' 
+                          ? [newItem, ...prev]
+                          : prev.map(p => p.id === newItem.id ? newItem : p);
+                      
+                      dbOperations.put('credit_purchases', newItem);
+                      return updated;
+                  });
+              } else if (payload.eventType === 'DELETE') {
+                  const deletedId = payload.old.id;
+                  setCreditPurchases(prev => {
+                      const updated = prev.filter(p => p.id !== deletedId);
+                      dbOperations.delete('credit_purchases', deletedId);
+                      return updated;
+                  });
+              }
+            } catch (error) {
+              console.error('Error handling realtime update for credit_purchases:', error);
+              // Don't set error state for realtime issues, just log
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log(`✅ Subscribed to ${tableName} realtime changes`);
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            // Only log once to prevent spam
+            if (!hasLoggedWarning) {
+              console.warn(`⚠️ Realtime not available for ${tableName}. This is normal if realtime isn't enabled. The app will still work with manual refresh.`);
+              hasLoggedWarning = true;
+            }
+            // DO NOT unsubscribe here - it causes infinite loop
+            // The cleanup function will handle unsubscribing
+          }
+        });
+    };
+
+    setupRealtime();
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
   return { creditPurchases, loading, error, refreshCreditPurchases };
 }
+
+
+
+
 
 

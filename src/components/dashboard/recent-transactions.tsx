@@ -66,13 +66,36 @@ export function RecentTransactions() {
         type = 'Renewal'; // or Upgrade
       }
 
-      // Estimate price based on plan (Placeholder logic)
+      // Calculate price based on plan type and name
+      // Monthly subscriptions: seed = $5, edge = $10
       let amount = 0;
-      const planInfo = `${sub.planName || ''} ${sub.planType || ''}`.toLowerCase();
-      if (planInfo.includes('quantum')) amount = 149.99;
-      else if (planInfo.includes('edge')) amount = 299.99;
-      else if (planInfo.includes('monthly_basic_inferred')) amount = 7.99;
-      else if (planInfo.includes('seed')) amount = 0;
+      const planName = (sub.planName || '').toLowerCase();
+      const planType = (sub.planType || '').toLowerCase();
+      const planInfo = `${planName} ${planType}`.toLowerCase();
+      
+      // Check planType first for monthly subscriptions
+      if (planType === 'seed') {
+        // Monthly seed subscription: $5
+        amount = 5;
+      }
+      else if (planType === 'edge') {
+        // Monthly edge subscription: $10
+        amount = 10;
+      }
+      // Other plans - keep existing values
+      else if (planInfo.includes('quantum')) {
+        amount = 149.99;
+      }
+      else if (planInfo.includes('monthly_basic_inferred')) {
+        amount = 7.99;
+      }
+      // Fallback: if planType is not set but planName contains seed/edge
+      else if (planName.includes('seed') && !planInfo.includes('quantum')) {
+        amount = 5; // Monthly seed price
+      }
+      else if (planName.includes('edge') && !planInfo.includes('quantum')) {
+        amount = 10; // Monthly edge price
+      }
       
       items.push({
         id: `sub-${sub.id}`,

@@ -76,43 +76,56 @@ export function useSubscriptions() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'subscriptions' },
         async (payload) => {
-             console.log('Real-time subscriptions update (Delta):', payload);
-             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                  const row = payload.new;
-                  const newItem: Subscription = {
-                    id: row.id,
-                    userId: row.user_id,
-                    stripeSubscriptionId: row.stripe_subscription_id,
-                    stripeCustomerId: row.stripe_customer_id,
-                    status: row.status,
-                    currentPeriodStart: row.current_period_start ? new Date(row.current_period_start) : null,
-                    currentPeriodEnd: row.current_period_end ? new Date(row.current_period_end) : null,
-                    trialEnd: row.trial_end ? new Date(row.trial_end) : null,
-                    planName: row.plan_name,
-                    planType: row.plan_type,
-                    monthlyCreditAllocation: row.monthly_credit_allocation,
-                    createdAt: new Date(row.created_at),
-                    updatedAt: new Date(row.updated_at),
-                  };
-                  
-                  setSubscriptions(prev => {
-                      const updated = payload.eventType === 'INSERT' 
-                        ? [newItem, ...prev]
-                        : prev.map(s => s.id === newItem.id ? newItem : s);
-                      dbOperations.put('subscriptions', newItem);
-                      return updated;
-                  });
-             } else if (payload.eventType === 'DELETE') {
-                  const deletedId = payload.old.id;
-                  setSubscriptions(prev => {
-                      const updated = prev.filter(s => s.id !== deletedId);
-                      dbOperations.delete('subscriptions', deletedId);
-                      return updated;
-                  });
-             }
+          try {
+            console.log('Real-time subscriptions update (Delta):', payload);
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                 const row = payload.new;
+                 const newItem: Subscription = {
+                   id: row.id,
+                   userId: row.user_id,
+                   stripeSubscriptionId: row.stripe_subscription_id,
+                   stripeCustomerId: row.stripe_customer_id,
+                   status: row.status,
+                   currentPeriodStart: row.current_period_start ? new Date(row.current_period_start) : null,
+                   currentPeriodEnd: row.current_period_end ? new Date(row.current_period_end) : null,
+                   trialEnd: row.trial_end ? new Date(row.trial_end) : null,
+                   planName: row.plan_name,
+                   planType: row.plan_type,
+                   monthlyCreditAllocation: row.monthly_credit_allocation,
+                   createdAt: new Date(row.created_at),
+                   updatedAt: new Date(row.updated_at),
+                 };
+                 
+                 setSubscriptions(prev => {
+                     const updated = payload.eventType === 'INSERT' 
+                       ? [newItem, ...prev]
+                       : prev.map(s => s.id === newItem.id ? newItem : s);
+                     dbOperations.put('subscriptions', newItem);
+                     return updated;
+                 });
+            } else if (payload.eventType === 'DELETE') {
+                 const deletedId = payload.old.id;
+                 setSubscriptions(prev => {
+                     const updated = prev.filter(s => s.id !== deletedId);
+                     dbOperations.delete('subscriptions', deletedId);
+                     return updated;
+                 });
+            }
+          } catch (error) {
+            console.error('Error handling realtime update for subscriptions:', error);
+            setError(`Realtime update error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Subscribed to subscriptions realtime changes');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Only log once to prevent spam
+          console.warn('⚠️ Realtime not available for subscriptions. This is normal if realtime isn\'t enabled. The app will still work with manual refresh.');
+          // DO NOT set error state or unsubscribe here - it can cause issues
+        }
+      });
 
     return () => {
       subscription.unsubscribe();
@@ -121,5 +134,9 @@ export function useSubscriptions() {
 
   return { subscriptions, loading, error, refreshSubscriptions };
 }
+
+
+
+
 
 

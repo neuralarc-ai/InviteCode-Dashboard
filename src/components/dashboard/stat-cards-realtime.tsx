@@ -114,12 +114,55 @@ export function StatCardsRealtime() {
       ...subscriptions.map(sub => sub.userId)
     ]);
 
+    // Calculate total revenue from credit purchases (completed payments only)
+    const creditPurchaseRevenue = creditPurchases
+      .filter(purchase => purchase.status === 'completed')
+      .reduce((sum, purchase) => sum + purchase.amountDollars, 0);
+
+    // Calculate total revenue from subscriptions
+    const subscriptionRevenue = subscriptions.reduce((sum, sub) => {
+      const planName = (sub.planName || '').toLowerCase();
+      const planType = (sub.planType || '').toLowerCase();
+      const planInfo = `${planName} ${planType}`.toLowerCase();
+      
+      let amount = 0;
+      // Check planType first for monthly subscriptions
+      if (planType === 'seed') {
+        amount = 5; // Monthly seed subscription: $5
+      }
+      else if (planType === 'edge') {
+        amount = 10; // Monthly edge subscription: $10
+      }
+      // Other plans - keep existing values
+      else if (planInfo.includes('quantum')) {
+        amount = 149.99;
+      }
+      else if (planInfo.includes('monthly_basic_inferred')) {
+        amount = 7.99;
+      }
+      // Fallback: if planType is not set but planName contains seed/edge
+      else if (planName.includes('seed') && !planInfo.includes('quantum')) {
+        amount = 5; // Monthly seed price
+      }
+      else if (planName.includes('edge') && !planInfo.includes('quantum')) {
+        amount = 10; // Monthly edge price
+      }
+      
+      return sum + amount;
+    }, 0);
+
+    // Total Helium Revenue = Credit Purchases + Subscriptions
+    const totalRevenue = creditPurchaseRevenue + subscriptionRevenue;
+
     return {
       totalUsers: userProfiles.length,
       totalCredits: creditBalances.reduce((sum, balance) => sum + Math.round(balance.balanceDollars * 100), 0),
       newUsersToday: userProfiles.filter(user => user.createdAt >= today).length,
       paidUsers: paidUserIds.size,
       totalBalance: creditBalances.reduce((sum, balance) => sum + balance.balanceDollars, 0),
+      totalRevenue: totalRevenue,
+      creditPurchaseRevenue: creditPurchaseRevenue,
+      subscriptionRevenue: subscriptionRevenue,
     };
   }, [userProfiles, creditBalances, creditPurchases, subscriptions]);
 
@@ -133,8 +176,8 @@ export function StatCardsRealtime() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
           <Card key={i} className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="h-4 w-20 bg-muted animate-pulse rounded" />
@@ -150,6 +193,16 @@ export function StatCardsRealtime() {
     );
   }
 
+  // Format currency for revenue
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
   const statCards = [
     {
       title: 'Total Users',
@@ -163,7 +216,13 @@ export function StatCardsRealtime() {
       icon: CreditCard,
       description: usageCreditsLoading 
         ? 'Loading...' 
-        : `External: ${formatCredits(externalCredits)} | Internal: ${formatCredits(internalCredits)}`,
+        : (
+          <>
+            External: {formatCredits(externalCredits)}
+            <br />
+            Internal: {formatCredits(internalCredits)}
+          </>
+        ),
     },
     {
       title: 'New Users Today',
@@ -177,12 +236,24 @@ export function StatCardsRealtime() {
       icon: DollarSign,
       description: 'Made a purchase',
     },
+    {
+      title: 'Helium Revenue',
+      value: formatCurrency(stats.totalRevenue),
+      icon: TrendingUp,
+      description: (
+        <>
+          Purchases: {formatCurrency(stats.creditPurchaseRevenue)}
+          <br />
+          Subscriptions: {formatCurrency(stats.subscriptionRevenue)}
+        </>
+      ),
+    },
   ];
 
-  const themeColors = ['primary', 'secondary', 'muted', 'accent'];
+  const themeColors = ['primary', 'secondary', 'muted', 'accent', 'primary'];
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
       {statCards.map((stat, index) => (
         <Card key={stat.title} className="bg-card border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

@@ -400,11 +400,24 @@ The Helium Team 🌟`
         'postgres_changes',
         { event: '*', schema: 'public', table: 'usage_logs' },
         (payload) => {
-          const record = payload.new || payload.old;
-          if (record) debouncedUpdate();
+          try {
+            const record = payload.new || payload.old;
+            if (record) debouncedUpdate();
+          } catch (error) {
+            console.error('Error handling realtime update for usage_logs:', error);
+            setError(`Realtime update error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Subscribed to usage_logs realtime changes');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Only log once to prevent spam
+          console.warn('⚠️ Realtime not available for usage_logs. This is normal if realtime isn\'t enabled. The app will still work with manual refresh.');
+          // DO NOT set error state or unsubscribe here - it can cause issues
+        }
+      });
 
     const creditPurchasesSubscription = supabase
       .channel('credit_purchases_changes_logs')
@@ -412,13 +425,26 @@ The Helium Team 🌟`
         'postgres_changes',
         { event: '*', schema: 'public', table: 'credit_purchases' },
         (payload) => {
-          const newRecord = payload.new as any;
-          if (newRecord?.status === 'completed' || payload.eventType === 'DELETE') {
-            debouncedUpdate();
+          try {
+            const newRecord = payload.new as any;
+            if (newRecord?.status === 'completed' || payload.eventType === 'DELETE') {
+              debouncedUpdate();
+            }
+          } catch (error) {
+            console.error('Error handling realtime update for credit_purchases (usage_logs):', error);
+            // Don't set error state for realtime issues, just log
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Subscribed to credit_purchases realtime changes (for usage_logs)');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Only log once to prevent spam
+          console.warn('⚠️ Realtime not available for credit_purchases (usage_logs). This is normal if realtime isn\'t enabled.');
+          // DO NOT unsubscribe here - it can cause issues
+        }
+      });
 
     return () => {
       if (updateTimeout) clearTimeout(updateTimeout);
@@ -465,5 +491,9 @@ The Helium Team 🌟`
     timeRange
   };
 }
+
+
+
+
 
 
