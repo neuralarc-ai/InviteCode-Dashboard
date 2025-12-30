@@ -618,6 +618,7 @@ The AI Team`);
               <p className="text-sm text-muted-foreground mt-1">
                 Overall Total Credits: <span className="font-semibold text-foreground">{formatNumberWithDecimals(overallTotalCredits)}</span>
               </p>
+              
             </div>
           </PageHeader>
           <main className="flex-1 space-y-6 p-4 md:p-6">
