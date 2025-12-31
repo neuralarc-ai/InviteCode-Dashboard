@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getNameFromEmail } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -141,40 +142,79 @@ export async function GET(request: NextRequest) {
     const userIdToName = new Map<string, string>();
 
     if (userIds.length > 0) {
-      // Step 1: Fetch user emails from auth.users
+      // Step 1: Fetch user emails from auth.users with pagination (same logic as fetch-user-emails endpoint)
       try {
-        const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+        let allAuthUsers: any[] = [];
+        let page = 1;
+        const perPage = 1000;
         
-        if (authError) {
-          console.warn('Error fetching auth users:', authError);
-        } else if (authUsers?.users) {
-          authUsers.users.forEach(user => {
-            if (user.email && userIds.includes(user.id)) {
-              userIdToEmail.set(user.id, user.email);
-              // Try to get name from auth metadata as fallback
-              const authName = 
-                user.user_metadata?.full_name ||
-                user.user_metadata?.name ||
-                user.user_metadata?.display_name ||
-                (user.user_metadata?.first_name && user.user_metadata?.last_name
-                  ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
-                  : user.user_metadata?.first_name || user.user_metadata?.last_name);
-              if (authName) {
-                userIdToName.set(user.id, authName);
-              }
-            }
+        // Fetch all pages of auth users
+        while (true) {
+          const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+            page: page,
+            perPage: perPage
           });
-          console.log(`Mapped ${userIdToEmail.size} user emails from auth.users`);
+
+          if (authError) {
+            console.warn('Error fetching auth users page:', authError);
+            break;
+          }
+
+          if (!authUsers?.users || authUsers.users.length === 0) {
+            break;
+          }
+
+          allAuthUsers = allAuthUsers.concat(authUsers.users);
+
+          // If we got fewer users than perPage, we've reached the end
+          if (authUsers.users.length < perPage) {
+            break;
+          }
+
+          page++;
         }
+
+        console.log(`Fetched ${allAuthUsers.length} total auth users across ${page} page(s)`);
+
+        // Process all auth users and match with requested userIds
+        allAuthUsers.forEach(user => {
+          if (user.email && userIds.includes(user.id)) {
+            userIdToEmail.set(user.id, user.email);
+            
+            // Try to get name from auth metadata (comprehensive check)
+            const authName = 
+              user.display_name ||
+              user.user_metadata?.full_name ||
+              user.user_metadata?.name ||
+              user.user_metadata?.display_name ||
+              (user.user_metadata?.first_name && user.user_metadata?.last_name
+                ? `${user.user_metadata.first_name} ${user.user_metadata.last_name}`
+                : user.user_metadata?.first_name || user.user_metadata?.last_name ||
+              user.user_metadata?.given_name ||
+              user.user_metadata?.family_name ||
+              (user.user_metadata?.given_name && user.user_metadata?.family_name
+                ? `${user.user_metadata.given_name} ${user.user_metadata.family_name}`
+                : null) ||
+              user.user_metadata?.preferred_username ||
+              user.user_metadata?.nickname);
+              
+            if (authName) {
+              userIdToName.set(user.id, authName);
+            }
+          }
+        });
+        
+        console.log(`Mapped ${userIdToEmail.size} user emails from auth.users`);
       } catch (err) {
         console.warn('Failed to fetch user emails from auth.users:', err);
       }
 
       // Step 2: Fetch user names from user_profiles table (highest priority)
+      // Also check if we can get any email-related info from metadata
       try {
         const { data: profilesData, error: profilesError } = await supabaseAdmin
           .from('user_profiles')
-          .select('user_id, full_name, preferred_name')
+          .select('user_id, full_name, preferred_name, metadata')
           .in('user_id', userIds);
 
         if (profilesError) {
@@ -184,6 +224,14 @@ export async function GET(request: NextRequest) {
             const displayName = profile.preferred_name || profile.full_name;
             if (displayName) {
               userIdToName.set(profile.user_id, displayName);
+            }
+            // Check metadata for email if not already found
+            if (!userIdToEmail.has(profile.user_id) && profile.metadata) {
+              const emailFromMetadata = profile.metadata.email || profile.metadata.userEmail;
+              if (emailFromMetadata && typeof emailFromMetadata === 'string') {
+                userIdToEmail.set(profile.user_id, emailFromMetadata);
+                console.log(`Found email in metadata for user ${profile.user_id}`);
+              }
             }
           });
           console.log(`Mapped ${profilesData.length} user names from user_profiles`);
@@ -228,22 +276,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Add user email and name to each balance
-    // Priority for name: user_profiles > auth metadata > waitlist > email username > User ID
+    // Priority for name: user_profiles > auth metadata > waitlist > email extraction > User ID
     const balancesWithUsers = transformedData.map(balance => {
       const email = userIdToEmail.get(balance.userId) || 'Email not available';
       let userName = userIdToName.get(balance.userId);
       
-      // If no name found, try to extract from email
-      if (!userName && email !== 'Email not available') {
-        const emailName = email.split('@')[0];
-        // If email name looks reasonable (not too short, starts with letter)
-        if (emailName.length > 2 && /^[a-zA-Z]/.test(emailName)) {
-          userName = emailName.charAt(0).toUpperCase() + emailName.slice(1).replace(/[._-]/g, ' ');
-        }
+      // If no name found, or name is just "User", try to extract from email
+      if ((!userName || userName.trim() === '' || userName.trim().toLowerCase() === 'user' || userName.startsWith('User ')) && email !== 'Email not available') {
+        userName = getNameFromEmail(email);
       }
       
-      // Final fallback
-      if (!userName) {
+      // Final fallback - ensure we never show "Email not available" as a name
+      // Always show a proper user identifier
+      if (!userName || userName.trim() === '' || userName.trim().toLowerCase() === 'user' || userName === 'Email not available') {
+        // Use a shortened user ID as the name
         userName = `User ${balance.userId.slice(0, 8)}`;
       }
 

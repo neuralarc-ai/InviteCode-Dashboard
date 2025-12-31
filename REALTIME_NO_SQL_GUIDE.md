@@ -75,3 +75,4 @@ These functions can be called from your application via the Supabase client, so 
 
 The initial setup script (`enable-realtime-via-rpc.sql`) also **automatically enables realtime** for any existing tables, so you might not even need to do anything after running it!
 
+

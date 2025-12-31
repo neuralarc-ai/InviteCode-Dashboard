@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { CreditBalance } from '@/lib/types';
 import { dbOperations } from '@/lib/db';
+import { getNameFromEmail } from '@/lib/utils';
 
 export function useCreditBalances() {
   const [creditBalances, setCreditBalances] = useState<(CreditBalance & { userEmail?: string; userName?: string })[]>([]);
@@ -29,16 +30,30 @@ export function useCreditBalances() {
 
       const data = result.data || [];
       
-      const transformedBalances = data.map((balance: any) => ({
-        userId: balance.userId,
-        balanceDollars: parseFloat(balance.balanceDollars) || 0,
-        totalPurchased: parseFloat(balance.totalPurchased) || 0,
-        totalUsed: parseFloat(balance.totalUsed) || 0,
-        lastUpdated: balance.lastUpdated ? new Date(balance.lastUpdated) : new Date(),
-        metadata: balance.metadata || {},
-        userEmail: balance.userEmail || 'Email not available',
-        userName: balance.userName || `User ${balance.userId.slice(0, 8)}`,
-      }));
+      const transformedBalances = data.map((balance: any) => {
+        const email = balance.userEmail || 'Email not available';
+        let userName = balance.userName;
+        
+        // If userName is missing, empty, or just "User", extract from email
+        if (!userName || userName.trim() === '' || userName.trim().toLowerCase() === 'user' || userName.startsWith('User ')) {
+          if (email !== 'Email not available') {
+            userName = getNameFromEmail(email);
+          } else {
+            userName = `User ${balance.userId.slice(0, 8)}`;
+          }
+        }
+        
+        return {
+          userId: balance.userId,
+          balanceDollars: parseFloat(balance.balanceDollars) || 0,
+          totalPurchased: parseFloat(balance.totalPurchased) || 0,
+          totalUsed: parseFloat(balance.totalUsed) || 0,
+          lastUpdated: balance.lastUpdated ? new Date(balance.lastUpdated) : new Date(),
+          metadata: balance.metadata || {},
+          userEmail: email,
+          userName: userName,
+        };
+      });
 
       setCreditBalances(transformedBalances);
       setError(null);
@@ -89,6 +104,18 @@ export function useCreditBalances() {
                   // We need existing userEmail/Name if possible
                   setCreditBalances(prev => {
                       const existing = prev.find(b => b.userId === row.user_id);
+                      const email = existing?.userEmail || 'Fetching...';
+                      let userName = existing?.userName;
+                      
+                      // If userName is missing or generic, try to extract from email
+                      if (!userName || userName === 'Fetching...' || userName.trim() === '' || userName.trim().toLowerCase() === 'user' || userName.startsWith('User ')) {
+                          if (email && email !== 'Fetching...' && email !== 'Email not available') {
+                              userName = getNameFromEmail(email);
+                          } else {
+                              userName = 'Fetching...';
+                          }
+                      }
+                      
                       const newBalance = {
                           userId: row.user_id,
                           balanceDollars: parseFloat(row.balance_dollars) || 0,
@@ -96,8 +123,8 @@ export function useCreditBalances() {
                           totalUsed: parseFloat(row.total_used) || 0,
                           lastUpdated: new Date(),
                           metadata: row.metadata || {},
-                          userEmail: existing?.userEmail || 'Fetching...',
-                          userName: existing?.userName || 'Fetching...',
+                          userEmail: email,
+                          userName: userName,
                       };
                       
                       const updatedList = payload.eventType === 'INSERT'

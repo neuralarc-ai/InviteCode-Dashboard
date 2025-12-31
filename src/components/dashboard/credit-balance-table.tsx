@@ -16,6 +16,7 @@ import { Search, RefreshCw, User, DollarSign, Calendar, ChevronLeft, ChevronRigh
 import { useCreditBalances } from '@/hooks/use-realtime-data';
 import { useToast } from '@/hooks/use-toast';
 import { CreditAssignmentDialog } from './credit-assignment-dialog';
+import { getNameFromEmail } from '@/lib/utils';
 
 export function CreditBalanceTable() {
   const { creditBalances, loading, error, refreshCreditBalances } = useCreditBalances();
@@ -93,9 +94,17 @@ export function CreditBalanceTable() {
   };
 
   const handleAssignCredits = (balance: typeof creditBalances[0]) => {
+    // Determine the best name to use
+    let userName = balance.userName;
+    if (!userName || userName.trim() === '' || userName.trim().toLowerCase() === 'user' || userName.startsWith('User ')) {
+      userName = balance.userEmail && balance.userEmail !== 'Email not available'
+        ? getNameFromEmail(balance.userEmail)
+        : `User ${balance.userId.slice(0, 8)}`;
+    }
+    
     setSelectedBalance({
       userId: balance.userId,
-      userName: balance.userName || `User ${balance.userId.slice(0, 8)}`,
+      userName: userName,
       userEmail: balance.userEmail || 'Email not available'
     });
     setCreditDialogOpen(true);
@@ -219,7 +228,11 @@ export function CreditBalanceTable() {
                           <User className="h-4 w-4 text-primary" />
                         </div>
                         <div>
-                          <div className="font-medium">{balance.userName}</div>
+                          <div className="font-medium">
+                            {balance.userName && balance.userName.trim() !== '' && balance.userName.trim().toLowerCase() !== 'user' && !balance.userName.startsWith('User ')
+                              ? balance.userName
+                              : getNameFromEmail(balance.userEmail)}
+                          </div>
                         </div>
                       </div>
                     </TableCell>

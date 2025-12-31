@@ -124,3 +124,4 @@ ORDER BY tablename;
 --    CREATE PUBLICATION supabase_realtime FOR ALL TABLES;
 --    (Note: This is usually done automatically by Supabase)
 
+

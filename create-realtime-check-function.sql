@@ -27,3 +27,4 @@ GRANT EXECUTE ON FUNCTION check_realtime_tables(text[]) TO anon;
 -- Test the function
 -- SELECT check_realtime_tables(ARRAY['user_profiles', 'subscriptions', 'credit_purchases', 'usage_logs']);
 
+

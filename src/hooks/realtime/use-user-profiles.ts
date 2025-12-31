@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 import type { UserProfile } from '@/lib/types';
 import { dbOperations } from '@/lib/db';
+import { getNameFromEmail } from '@/lib/utils';
 
 export function useUserProfiles() {
   const [userProfiles, setUserProfiles] = useState<UserProfile[]>([]);
@@ -49,27 +50,44 @@ export function useUserProfiles() {
       return userIdToEmail;
   };
 
-  const transformRow = (row: any, email?: string): UserProfile => ({
-    id: row.id,
-    userId: row.user_id,
-    fullName: row.full_name,
-    preferredName: row.preferred_name,
-    workDescription: row.work_description,
-    personalReferences: row.personal_references,
-    countryName: row.country_name || row.country || row.metadata?.countryName || row.metadata?.country || null,
-    countryCode: row.country_code || row.countryCode || row.metadata?.countryCode || null,
-    regionName: row.region || row.state || row.region_name || row.metadata?.region || row.metadata?.state || null,
-    createdAt: new Date(row.created_at),
-    updatedAt: new Date(row.updated_at),
-    avatarUrl: row.avatar_url,
-    referralSource: row.referral_source,
-    consentGiven: row.consent_given,
-    consentDate: row.consent_date ? new Date(row.consent_date) : null,
-    email: email || 'Email not available',
-    metadata: row.metadata || null,
-    planType: row.plan_type || 'seed',
-    accountType: row.account_type || 'individual',
-  });
+  const transformRow = (row: any, email?: string): UserProfile => {
+    // Determine the full name - use email extraction if name is missing, empty, or just "User"
+    let fullName = row.full_name;
+    const emailValue = email || 'Email not available';
+    
+    // Check if fullName is missing, empty, or just "User" (case-insensitive)
+    if (!fullName || fullName.trim() === '' || fullName.trim().toLowerCase() === 'user') {
+      // Extract name from email only if email is available and valid
+      if (email && email !== 'Email not available' && email.includes('@')) {
+        fullName = getNameFromEmail(email);
+      } else {
+        // If email is not available, keep the original value or use a fallback
+        fullName = fullName || 'User';
+      }
+    }
+    
+    return {
+      id: row.id,
+      userId: row.user_id,
+      fullName: fullName,
+      preferredName: row.preferred_name,
+      workDescription: row.work_description,
+      personalReferences: row.personal_references,
+      countryName: row.country_name || row.country || row.metadata?.countryName || row.metadata?.country || null,
+      countryCode: row.country_code || row.countryCode || row.metadata?.countryCode || null,
+      regionName: row.region || row.state || row.region_name || row.metadata?.region || row.metadata?.state || null,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
+      avatarUrl: row.avatar_url,
+      referralSource: row.referral_source,
+      consentGiven: row.consent_given,
+      consentDate: row.consent_date ? new Date(row.consent_date) : null,
+      email: emailValue,
+      metadata: row.metadata || null,
+      planType: row.plan_type || 'seed',
+      accountType: row.account_type || 'individual',
+    };
+  };
 
   // Initial fetch function
   const fetchUserProfiles = async () => {
@@ -154,13 +172,27 @@ export function useUserProfiles() {
           console.log(`Fetching emails for ${profilesToFetchEmail.length} users`);
           const emailMap = await fetchEmailsForUsers(profilesToFetchEmail);
           
-          // Update transformedProfiles
+          // Update transformedProfiles - re-transform rows with emails to get proper names
           for (let i = 0; i < transformedProfiles.length; i++) {
               const p = transformedProfiles[i];
               if (profilesToFetchEmail.includes(p.userId)) {
                   const email = emailMap.get(p.userId);
                   if (email) {
-                      transformedProfiles[i] = { ...p, email };
+                      // Find the original row data to re-transform with email
+                      const originalRow = profilesData.find(r => r.user_id === p.userId);
+                      if (originalRow) {
+                          // Re-transform with email to get proper name extraction
+                          transformedProfiles[i] = transformRow(originalRow, email);
+                      } else {
+                          // Fallback: just update email and name
+                          transformedProfiles[i] = { 
+                              ...p, 
+                              email,
+                              fullName: (p.fullName && p.fullName.trim() !== '' && p.fullName.trim().toLowerCase() !== 'user') 
+                                ? p.fullName 
+                                : getNameFromEmail(email)
+                          };
+                      }
                   }
               }
           }

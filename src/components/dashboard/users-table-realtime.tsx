@@ -18,7 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Search, RefreshCw, User, Mail, CreditCard, Trash2, Loader2, CheckCircle2, ChevronUp, ChevronDown } from 'lucide-react';
 import type { UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getUserType } from '@/lib/utils';
+import { getUserType, getNameFromEmail } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -275,8 +275,14 @@ export function UsersTableRealtime({
 
     switch (sortField) {
       case 'name':
-        aValue = a.fullName.toLowerCase();
-        bValue = b.fullName.toLowerCase();
+        const aName = (a.fullName && a.fullName.trim() !== '' && a.fullName.trim().toLowerCase() !== 'user') 
+          ? a.fullName 
+          : getNameFromEmail(a.email);
+        const bName = (b.fullName && b.fullName.trim() !== '' && b.fullName.trim().toLowerCase() !== 'user') 
+          ? b.fullName 
+          : getNameFromEmail(b.email);
+        aValue = aName.toLowerCase();
+        bValue = bName.toLowerCase();
         break;
       case 'email':
         aValue = a.email.toLowerCase();
@@ -679,7 +685,7 @@ export function UsersTableRealtime({
                       <Checkbox
                         checked={selectedUserIds.has(profile.userId)}
                         onCheckedChange={() => handleToggleSelect(profile.userId)}
-                        aria-label={`Select ${profile.fullName}`}
+                        aria-label={`Select ${profile.fullName && profile.fullName.trim() !== '' && profile.fullName.trim().toLowerCase() !== 'user' ? profile.fullName : getNameFromEmail(profile.email)}`}
                       />
                     </TableCell>
                     <TableCell>
@@ -687,11 +693,15 @@ export function UsersTableRealtime({
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={profile.avatarUrl || undefined} />
                           <AvatarFallback className="text-xs">
-                            {getInitials(profile.fullName)}
+                            {getInitials(profile.fullName || getNameFromEmail(profile.email))}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{profile.fullName}</p>
+                          <p className="font-medium">
+                            {profile.fullName && profile.fullName.trim() !== '' && profile.fullName.trim().toLowerCase() !== 'user' 
+                              ? profile.fullName 
+                              : getNameFromEmail(profile.email)}
+                          </p>
                           {profile.preferredName && profile.preferredName !== profile.fullName && (
                             <p className="text-sm text-muted-foreground">({profile.preferredName})</p>
                           )}
@@ -792,7 +802,11 @@ export function UsersTableRealtime({
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the user profile for{' '}
-              <strong>{userToDelete?.fullName}</strong> ({userToDelete?.email}).
+              <strong>
+                {userToDelete?.fullName && userToDelete.fullName.trim() !== '' && userToDelete.fullName.trim().toLowerCase() !== 'user' 
+                  ? userToDelete.fullName 
+                  : getNameFromEmail(userToDelete?.email)}
+              </strong> ({userToDelete?.email}).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
