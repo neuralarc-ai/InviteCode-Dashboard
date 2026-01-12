@@ -1,30 +1,22 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
+  CardTitle
 } from '@/components/ui/card';
-import { useUserProfiles, useSubscriptions } from '@/hooks/use-realtime-data';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, PieChart, Pie, Cell, Legend, LabelList } from 'recharts';
+import {
+  ChartConfig
+} from "@/components/ui/chart";
 import { Skeleton } from '@/components/ui/skeleton';
-import { format, subDays, startOfDay } from 'date-fns';
-import { Users, Globe2, Clock3, PieChart as PieChartIcon, Calendar } from 'lucide-react';
+import { useSubscriptions, useUserProfiles } from '@/hooks/use-realtime-data';
 import type { UserProfile } from '@/lib/types';
 import * as FlagIcons from 'country-flag-icons/react/3x2';
-import { hasFlag } from 'country-flag-icons';
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { Badge } from "@/components/ui/badge";
-import { TrendingUp } from "lucide-react";
+import { format, startOfDay, subDays } from 'date-fns';
+import { Globe2, PieChart as PieChartIcon } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 type DateRangeKey = '30d' | '90d' | '365d' | 'all';
 
@@ -66,7 +58,7 @@ const CONTINENT_COLORS: Record<string, string> = {
   'South America': '#71717A', // Zinc 500
   'Africa': '#52525B',        // Zinc 600
   'Oceania': '#3F3F46',       // Zinc 700
-  'Unknown': '#27272A',       // Zinc 800
+  'Others': '#27272A',       // Zinc 800
 };
 
 const getUserType = (email: string | undefined): 'internal' | 'external' => {
@@ -93,7 +85,7 @@ function filterProfiles(profiles: UserProfile[], userType: 'internal' | 'externa
 function aggregateCounts<T>(items: T[], keyFn: (item: T) => string) {
   const map = new Map<string, number>();
   items.forEach((item) => {
-    const key = keyFn(item) || 'Unknown';
+    const key = keyFn(item) || 'Others';
     map.set(key, (map.get(key) || 0) + 1);
   });
   return Array.from(map.entries())
@@ -162,7 +154,7 @@ const chartConfig = {
     color: PLAN_COLORS.quantum,
   },
   unknown: {
-    label: "Unknown",
+    label: "Others",
     color: PLAN_COLORS.unknown,
   },
 } satisfies ChartConfig;
@@ -218,7 +210,7 @@ export function UserDemographics() {
       const code = resolveCountryCode(p);
       const name = resolveCountryName(p);
       
-      let continent = 'Unknown';
+      let continent = 'Others';
       
       // Try to resolve by code first
       if (code && CONTINENT_MAPPING[code]) {
@@ -238,7 +230,7 @@ export function UserDemographics() {
 
       // Track country
       // Use code as primary key if available, otherwise name
-      const countryKey = code || name || 'Unknown';
+      const countryKey = code || name || 'Others';
       
       if (!entry.countries.has(countryKey)) {
         entry.countries.set(countryKey, { count: 0, code, name });
@@ -270,13 +262,13 @@ export function UserDemographics() {
               }
             }
             return { 
-              name: displayName || 'Unknown', 
+              name: displayName || 'Others', 
               code: c.code, 
               count: c.count 
             };
           })
           .sort((a, b) => b.count - a.count), // Sort countries by count
-        fill: CONTINENT_COLORS[name] || CONTINENT_COLORS['Unknown']
+        fill: CONTINENT_COLORS[name] || CONTINENT_COLORS['Others']
       }))
       .sort((a, b) => b.value - a.value);
   }, [filteredProfiles]);

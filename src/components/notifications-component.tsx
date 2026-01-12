@@ -1,0 +1,234 @@
+"use client";
+import React, { useState } from "react";
+import { Button } from "./ui/button";
+import { useGlobal } from "@/contexts/global-context";
+import { Bell, Zap } from "lucide-react";
+import CustomDialog from "./CustomDialog";
+import { Dialog, DialogContent } from "./ui/dialog";
+import { useRecentTransactions } from "@/hooks/use-recent-transactions";
+import { createAvatar } from "@dicebear/core";
+import { useRecentOnboardedUsers } from "@/hooks/use-recent-onboard-users";
+import { useRecentCreditUsage } from "@/hooks/use-recent-credit-usage";
+import { Badge } from "./ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Card, CardContent } from "./ui/card";
+import * as adventurer from "@dicebear/adventurer";
+import { useCreditBalances } from "@/hooks/use-realtime-data";
+
+const tabs = [
+  { label: "Transactions", key: "transactions" },
+  { label: "Users", key: "users" },
+  { label: "Credits", key: "credits" },
+];
+
+function Notifications() {
+  const { showNotifications, setShowNotifications } = useGlobal();
+  const { creditBalances, loading: loadingCredits } = useCreditBalances();
+  const { transactions, isLoading: txnLoading } = useRecentTransactions(5); // Get 5 most recent
+  const { recentUsers, isLoading: loadingUsers } = useRecentOnboardedUsers(
+    7,
+    5
+  );
+  const { recentUsage, isLoading: loadingUsage } = useRecentCreditUsage(5);
+
+  const [active, setActive] = useState<string>("transactions");
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
+
+  const generateAvatar = (seed: string) => {
+    return createAvatar(adventurer, {
+      seed,
+      size: 128,
+    }).toString();
+  };
+  const getDaysAgo = (date: Date) => {
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - new Date(date).getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "1 day ago";
+    return `${diffDays} days ago`;
+  };
+
+  const getCredits = (userId: string) => {
+    const balance = creditBalances.find((b) => b.userId === userId);
+    // Assuming balanceDollars corresponds to credits (e.g. 1 dollar = 100 credits, or just display raw balance)
+    // The image shows "1473 CREDITS".
+    // In credit-assignment-dialog, we saw "100 credits = $1.00".
+    // So if balanceDollars is stored, credits = balanceDollars * 100.
+    // Let's check useCreditBalances hook output again.
+    // It returns `balanceDollars`.
+    // Wait, the hook `useCreditBalances` returns `balanceDollars`.
+    // If the requirement is to show "Credits", I should multiply by 100.
+    return balance ? Math.floor(balance.balanceDollars * 100) : 0;
+  };
+
+  const renderContent = () => {
+    switch (active) {
+      case "transactions":
+        return (
+          <div className="w-full flex flex-col gap-2">
+            {txnLoading ? (
+              <p>Loading...</p>
+            ) : transactions.length === 0 ? (
+              <p>No recent transactions</p>
+            ) : (
+              transactions.map((tx) => (
+                <div key={tx.id} className="p-2 border rounded">
+                  <div className="font-medium">{tx.userName}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {tx.type}: {formatCurrency(tx.amount)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        );
+      case "users":
+        return (
+          <div className="w-full grid grid-cols-2 gap-2">
+            {recentUsers.map((user) => (
+              <Card
+                key={user.id}
+                className="overflow-hidden bg-card/50 backdrop-blur hover:bg-card/80 transition-colors"
+              >
+                <CardContent className="p-6 flex flex-col items-center">
+                  <div className="mb-4 rounded-full border-2 border-border p-1 bg-background">
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage
+                        src={`data:image/svg+xml;utf8,${encodeURIComponent(
+                          generateAvatar(user.userId)
+                        )}`}
+                        alt={user.fullName}
+                      />
+                      <AvatarFallback>
+                        {user.fullName.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+
+                  <div className="text-center mb-6 space-y-1">
+                    <h3 className="font-semibold truncate w-full max-w-[200px] text-lg leading-none">
+                      {user.fullName}
+                    </h3>
+                    <p className="text-xs text-muted-foreground truncate w-full max-w-[200px]">
+                      {user.email}
+                    </p>
+                  </div>
+
+                  <div className="w-full flex items-center justify-between text-sm mt-auto pt-4 border-t border-border/50">
+                    <div className="flex flex-col items-start">
+                      <span className="font-bold">
+                        {getDaysAgo(user.createdAt)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                        Joined
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="font-bold">
+                        {getCredits(user.userId)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                        Credits
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        );
+      case "credits":
+        return (
+          <div className="grid gap-4">
+            {recentUsage.map((usage) => (
+              <div
+                key={usage.id}
+                className="flex items-center justify-between p-4 rounded-lg border bg-card/50 hover:bg-card/80 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-10 w-10 border border-border">
+                    <AvatarImage src={usage.avatarUrl} alt={usage.userName} />
+                    <AvatarFallback>
+                      {usage.userName?.substring(0, 2).toUpperCase() || "US"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid gap-1">
+                    <p className="text-sm font-medium leading-none">
+                      {usage.userName}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                      {usage.userEmail}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {usage.description || "Usage"} • {usage.timeAgo}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1 font-bold text-lg">
+                    <Zap className="h-4 w-4 fill-white text-white" />
+                    {usage.creditsUsed}
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] px-2 py-0 h-5"
+                  >
+                    {usage.subscriptionTier || "Standard"}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div>
+      <Button
+        onClick={() => setShowNotifications(true)}
+        size={"icon"}
+        variant={"outline"}
+      >
+        <Bell />
+      </Button>
+      <CustomDialog
+        hideOptions
+        open={showNotifications}
+        onOpenChange={setShowNotifications}
+        title="Notifications"
+      >
+        <div className="w-full flex flex-col items-center gap-2">
+          <div className="w-full flex items-center justify-between gap-2 bg-accent p-2 rounded-lg">
+            {tabs.map((tab) => (
+              <button
+                type="button"
+                onClick={() => setActive(tab.key)}
+                className={`w-full py-1 rounded-md ${
+                  tab.key === active
+                    ? "bg-primary text-background"
+                    : "hover:bg-primary/10"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {renderContent()}
+        </div>
+      </CustomDialog>
+    </div>
+  );
+}
+
+export default Notifications;
