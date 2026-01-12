@@ -52,13 +52,13 @@ const CONTINENT_MAPPING: Record<string, string> = {
 };
 
 const CONTINENT_COLORS: Record<string, string> = {
-  'North America': '#FFFFFF', // White
-  'Europe': '#E4E4E7',        // Zinc 200
-  'Asia': '#A1A1AA',          // Zinc 400
-  'South America': '#71717A', // Zinc 500
-  'Africa': '#52525B',        // Zinc 600
-  'Oceania': '#3F3F46',       // Zinc 700
-  'Others': '#27272A',       // Zinc 800
+  "North America": "#EAF6FB",
+  Europe: "#CFEAF5",
+  Asia: "#70B9D7",
+  "South America": "#4F9FBF",
+  Africa: "#1F5A70",
+  Oceania: "#EAF6FB",
+  Others: "#CFEAF5",
 };
 
 const getUserType = (email: string | undefined): 'internal' | 'external' => {
@@ -131,11 +131,14 @@ function ChartCard({
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  seed: '#FFFFFF',
-  edge: '#A1A1AA',
-  quantum: '#52525B',
-  unknown: '#27272A',
+  quantum: "#EAF6FB",
+  edge: "#CFEAF5",
+  seed: "#70B9D7",
+  unknown: "#4F9FBF",
 };
+
+
+
 
 const chartConfig = {
   visitors: {
@@ -452,8 +455,8 @@ export function UserDemographics() {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div className="bg-white/95 border border-border p-3 rounded-lg shadow-lg text-sm max-h-[300px] overflow-y-auto">
-                            <div className="font-bold mb-2 border-b pb-1 text-base text-black">{data.name}</div>
+                          <div className="bg-background/95 border border-border p-3 rounded-lg shadow-lg text-sm max-h-[300px] overflow-y-auto">
+                            <div className="font-bold mb-2 border-b pb-1 text-base text-foreground">{data.name}</div>
                             <div className="mb-2 text-muted-foreground">
                               Total: {data.value} users ({((data.value / filteredProfiles.length) * 100).toFixed(1)}%)
                             </div>
@@ -461,7 +464,7 @@ export function UserDemographics() {
                               {data.countries.map((c: any, i: number) => {
                                 const Flag = c.code ? (FlagIcons as any)[c.code] : null;
                                 return (
-                                  <div key={i} className="flex justify-between items-center gap-4 text-xs text-black">
+                                  <div key={i} className="flex justify-between items-center gap-4 text-xs text-text-foreground">
                                     <div className="flex items-center gap-2 min-w-0">
                                       {Flag && (
                                         <div className="shrink-0 w-4 h-3 relative shadow-sm rounded-[1px] overflow-hidden">
@@ -487,7 +490,7 @@ export function UserDemographics() {
             </CardContent>
           </Card>
 
-          <Card className="flex flex-col">
+          <Card className="flex flex-col items-start">
             <CardHeader className="items-center pb-0">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <PieChartIcon className="h-4 w-4" />

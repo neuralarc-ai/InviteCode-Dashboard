@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { PreviewCodesProvider } from "@/contexts/preview-codes-context";
 import { AuthProvider } from "@/components/auth-provider";
 import { GlobalProvider } from "@/contexts/global-context";
+import { NotificationProvider } from "@/components/notification-provider";
 
 export const metadata: Metadata = {
   title: "CEO Insights",
@@ -57,7 +58,9 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen bg-background">
         <AuthProvider>
           <PreviewCodesProvider>
-            <GlobalProvider>{children}</GlobalProvider>
+            <GlobalProvider>
+              <NotificationProvider>{children}</NotificationProvider>
+            </GlobalProvider>
           </PreviewCodesProvider>
         </AuthProvider>
         <Toaster />

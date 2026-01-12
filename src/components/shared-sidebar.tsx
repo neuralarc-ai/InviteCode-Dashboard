@@ -112,7 +112,7 @@ export function SharedSidebar() {
   };
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="flex flex-row items-center justify-between pb-2 pr-4">
+      <SidebarHeader className="flex flex-row items-center justify-between pb-2 pr-4 bg-background">
         <div className="group-data-[collapsible=icon]:hidden">
           <Logo />
         </div>
@@ -124,12 +124,12 @@ export function SharedSidebar() {
          <PanelLeft size={20}/>
         </button>
       </SidebarHeader>
-      <SidebarContent className='p-2'>
+      <SidebarContent className='p-2 bg-background'>
         <SidebarMenu>
           {sidebarItems.map((item, idx) =>
             item.enabled ? (
-              <SidebarMenuItem key={item.href} className={` ${isActive(item.href) ? "bg-accent text-foreground font-semibold":"hover:bg-accent text-muted-foreground"}`}>
-                <SidebarMenuButton asChild tooltip={item.tooltip}>
+              <SidebarMenuItem key={item.href} className={` rounded active:scale-95 duration-300 transition-all ease-in-out ${isActive(item.href) ? "bg-primary/10 text-primary font-semibold":"hover:bg-accent text-muted-foreground"}`}>
+                <SidebarMenuButton asChild tooltip={item.tooltip} className='  text-md bg-transparent hover:bg-transparent'>
                   <Link href={item.href}>
                     <item.icon />
                     <span>{item.label}</span>

@@ -12,7 +12,7 @@ const GlobalContext = createContext<GlobalContextProps | null>(null);
 
 export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
-  const [hasNotifications, setHasNotifications] = useState<boolean>(true);
+  const [hasNotifications, setHasNotifications] = useState<boolean>(false);
   return (
     <GlobalContext.Provider
       value={{

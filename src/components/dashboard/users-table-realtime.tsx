@@ -166,11 +166,11 @@ export function UsersTableRealtime({
     if (sent && assigned) {
       return (
         <div className="flex flex-col gap-1">
-          <Badge variant="default" className="bg-green-600 hover:bg-green-700 flex items-center gap-1 w-fit">
+          <Badge variant="default" className="bg-green-700 hover:bg-green-800 text-white flex items-center gap-1 w-fit">
             <CheckCircle2 className="h-3 w-3" />
             Sent
           </Badge>
-          <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 flex items-center gap-1 w-fit">
+          <Badge variant="default" className="bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1 w-fit">
             <CheckCircle2 className="h-3 w-3" />
             Assigned
           </Badge>
@@ -178,14 +178,14 @@ export function UsersTableRealtime({
       );
     } else if (sent) {
       return (
-        <Badge variant="default" className="bg-green-600 hover:bg-green-700 flex items-center gap-1">
+        <Badge variant="default" className="bg-green-700 hover:bg-green-800 text-white flex items-center gap-1">
           <CheckCircle2 className="h-3 w-3" />
           Sent
         </Badge>
       );
     } else if (assigned) {
       return (
-        <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 flex items-center gap-1">
+        <Badge variant="default" className="bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1">
           <CheckCircle2 className="h-3 w-3" />
           Assigned
         </Badge>
@@ -526,11 +526,11 @@ export function UsersTableRealtime({
   }
 
   return (
-    <Card>
+    <Card className=''>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
+          <div className="flex flex-col md:flex-row items-start gap-4 md:items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <User size={28} />
               User Profiles ({sortedProfiles.length} {userTypeFilter === 'internal' ? 'internal' : 'external'} user{sortedProfiles.length !== 1 ? 's' : ''})
               {selectedUserIds.size > 0 && (
                 <Badge variant="secondary" className="ml-2">
@@ -538,7 +538,7 @@ export function UsersTableRealtime({
                 </Badge>
               )}
             </CardTitle>
-          <div className="flex gap-2">
+          <div className="flex gap-2 self-end">
             {selectedUserIds.size > 0 && (
               <Button 
                 onClick={handleBulkDeleteClick}
@@ -766,20 +766,21 @@ export function UsersTableRealtime({
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex w-full flex-col md:flex-row gap-4 items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
               Showing {page * rowsPerPage + 1} to {Math.min((page + 1) * rowsPerPage, sortedProfiles.length)} of {sortedProfiles.length} users
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full md:w-fit items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPage(Math.max(0, page - 1))}
                 disabled={page === 0}
+                className='w-full'
               >
                 Previous
               </Button>
-              <span className="text-sm">
+              <span className="text-sm w-full whitespace-nowrap">
                 Page {page + 1} of {totalPages}
               </span>
               <Button
@@ -787,6 +788,7 @@ export function UsersTableRealtime({
                 size="sm"
                 onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
                 disabled={page === totalPages - 1}
+                className='w-full'
               >
                 Next
               </Button>

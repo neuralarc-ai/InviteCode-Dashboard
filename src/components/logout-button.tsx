@@ -22,9 +22,9 @@ export function LogoutButton() {
   return (
     <Button
       variant="outline"
-      size="sm"
+      size="icon"
       onClick={handleLogout}
-      className="flex items-center gap-2 border-neon-orange text-neon-orange hover:bg-neon-orange hover:text-black"
+      className="flex items-center gap-2 border-neon-orange text-neon-orange hover:bg-neon-orange hover:text-destructive hover:bg-destructive/10 hover:border-destructive"
     >
       <LogOut className="h-4 w-4" />
       

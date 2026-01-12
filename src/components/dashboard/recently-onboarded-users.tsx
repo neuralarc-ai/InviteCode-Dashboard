@@ -2,10 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useCreditBalances } from "@/hooks/use-realtime-data";
 import { useRecentOnboardedUsers } from "@/hooks/use-recent-onboard-users";
 import { generateAvatar } from "@/lib/utils";
@@ -19,14 +16,6 @@ export function RecentlyOnboardedUsers() {
 
   const getCredits = (userId: string) => {
     const balance = creditBalances.find((b) => b.userId === userId);
-    // Assuming balanceDollars corresponds to credits (e.g. 1 dollar = 100 credits, or just display raw balance)
-    // The image shows "1473 CREDITS".
-    // In credit-assignment-dialog, we saw "100 credits = $1.00".
-    // So if balanceDollars is stored, credits = balanceDollars * 100.
-    // Let's check useCreditBalances hook output again.
-    // It returns `balanceDollars`.
-    // Wait, the hook `useCreditBalances` returns `balanceDollars`.
-    // If the requirement is to show "Credits", I should multiply by 100.
     return balance ? Math.floor(balance.balanceDollars * 100) : 0;
   };
 
@@ -40,14 +29,12 @@ export function RecentlyOnboardedUsers() {
     return `${diffDays} days ago`;
   };
 
-
-
   if (isLoading || loadingCredits) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
               Recently Onboarded Users
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -55,9 +42,9 @@ export function RecentlyOnboardedUsers() {
             </p>
           </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2  md:grid-cols-3 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="aspect-square  rounded-lg" />
+            <Skeleton key={i} className="h-[160px]  rounded-xl" />
           ))}
         </div>
       </div>
@@ -67,9 +54,9 @@ export function RecentlyOnboardedUsers() {
   if (recentUsers.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
               Recently Onboarded Users
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -78,9 +65,11 @@ export function RecentlyOnboardedUsers() {
           </div>
         </div>
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
-            <User className="h-12 w-12 mb-4 opacity-50" />
-            <p>No new users in the last 7 days.</p>
+          <CardContent className="flex flex-col items-center justify-center py-10 sm:py-12 text-center text-muted-foreground">
+            <User className="h-10 w-10 sm:h-12 sm:w-12 mb-4 opacity-50" />
+            <p className="text-sm sm:text-base">
+              No new users in the last 7 days.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -88,68 +77,82 @@ export function RecentlyOnboardedUsers() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight">
+    <div className="space-y-5 sm:space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-1 flex-1 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight truncate">
             Recently Onboarded Users
           </h2>
           <p className="text-sm text-muted-foreground">
             New users who joined in the last 7 days
           </p>
         </div>
-        <Link href="/users">
+        <Link href="/users" className="shrink-0">
           <Button variant="outline" size="sm" className="hidden sm:flex">
             <ExternalLink className="mr-2 h-4 w-4" />
             View All
           </Button>
+          <Button variant="ghost" size="icon" className="sm:hidden">
+            <ExternalLink className="h-4 w-4" />
+          </Button>
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {recentUsers.map((user) => (
           <Card
             key={user.id}
-            className="overflow-hidden bg-card/50 backdrop-blur hover:bg-card/80 transition-colors"
+            className="
+              overflow-hidden bg-card/50 backdrop-blur 
+              hover:bg-card/80 transition-all duration-300 
+              border-primary/20 hover:border-primary/50 
+              hover:shadow-[0_4px_20px_rgba(112,185,215,0.08)]
+              rounded-xl
+            "
           >
-            <CardContent className="p-6 flex flex-col items-center">
-              <div className="mb-4 rounded-full border-2 border-border p-1 bg-background">
-                <Avatar className="h-20 w-20">
+            <CardContent className="p-4 sm:p-6 flex flex-col items-center h-full">
+              <div className="mb-4 sm:mb-5 rounded-full border-2 border-border/60 p-1 bg-background">
+                <Avatar className="h-16 w-16 sm:h-20 sm:w-20">
                   <AvatarImage
                     src={`data:image/svg+xml;utf8,${encodeURIComponent(
                       generateAvatar(user.userId)
                     )}`}
                     alt={user.fullName}
                   />
-                  <AvatarFallback>
+                  <AvatarFallback className="text-lg sm:text-xl">
                     {user.fullName.substring(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
               </div>
 
-              <div className="text-center mb-6 space-y-1">
-                <h3 className="font-semibold truncate w-full max-w-[200px] text-lg leading-none">
+              <div className="text-center mb-5 sm:mb-6 space-y-1 w-full">
+                <h3 className="font-semibold text-base sm:text-lg leading-tight truncate max-w-full">
                   {user.fullName}
                 </h3>
-                <p className="text-xs text-muted-foreground truncate w-full max-w-[200px]">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-full">
                   {user.email}
                 </p>
               </div>
 
-              <div className="w-full flex items-center justify-between text-sm mt-auto pt-4 border-t border-border/50">
-                <div className="flex flex-col items-start">
-                  <span className="font-bold">
-                    {getDaysAgo(user.createdAt)}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                    Joined
-                  </span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="font-bold">{getCredits(user.userId)}</span>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                    Credits
-                  </span>
+              <div className="w-full mt-auto pt-4 sm:pt-5 border-t border-border/50 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col items-start">
+                    <span className="font-bold text-base sm:text-lg">
+                      {getDaysAgo(user.createdAt)}
+                    </span>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                      Joined
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-end">
+                    <span className="font-bold text-base sm:text-lg">
+                      {getCredits(user.userId).toLocaleString()}
+                    </span>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                      Credits
+                    </span>
+                  </div>
                 </div>
               </div>
             </CardContent>

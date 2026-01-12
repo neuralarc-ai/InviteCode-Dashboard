@@ -1,3 +1,4 @@
+"use client";
 import { useGlobal } from "@/contexts/global-context";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useRef } from "react";

@@ -78,10 +78,10 @@ export function RecentTransactions() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 sm:space-y-4">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
             Recent Transactions
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -90,65 +90,78 @@ export function RecentTransactions() {
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-3 sm:gap-4">
         {transactions.map((tx) => (
           <div
             key={tx.id}
-            className="grid grid-cols-3 gap-2 rounded-[12px] h-20 px-4 border bg-card/50 hover:bg-card/80 transition-colors"
+            className={`
+              grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 
+              gap-3 sm:gap-4 
+              rounded-xl p-3 sm:p-4 
+              border bg-card/50 hover:bg-card/80 
+              border-primary/10 hover:border-primary/30 
+              transition-all duration-300
+              min-h-[100px] sm:min-h-[80px] items-center
+            `}
           >
-            <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-background">
+            {/* Column 1 – User + description + icon */}
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg border bg-background">
                 {tx.type === "Renewal" ? (
-                  <RefreshCw className="h-5 w-5 text-indigo-500 " />
+                  <RefreshCw className="h-5 w-5 text-indigo-500" />
                 ) : tx.type === "Subscription" ? (
-                  <BadgeCheck className="h-5 w-5 text-emerald-500 " />
+                  <BadgeCheck className="h-5 w-5 text-emerald-500" />
                 ) : (
                   <CreditCard className="h-5 w-5 text-blue-500" />
                 )}
               </div>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">
+              <div className="grid gap-0.5">
+                <p className="text-sm sm:text-base font-medium leading-tight">
                   {tx.userName}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {tx.description} • {getTimeAgo(tx.date)}
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-center">
-              <p className="text-xs text-muted-foreground">
+
+            {/* Column 2 – Join date */}
+            <div className="flex items-center justify-center md:justify-start text-center md:text-left">
+              <p className="text-xs sm:text-sm text-muted-foreground px-2 sm:px-0">
                 {getDaysSinceCreation(tx.userId) !== null
                   ? getDaysSinceCreation(tx.userId) === 0
                     ? "Joined today"
-                    : `Joined ${getDaysSinceCreation(tx.userId)} day${getDaysSinceCreation(tx.userId) === 1 ? '' : 's'} ago`
+                    : `Joined ${getDaysSinceCreation(tx.userId)} day${
+                        getDaysSinceCreation(tx.userId) === 1 ? "" : "s"
+                      } ago`
                   : "Join date unknown"}
               </p>
             </div>
-            <div className="flex items-center justify-evenly gap-4 ">
-              <Badge variant={"secondary"}>{tx.type}</Badge>
-              <div className="font-bold">{formatCurrency(tx.amount)}</div>
+
+            {/* Column 3 – Badge + Amount + Status */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center justify-center md:justify-end gap-3 sm:gap-4">
+              <Badge variant="secondary" className="text-xs sm:text-sm">
+                {tx.type}
+              </Badge>
+              <div className="font-bold text-sm sm:text-base whitespace-nowrap">
+                {formatCurrency(tx.amount)}
+              </div>
               <Badge
                 variant={
                   tx.status.toLowerCase() === "success"
                     ? "default"
                     : "secondary"
                 }
-                className="capitalize"
+                className="capitalize text-xs sm:text-sm"
               >
-                <div
-                  className={`mr-1 h-1.5 w-1.5 rounded-full ${
-                    tx.status.toLowerCase() === "success"
-                      ? "bg-green-500"
-                      : "bg-gray-500"
-                  }`}
-                />
                 {tx.status}
               </Badge>
             </div>
           </div>
         ))}
+
         {transactions.length === 0 && (
-          <div className="text-center py-10 text-muted-foreground">
+          <div className="text-center py-12 text-muted-foreground">
             No recent transactions found.
           </div>
         )}
