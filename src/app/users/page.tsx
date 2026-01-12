@@ -233,7 +233,6 @@ The Helium Team 🌟`
           // Debounce updates to avoid excessive API calls
           clearTimeout(debounceTimeout);
           debounceTimeout = setTimeout(() => {
-            console.log('Real-time update: Refreshing usage activity...');
             fetchActivity();
           }, 1000);
         }
@@ -310,24 +309,8 @@ The Helium Team 🌟`
       // If sending to selected users only, include their user IDs
       if (selectedOnly && selectedUserIds.size > 0) {
         requestBody.selectedUserIds = Array.from(selectedUserIds);
-        console.log('Sending to selected users:', {
-          count: selectedUserIds.size,
-          userIds: Array.from(selectedUserIds)
-        });
-      } else {
-        console.log('Sending to all users');
       }
       
-      console.log('Request body being sent:', {
-        hasSubject: !!requestBody.subject,
-        subjectLength: requestBody.subject?.length || 0,
-        hasTextContent: !!requestBody.textContent,
-        textContentLength: requestBody.textContent?.length || 0,
-        hasHtmlContent: !!requestBody.htmlContent,
-        htmlContentLength: requestBody.htmlContent?.length || 0,
-        hasSelectedUserIds: !!requestBody.selectedUserIds,
-        selectedUserIdsCount: requestBody.selectedUserIds?.length || 0
-      });
 
       const response = await fetch('/api/send-bulk-email', {
         method: 'POST',
@@ -345,13 +328,11 @@ The Helium Team 🌟`
         try {
           // Try to get response as text first to see what we're dealing with
           const responseText = await response.text();
-          console.log('Error response text (raw):', responseText);
-          
+
           // Try to parse as JSON
           if (responseText && responseText.trim().length > 0) {
             try {
               errorDetails = JSON.parse(responseText);
-              console.log('Error response parsed as JSON:', errorDetails);
               
               // Check if errorDetails is empty object or has no message
               if (errorDetails && typeof errorDetails === 'object') {
@@ -362,7 +343,6 @@ The Helium Team 🌟`
                   
                   // Include additional details if available
                   if (errorDetails.details) {
-                    console.log('Error details:', errorDetails.details);
                     if (errorDetails.details.selectedUserIds) {
                       errorMessage += ` Selected user IDs: ${JSON.stringify(errorDetails.details.selectedUserIds)}`;
                     }

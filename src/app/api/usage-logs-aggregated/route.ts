@@ -19,7 +19,6 @@ async function fetchAndAggregateManually(
   sortBy: string,
   timeRange: string
 ) {
-  console.log('Using manual JS aggregation fallback...');
   
   // 1. Fetch raw usage logs
   let query = supabaseAdmin.from('usage_logs').select('*');
@@ -226,9 +225,7 @@ export async function POST(request: Request) {
       sortBy = 'latest_activity',
       timeRange = 'all'
     } = await request.json();
-    
-    console.log('API: Fetching aggregated usage logs', { page, limit, searchQuery, activityFilter, userTypeFilter, sortBy, timeRange });
-    
+
     if (!supabaseAdmin) {
       throw new Error('Server configuration error: Admin client not available');
     }
@@ -236,7 +233,6 @@ export async function POST(request: Request) {
     // If a specific time range is requested, prioritize manual JS aggregation
     // to ensure correct filtering without relying on DB function updates.
     if (timeRange !== 'all') {
-      console.log(`Time range '${timeRange}' requested, using manual JS aggregation...`);
       const fallbackResult = await fetchAndAggregateManually(
         page, limit, searchQuery, activityFilter, userTypeFilter, sortBy, timeRange
       );
@@ -265,8 +261,6 @@ export async function POST(request: Request) {
       });
 
     if (rpcError) {
-      console.error('RPC error:', rpcError);
-      
       // Check for function signature mismatch or missing function errors
       const isSignatureError = 
         rpcError.message.includes('function get_aggregated_usage_logs') ||
@@ -278,7 +272,6 @@ export async function POST(request: Request) {
         rpcError.code === '42702'; // Ambiguous column code
 
       if (isSignatureError) {
-        console.log('RPC failed (signature/ambiguity), attempting manual JS fallback...');
         
         try {
           const fallbackResult = await fetchAndAggregateManually(
@@ -304,7 +297,6 @@ export async function POST(request: Request) {
       throw rpcError;
     }
 
-    console.log('API: Aggregated data fetched', { dataLength: aggregatedData?.length });
 
     return createResponse(aggregatedData, page, limit);
     

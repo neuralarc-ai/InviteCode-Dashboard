@@ -4,8 +4,6 @@ import { getNameFromEmail } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('API: Fetching credit balances...');
-    
     // Check if supabaseAdmin is available
     if (!supabaseAdmin) {
       console.error('Supabase Admin client not available');
@@ -24,7 +22,6 @@ export async function GET(request: NextRequest) {
 
     try {
       while (hasMore) {
-        console.log(`API: Fetching credit balances range ${from}-${from + limit - 1}...`);
         const { data, error } = await supabaseAdmin
           .from('credit_balance')
           .select('*')
@@ -94,11 +91,10 @@ export async function GET(request: NextRequest) {
             userIdToLatestPurchase.set(userId, purchaseDate);
           }
         });
-        console.log(`Mapped ${userIdToLatestPurchase.size} most recent purchase dates`);
       }
-    } catch (err) {
-      console.warn('Failed to fetch purchase dates:', err);
-    }
+      } catch (err) {
+        // Failed to fetch purchase dates - continuing without them
+      }
 
     // Sort balances by most recent purchase date (then by last_updated as fallback)
     const data = balancesData.sort((a, b) => {
@@ -123,8 +119,6 @@ export async function GET(request: NextRequest) {
       const bLastUpdated = b.last_updated ? new Date(b.last_updated).getTime() : 0;
       return bLastUpdated - aLastUpdated;
     });
-
-    console.log(`API: Fetched ${data?.length || 0} credit balances, sorted by most recent purchase`);
 
     // Transform the data to match the frontend format
     const transformedData = data?.map((row: any) => ({
@@ -156,7 +150,7 @@ export async function GET(request: NextRequest) {
           });
 
           if (authError) {
-            console.warn('Error fetching auth users page:', authError);
+            // Error fetching auth users page - continuing without them
             break;
           }
 
@@ -173,8 +167,6 @@ export async function GET(request: NextRequest) {
 
           page++;
         }
-
-        console.log(`Fetched ${allAuthUsers.length} total auth users across ${page} page(s)`);
 
         // Process all auth users and match with requested userIds
         allAuthUsers.forEach(user => {
@@ -203,10 +195,8 @@ export async function GET(request: NextRequest) {
             }
           }
         });
-        
-        console.log(`Mapped ${userIdToEmail.size} user emails from auth.users`);
       } catch (err) {
-        console.warn('Failed to fetch user emails from auth.users:', err);
+        // Failed to fetch user emails from auth.users - continuing without them
       }
 
       // Step 2: Fetch user names from user_profiles table (highest priority)
@@ -218,7 +208,7 @@ export async function GET(request: NextRequest) {
           .in('user_id', userIds);
 
         if (profilesError) {
-          console.warn('Error fetching user profiles:', profilesError);
+          // Error fetching user profiles - continuing without them
         } else if (profilesData) {
           profilesData.forEach((profile) => {
             const displayName = profile.preferred_name || profile.full_name;
@@ -230,14 +220,12 @@ export async function GET(request: NextRequest) {
               const emailFromMetadata = profile.metadata.email || profile.metadata.userEmail;
               if (emailFromMetadata && typeof emailFromMetadata === 'string') {
                 userIdToEmail.set(profile.user_id, emailFromMetadata);
-                console.log(`Found email in metadata for user ${profile.user_id}`);
               }
             }
           });
-          console.log(`Mapped ${profilesData.length} user names from user_profiles`);
         }
       } catch (err) {
-        console.warn('Failed to fetch user profiles:', err);
+        // Failed to fetch user profiles - continuing without them
       }
 
       // Step 3: Fallback to waitlist table for names (if email matches)
@@ -250,7 +238,7 @@ export async function GET(request: NextRequest) {
             .in('email', emails);
 
           if (waitlistError) {
-            console.warn('Error fetching waitlist names:', waitlistError);
+            // Error fetching waitlist names - continuing without them
           } else if (waitlistData) {
             // Create email to name mapping
             const emailToName = new Map<string, string>();
@@ -267,10 +255,9 @@ export async function GET(request: NextRequest) {
                 userIdToName.set(userId, name);
               }
             });
-            console.log(`Mapped ${emailToName.size} user names from waitlist`);
           }
         } catch (err) {
-          console.warn('Failed to fetch waitlist names:', err);
+          // Failed to fetch waitlist names - continuing without them
         }
       }
     }
