@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "./ui/button";
 import { useGlobal } from "@/contexts/global-context";
-import { Bell, Zap } from "lucide-react";
+import { BadgeCheck, Bell, CreditCard, RefreshCw, Zap } from "lucide-react";
 import CustomDialog from "./CustomDialog";
 import { Dialog, DialogContent } from "./ui/dialog";
 import { useRecentTransactions } from "@/hooks/use-recent-transactions";
@@ -12,8 +12,8 @@ import { useRecentCreditUsage } from "@/hooks/use-recent-credit-usage";
 import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Card, CardContent } from "./ui/card";
-import * as adventurer from "@dicebear/adventurer";
 import { useCreditBalances } from "@/hooks/use-realtime-data";
+import { formatCurrency, generateAvatar, getTimeAgo } from "@/lib/utils";
 
 const tabs = [
   { label: "Transactions", key: "transactions" },
@@ -22,9 +22,9 @@ const tabs = [
 ];
 
 function Notifications() {
-  const { showNotifications, setShowNotifications } = useGlobal();
+  const { showNotifications, setShowNotifications, hasNotifications, setHasNotifications } = useGlobal();
   const { creditBalances, loading: loadingCredits } = useCreditBalances();
-  const { transactions, isLoading: txnLoading } = useRecentTransactions(5); // Get 5 most recent
+  const { transactions, isLoading: txnLoading, userMap } = useRecentTransactions(5); // Get 5 most recent
   const { recentUsers, isLoading: loadingUsers } = useRecentOnboardedUsers(
     7,
     5
@@ -33,19 +33,16 @@ function Notifications() {
 
   const [active, setActive] = useState<string>("transactions");
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
+  const getDaysSinceCreation = (userId: string) => {
+    const profile = userMap.get(userId);
+    if (!profile || !profile.createdAt) return null;
+
+    const now = new Date();
+    const diffInMs = now.getTime() - profile.createdAt.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    return diffInDays;
   };
 
-  const generateAvatar = (seed: string) => {
-    return createAvatar(adventurer, {
-      seed,
-      size: 128,
-    }).toString();
-  };
   const getDaysAgo = (date: Date) => {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - new Date(date).getTime());
@@ -58,16 +55,13 @@ function Notifications() {
 
   const getCredits = (userId: string) => {
     const balance = creditBalances.find((b) => b.userId === userId);
-    // Assuming balanceDollars corresponds to credits (e.g. 1 dollar = 100 credits, or just display raw balance)
-    // The image shows "1473 CREDITS".
-    // In credit-assignment-dialog, we saw "100 credits = $1.00".
-    // So if balanceDollars is stored, credits = balanceDollars * 100.
-    // Let's check useCreditBalances hook output again.
-    // It returns `balanceDollars`.
-    // Wait, the hook `useCreditBalances` returns `balanceDollars`.
-    // If the requirement is to show "Credits", I should multiply by 100.
     return balance ? Math.floor(balance.balanceDollars * 100) : 0;
   };
+
+  const handleNotificationClick =() => {
+    setShowNotifications(true);
+    setHasNotifications(false);
+  }
 
   const renderContent = () => {
     switch (active) {
@@ -80,10 +74,32 @@ function Notifications() {
               <p>No recent transactions</p>
             ) : (
               transactions.map((tx) => (
-                <div key={tx.id} className="p-2 border rounded">
-                  <div className="font-medium">{tx.userName}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {tx.type}: {formatCurrency(tx.amount)}
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between gap-2 rounded-[12px] h-20 px-4 border bg-card/50 hover:bg-card/80 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-background">
+                      {tx.type === "Renewal" ? (
+                        <RefreshCw className="h-5 w-5 text-indigo-500 " />
+                      ) : tx.type === "Subscription" ? (
+                        <BadgeCheck className="h-5 w-5 text-emerald-500 " />
+                      ) : (
+                        <CreditCard className="h-5 w-5 text-blue-500" />
+                      )}
+                    </div>
+                    <div className="grid gap-1">
+                      <p className="text-sm font-medium leading-none">
+                        {tx.userName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {tx.description} • {getTimeAgo(tx.date)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-4 ">
+                    <Badge variant={"secondary"} className="whitespace-nowrap">{tx.type}</Badge>
+                    <div className="font-bold">{formatCurrency(tx.amount)}</div>
                   </div>
                 </div>
               ))
@@ -147,11 +163,11 @@ function Notifications() {
         );
       case "credits":
         return (
-          <div className="grid gap-4">
+          <div className="w-full flex flex-col items-center gap-2">
             {recentUsage.map((usage) => (
               <div
                 key={usage.id}
-                className="flex items-center justify-between p-4 rounded-lg border bg-card/50 hover:bg-card/80 transition-colors"
+                className="flex w-full items-center justify-between p-4 rounded-lg border bg-card/50 hover:bg-card/80 transition-colors"
               >
                 <div className="flex items-center gap-4">
                   <Avatar className="h-10 w-10 border border-border">
@@ -196,10 +212,14 @@ function Notifications() {
   return (
     <div>
       <Button
-        onClick={() => setShowNotifications(true)}
+        onClick={handleNotificationClick}
         size={"icon"}
         variant={"outline"}
+        className="relative"
       >
+        {hasNotifications && (
+          <div className="absolute -top-1 -right-1 aspect-square w-3 rounded-full bg-red-500 border-2 border-background" />
+        )}
         <Bell />
       </Button>
       <CustomDialog
@@ -209,7 +229,7 @@ function Notifications() {
         title="Notifications"
       >
         <div className="w-full flex flex-col items-center gap-2">
-          <div className="w-full flex items-center justify-between gap-2 bg-accent p-2 rounded-lg">
+          <div className="w-full flex items-center justify-between gap-2 bg-accent p-2 rounded-xl">
             {tabs.map((tab) => (
               <button
                 type="button"

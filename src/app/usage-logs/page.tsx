@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/sidebar';
 import { PageHeader } from '@/components/page-header';
 import { SharedSidebar } from '@/components/shared-sidebar';
+import { formatCurrency } from '@/lib/utils';
 
 export default function UsageLogsPage() {
   const { 
@@ -568,15 +569,7 @@ The AI Team`);
     }
   };
 
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
+ 
 
   // Format date
   const formatDate = (date: Date) => {

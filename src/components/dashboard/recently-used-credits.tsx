@@ -17,6 +17,8 @@ import { createAvatar } from "@dicebear/core";
 import * as adventurer from "@dicebear/adventurer";
 import Link from "next/link";
 import { useRecentCreditUsage } from "@/hooks/use-recent-credit-usage";
+import { generateAvatar } from "@/lib/utils";
+import { Skeleton } from "../ui/skeleton";
 
 export function RecentlyUsedCredits() {
   const { recentUsage, isLoading, hasUsage } = useRecentCreditUsage();
@@ -35,12 +37,6 @@ export function RecentlyUsedCredits() {
     return `${diffInDays} days ago`;
   };
 
-  const generateAvatar = (seed: string) => {
-    return createAvatar(adventurer, {
-      seed,
-      size: 128,
-    }).toString();
-  };
 
   if (isLoading) {
     return (
@@ -56,10 +52,7 @@ export function RecentlyUsedCredits() {
           </div>
         </div>
         {[...Array(3)].map((_, i) => (
-          <div
-            key={i}
-            className="h-20 w-full animate-pulse rounded-lg bg-muted/50"
-          />
+          <Skeleton key={i} className="w-full h-20 rounded-lg" />
         ))}
       </div>
     );

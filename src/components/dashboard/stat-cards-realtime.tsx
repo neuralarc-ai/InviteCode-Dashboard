@@ -10,6 +10,7 @@ import {
 import { DollarSign, Users, CreditCard, TrendingUp, UserPlus } from 'lucide-react';
 import { useCreditBalances, useUserProfiles, useCreditPurchases, useSubscriptions } from '@/hooks/use-realtime-data';
 import { supabase } from '@/lib/supabase';
+import { formatCurrency } from '@/lib/utils';
 
 export function StatCardsRealtime() {
   const { creditBalances, loading: balancesLoading } = useCreditBalances();
@@ -193,15 +194,7 @@ export function StatCardsRealtime() {
     );
   }
 
-  // Format currency for revenue
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
+  
 
   const statCards = [
     {

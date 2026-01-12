@@ -1,21 +1,17 @@
 "use client";
 
-import { useUserProfiles, useCreditBalances } from "@/hooks/use-realtime-data";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, User } from "lucide-react";
-import { createAvatar } from "@dicebear/core";
-import * as adventurer from "@dicebear/adventurer";
-import { useMemo } from "react";
-import Link from "next/link";
+import {
+  Card,
+  CardContent
+} from "@/components/ui/card";
+import { useCreditBalances } from "@/hooks/use-realtime-data";
 import { useRecentOnboardedUsers } from "@/hooks/use-recent-onboard-users";
+import { generateAvatar } from "@/lib/utils";
+import { ExternalLink, User } from "lucide-react";
+import Link from "next/link";
+import { Skeleton } from "../ui/skeleton";
 
 export function RecentlyOnboardedUsers() {
   const { creditBalances, loading: loadingCredits } = useCreditBalances();
@@ -44,12 +40,7 @@ export function RecentlyOnboardedUsers() {
     return `${diffDays} days ago`;
   };
 
-  const generateAvatar = (seed: string) => {
-    return createAvatar(adventurer, {
-      seed,
-      size: 128,
-    }).toString();
-  };
+
 
   if (isLoading || loadingCredits) {
     return (
@@ -66,9 +57,7 @@ export function RecentlyOnboardedUsers() {
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="h-[200px]" />
-            </Card>
+            <Skeleton key={i} className="aspect-square  rounded-lg" />
           ))}
         </div>
       </div>
