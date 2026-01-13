@@ -13,6 +13,10 @@ import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Card, CardContent } from "./ui/card";
 import { useCreditBalances } from "@/hooks/use-realtime-data";
+import { useCreditPurchases } from "@/hooks/realtime/use-credit-purchases";
+import { useSubscriptions } from "@/hooks/realtime/use-subscriptions";
+import { useUserProfiles } from "@/hooks/realtime/use-user-profiles";
+import { useCreditUsage } from "@/hooks/realtime/use-credit-usage";
 import { formatCurrency, generateAvatar, getTimeAgo } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
 
@@ -35,11 +39,14 @@ function Notifications() {
     isLoading: txnLoading,
     userMap,
   } = useRecentTransactions(5); // Get 5 most recent
-  const { recentUsers, isLoading: userLoading } = useRecentOnboardedUsers(
-    7,
-    5
-  );
+  const { recentUsers, isLoading: userLoading } = useRecentOnboardedUsers(7, 5);
   const { recentUsage, isLoading: usageLoading } = useRecentCreditUsage(5);
+
+  // Get refresh functions from underlying hooks
+  const { refreshCreditPurchases } = useCreditPurchases();
+  const { refreshSubscriptions } = useSubscriptions();
+  const { refreshUserProfiles } = useUserProfiles();
+  const { refreshCreditUsage } = useCreditUsage();
 
   const [active, setActive] = useState<string>("transactions");
 
@@ -73,6 +80,36 @@ function Notifications() {
     setHasNotifications(false);
   };
 
+  const handleDialogOpenChange = (open: boolean) => {
+    setShowNotifications(open);
+    if (!open) {
+      // Reset to transactions tab when dialog closes
+      setActive("transactions");
+    }
+  };
+
+  const handleRefresh = async (tab: string) => {
+    try {
+      switch (tab) {
+        case "transactions":
+          await Promise.all([
+            refreshCreditPurchases(),
+            refreshSubscriptions(),
+            refreshUserProfiles(),
+          ]);
+          break;
+        case "users":
+          await refreshUserProfiles();
+          break;
+        case "credits":
+          await refreshCreditUsage();
+          break;
+      }
+    } catch (error) {
+      console.error(`Failed to refresh ${tab}:`, error);
+    }
+  };
+
   const renderContent = () => {
     switch (active) {
       case "transactions":
@@ -91,7 +128,7 @@ function Notifications() {
                   className="flex items-center justify-between gap-2 rounded-[12px] h-20 px-4 border bg-card/50 hover:bg-card/80 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-background">
+                    <div className="flex h-10 w-10 aspect-square items-center justify-center rounded-lg border bg-background">
                       {tx.type === "Renewal" ? (
                         <RefreshCw className="h-5 w-5 text-indigo-500 " />
                       ) : tx.type === "Subscription" ? (
@@ -255,14 +292,14 @@ function Notifications() {
       <CustomDialog
         hideOptions
         open={showNotifications}
-        onOpenChange={setShowNotifications}
+        onOpenChange={handleDialogOpenChange}
         title="Notifications"
       >
         <div className="w-full flex flex-col items-center gap-5">
           <div className="w-full flex items-center justify-between gap-2 bg-foreground/10 p-1 rounded-xl">
             {tabs.map((tab) => (
               <button
-              key={tab.key}
+                key={tab.key}
                 type="button"
                 onClick={() => setActive(tab.key)}
                 className={`w-full py-1 rounded-md ${
@@ -275,7 +312,37 @@ function Notifications() {
               </button>
             ))}
           </div>
-          {renderContent()}
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                {active === "transactions" && "Recent Transactions"}
+                {active === "users" && "New Users"}
+                {active === "credits" && "Credits Usage"}
+              </h3>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleRefresh(active)}
+                className="flex items-center gap-2"
+                disabled={
+                  (active === "transactions" && txnLoading) ||
+                  (active === "users" && userLoading) ||
+                  (active === "credits" && usageLoading)
+                }
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${
+                    (active === "transactions" && txnLoading) ||
+                    (active === "users" && userLoading) ||
+                    (active === "credits" && usageLoading)
+                      ? "animate-spin"
+                      : ""
+                  }`}
+                />
+              </Button>
+            </div>
+            {renderContent()}
+          </div>
         </div>
       </CustomDialog>
     </div>
