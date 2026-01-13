@@ -13,7 +13,7 @@ interface NotificationEvent {
 
 export function useNotificationManager() {
   const { toast } = useToast();
-  const { setHasNotifications } = useGlobal();
+  const { setHasNotifications, setTabNotifications } = useGlobal();
   const lastNotificationTimes = useRef<Map<string, number>>(new Map());
 
   const shouldShowNotification = (type: string): boolean => {
@@ -43,6 +43,7 @@ export function useNotificationManager() {
     });
 
     setHasNotifications(true);
+    setTabNotifications("transactions", true);
   };
 
   const showUserJoinedNotification = (data: any) => {
@@ -58,6 +59,7 @@ export function useNotificationManager() {
     });
 
     setHasNotifications(true);
+    setTabNotifications("users", true);
   };
 
   const showCreditUsageNotification = (data: any) => {
@@ -74,6 +76,7 @@ export function useNotificationManager() {
     });
 
     setHasNotifications(true);
+    setTabNotifications("credits", true);
   };
 
   useEffect(() => {

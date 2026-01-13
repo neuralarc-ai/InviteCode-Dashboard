@@ -30,6 +30,8 @@ function Notifications() {
     setShowNotifications,
     hasNotifications,
     setHasNotifications,
+    tabNotifications,
+    clearTabNotification,
   } = useGlobal();
   const { creditBalances, loading: loadingCredits } = useCreditBalances();
   const {
@@ -83,6 +85,11 @@ function Notifications() {
       // Reset to transactions tab when dialog closes
       setActive("transactions");
     }
+  };
+
+  const handleTabClick = (tabKey: string) => {
+    setActive(tabKey);
+    clearTabNotification(tabKey as "transactions" | "users" | "credits");
   };
 
   const handleRefresh = async (tab: string) => {
@@ -298,14 +305,18 @@ function Notifications() {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setActive(tab.key)}
-                className={`w-full py-1 rounded-md ${
+                onClick={() => handleTabClick(tab.key)}
+                className={`relative w-full py-1  rounded-md ${
                   tab.key === active
                     ? "bg-primary text-background"
-                    : "hover:bg-primary/10"
+                    : "hover:bg-primary/10 border border-accent"
                 }`}
               >
                 {tab.label}
+                {/* Red dot indicator for notifications */}
+                {tabNotifications[tab.key as keyof typeof tabNotifications] && (
+                  <div className="absolute -top-1 -right-1 aspect-square w-3 rounded-full bg-red-500 border border-background" />
+                )}
               </button>
             ))}
           </div>

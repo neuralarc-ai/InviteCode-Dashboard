@@ -205,6 +205,15 @@ type GlobalContextProps = {
   hasNotifications: boolean;
   setHasNotifications: (hasNotifications: boolean) => void;
 
+  // Tab notifications
+  tabNotifications: {
+    transactions: boolean;
+    users: boolean;
+    credits: boolean;
+  };
+  setTabNotifications: (tab: 'transactions' | 'users' | 'credits', hasNotification: boolean) => void;
+  clearTabNotification: (tab: 'transactions' | 'users' | 'credits') => void;
+
   // Credit Usage
   creditUsage: CreditUsageGrouped[];
   rawUsage: CreditUsage[];
@@ -247,6 +256,13 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [hasNotifications, setHasNotifications] = useState<boolean>(false);
 
+  // Tab notifications state
+  const [tabNotifications, setTabNotificationsState] = useState({
+    transactions: false,
+    users: false,
+    credits: false,
+  });
+
   // Credit Usage state
   const [creditUsage, setCreditUsage] = useState<CreditUsageGrouped[]>([]);
   const [rawUsage, setRawUsage] = useState<CreditUsage[]>([]);
@@ -270,6 +286,21 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const [totalCount, setTotalCount] = useState(0);
   const [grandTotalTokens, setGrandTotalTokens] = useState(0);
   const [grandTotalCost, setGrandTotalCost] = useState(0);
+
+  // Tab notification functions
+  const setTabNotifications = useCallback((tab: 'transactions' | 'users' | 'credits', hasNotification: boolean) => {
+    setTabNotificationsState(prev => ({
+      ...prev,
+      [tab]: hasNotification
+    }));
+  }, []);
+
+  const clearTabNotification = useCallback((tab: 'transactions' | 'users' | 'credits') => {
+    setTabNotificationsState(prev => ({
+      ...prev,
+      [tab]: false
+    }));
+  }, []);
 
   // Credit Usage functions
   const fetchCreditUsage = useCallback(async () => {
@@ -728,6 +759,11 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         setShowNotifications,
         hasNotifications,
         setHasNotifications,
+
+        // Tab notifications
+        tabNotifications,
+        setTabNotifications,
+        clearTabNotification,
 
         // Credit Usage
         creditUsage,
