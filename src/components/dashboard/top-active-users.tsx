@@ -1,5 +1,6 @@
 'use client';
 
+import { useGlobal } from "@/contexts/global-context";
 import { useUsageLogs } from '@/hooks/use-realtime-data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

@@ -87,7 +87,7 @@ export function useNotificationManager() {
           table: "credit_purchases",
         },
         (payload) => {
-          console.log("New credit purchase:", payload.new);
+          // console.log("New credit purchase:", payload.new);
           showTransactionNotification(payload.new);
         }
       )
@@ -103,7 +103,7 @@ export function useNotificationManager() {
           table: "user_profiles",
         },
         (payload) => {
-          console.log("New user joined:", payload.new);
+          // console.log("New user joined:", payload.new);
           showUserJoinedNotification(payload.new);
         }
       )
@@ -119,7 +119,7 @@ export function useNotificationManager() {
           table: "usage_logs",
         },
         (payload) => {
-          console.log("Credit usage:", payload.new);
+          // console.log("Credit usage:", payload.new);
           showCreditUsageNotification(payload.new);
         }
       )
@@ -135,7 +135,7 @@ export function useNotificationManager() {
           table: "subscriptions",
         },
         (payload) => {
-          console.log("Subscription change:", payload.new);
+          // console.log("Subscription change:", payload.new);
           showTransactionNotification(payload.new);
         }
       )

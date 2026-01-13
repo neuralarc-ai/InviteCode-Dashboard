@@ -1,6 +1,7 @@
 // src/hooks/use-recent-onboarded-users.ts
 import { useMemo } from "react";
-import { useUserProfiles, useCreditBalances } from "@/hooks/use-realtime-data";
+import { useGlobal } from "@/contexts/global-context";
+import { useCreditBalances } from "@/hooks/use-realtime-data";
 import { createAvatar } from "@dicebear/core";
 import * as adventurer from "@dicebear/adventurer";
 
@@ -19,7 +20,7 @@ export function useRecentOnboardedUsers(
   daysBack: number = 7,
   limit: number = 8
 ) {
-  const { userProfiles, loading: loadingProfiles } = useUserProfiles();
+  const { userProfiles, userProfilesLoading: loadingProfiles } = useGlobal();
   const { creditBalances, loading: loadingCredits } = useCreditBalances();
 
   const recentUsers = useMemo(() => {

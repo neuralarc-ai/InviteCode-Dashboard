@@ -1,7 +1,6 @@
 "use client";
 import React, { useState } from "react";
 import { Button } from "./ui/button";
-import { useGlobal } from "@/contexts/global-context";
 import { BadgeCheck, Bell, CreditCard, RefreshCw, Zap } from "lucide-react";
 import CustomDialog from "./CustomDialog";
 import { Dialog, DialogContent } from "./ui/dialog";
@@ -15,8 +14,7 @@ import { Card, CardContent } from "./ui/card";
 import { useCreditBalances } from "@/hooks/use-realtime-data";
 import { useCreditPurchases } from "@/hooks/realtime/use-credit-purchases";
 import { useSubscriptions } from "@/hooks/realtime/use-subscriptions";
-import { useUserProfiles } from "@/hooks/realtime/use-user-profiles";
-import { useCreditUsage } from "@/hooks/realtime/use-credit-usage";
+import { useGlobal } from "@/contexts/global-context";
 import { formatCurrency, generateAvatar, getTimeAgo } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
 
@@ -42,11 +40,10 @@ function Notifications() {
   const { recentUsers, isLoading: userLoading } = useRecentOnboardedUsers(7, 5);
   const { recentUsage, isLoading: usageLoading } = useRecentCreditUsage(5);
 
-  // Get refresh functions from underlying hooks
+  // Get refresh functions from global context
   const { refreshCreditPurchases } = useCreditPurchases();
   const { refreshSubscriptions } = useSubscriptions();
-  const { refreshUserProfiles } = useUserProfiles();
-  const { refreshCreditUsage } = useCreditUsage();
+  const { refreshUserProfiles, refreshCreditUsage } = useGlobal();
 
   const [active, setActive] = useState<string>("transactions");
 
@@ -296,7 +293,7 @@ function Notifications() {
         title="Notifications"
       >
         <div className="w-full flex flex-col items-center gap-5">
-          <div className="w-full flex items-center justify-between gap-2 bg-foreground/10 p-1 rounded-xl">
+          <div className="w-full flex items-center justify-between gap-1 bg-foreground/10 p-1 rounded-xl">
             {tabs.map((tab) => (
               <button
                 key={tab.key}

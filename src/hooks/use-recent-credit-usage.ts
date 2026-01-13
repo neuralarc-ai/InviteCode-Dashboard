@@ -1,6 +1,6 @@
 // src/hooks/use-recent-credit-usage.ts
 import { useMemo } from "react";
-import { useCreditUsage } from "@/hooks/use-realtime-data";
+import { useGlobal } from "@/contexts/global-context";
 import { createAvatar } from "@dicebear/core";
 import * as adventurer from "@dicebear/adventurer";
 
@@ -19,7 +19,7 @@ export interface RecentCreditUsage {
 }
 
 export function useRecentCreditUsage(limit: number = 5) {
-  const { rawUsage, loading } = useCreditUsage();
+  const { rawUsage, creditUsageLoading: loading } = useGlobal();
 
   const recentUsage = useMemo(() => {
     // Sort by date (most recent first) and take top N

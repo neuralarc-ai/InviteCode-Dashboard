@@ -8,13 +8,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { DollarSign, Users, CreditCard, TrendingUp, UserPlus } from 'lucide-react';
-import { useCreditBalances, useUserProfiles, useCreditPurchases, useSubscriptions } from '@/hooks/use-realtime-data';
+import { useGlobal } from "@/contexts/global-context";
+import { useCreditBalances, useCreditPurchases, useSubscriptions } from '@/hooks/use-realtime-data';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils';
 
 export function StatCardsRealtime() {
   const { creditBalances, loading: balancesLoading } = useCreditBalances();
-  const { userProfiles, loading: usersLoading } = useUserProfiles();
+  const { userProfiles, userProfilesLoading: usersLoading } = useGlobal();
   const { creditPurchases, loading: purchasesLoading } = useCreditPurchases();
   const { subscriptions, loading: subscriptionsLoading } = useSubscriptions();
   const [externalCredits, setExternalCredits] = React.useState<number>(0);

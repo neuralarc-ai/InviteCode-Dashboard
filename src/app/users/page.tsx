@@ -21,12 +21,12 @@ import { Mail, Loader2, Users, Building2, UserPlus, CreditCard, Download, Activi
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useUserProfiles } from '@/hooks/use-realtime-data';
+import { useGlobal } from "@/contexts/global-context";
 import { getUserType } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
 export default function UsersPage() {
-  const { userProfiles, loading, error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles } = useUserProfiles();
+  const { userProfiles, userProfilesLoading: loading, userProfilesError: error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles } = useGlobal();
   const [showCustomizationDialog, setShowCustomizationDialog] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [isSending, setIsSending] = useState(false);

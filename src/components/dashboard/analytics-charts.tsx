@@ -24,11 +24,8 @@ import {
   Line,
   Cell,
 } from "recharts";
-import {
-  useCreditUsage,
-  useUserProfiles,
-  useCreditPurchases,
-} from "@/hooks/use-realtime-data";
+import { useGlobal } from "@/contexts/global-context";
+import { useCreditPurchases } from "@/hooks/use-realtime-data";
 import { TrendingUp, Users } from "lucide-react";
 import { UserDemographics } from "@/components/dashboard/user-demographics";
 
@@ -107,14 +104,12 @@ const generateCreditUsageData = (rawUsage: any[], creditPurchases: any[]) => {
 export function AnalyticsCharts() {
   const {
     userProfiles,
-    loading: usersLoading,
-    error: usersError,
-  } = useUserProfiles();
-  const {
+    userProfilesLoading: usersLoading,
+    userProfilesError: usersError,
     rawUsage,
-    loading: creditLoading,
-    error: creditError,
-  } = useCreditUsage();
+    creditUsageLoading: creditLoading,
+    creditUsageError: creditError,
+  } = useGlobal();
   const {
     creditPurchases,
     loading: purchasesLoading,

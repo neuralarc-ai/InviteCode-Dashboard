@@ -4,11 +4,11 @@ import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useUserProfiles } from '@/hooks/use-realtime-data';
+import { useGlobal } from "@/contexts/global-context";
 import { CalendarDays, Mail, User } from 'lucide-react';
 
 export function RecentUsers() {
-  const { userProfiles, loading, error } = useUserProfiles();
+  const { userProfiles, userProfilesLoading: loading, userProfilesError: error } = useGlobal();
 
   // Get the 5 most recent users
   const recentUsers = React.useMemo(() => {

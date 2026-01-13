@@ -3,7 +3,8 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useCreditUsage, useCreditPurchases } from '@/hooks/use-realtime-data';
+import { useGlobal } from "@/contexts/global-context";
+import { useCreditPurchases } from '@/hooks/use-realtime-data';
 import { DollarSign, Calendar, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
@@ -18,7 +19,7 @@ interface Transaction {
 }
 
 export function RecentCreditTransactions() {
-  const { rawUsage, loading: usageLoading, error: usageError } = useCreditUsage();
+  const { rawUsage, creditUsageLoading: usageLoading, creditUsageError: usageError } = useGlobal();
   const { creditPurchases, loading: purchasesLoading, error: purchasesError } = useCreditPurchases();
 
   const loading = usageLoading || purchasesLoading;

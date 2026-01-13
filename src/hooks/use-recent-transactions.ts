@@ -1,9 +1,9 @@
 // src/hooks/use-recent-transactions.ts
 import { useMemo } from "react";
+import { useGlobal } from "@/contexts/global-context";
 import {
   useCreditPurchases,
   useSubscriptions,
-  useUserProfiles,
 } from "@/hooks/use-realtime-data";
 
 export interface TransactionItem {
@@ -22,7 +22,7 @@ export interface TransactionItem {
 export function useRecentTransactions(limit: number = 10) {
   const { creditPurchases, loading: loadingPurchases } = useCreditPurchases();
   const { subscriptions, loading: loadingSubs } = useSubscriptions();
-  const { userProfiles, loading: loadingProfiles } = useUserProfiles();
+  const { userProfiles, userProfilesLoading: loadingProfiles } = useGlobal();
 
   // Map user profiles for quick lookup
   const userMap = new Map(userProfiles.map((u) => [u.userId, u]));
