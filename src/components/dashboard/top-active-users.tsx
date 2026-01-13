@@ -34,8 +34,8 @@ export function TopActiveUsers() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {Array.from({ length: 5 }).map((_, i) => (
+          <div className="grid grid-cols-2  lg:grid-cols-5 gap-4">
+    4 xl:grid-cols-5      {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex flex-col items-center space-y-4 p-4 border rounded-lg">
                 <Skeleton className="h-12 w-12 rounded-full" />
                 <div className="space-y-2 text-center w-full">
@@ -67,14 +67,14 @@ export function TopActiveUsers() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2  md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {topUsers.map((user, index) => (
             <div
               key={user.userId}
               className="relative flex hover:shadow-[0_0_30px_rgba(112,185,215,0.1)] hover:scale-[1.01] transition-all duration-300 ease-out flex-col items-center p-6 bg-card border rounded-lg border-primary/20 hover:border-primary/40"
             >
               {/* Rank Badge */}
-              <div className="absolute top-4 left-4 flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary  text-xs font-bold border border-border">
+              <div className="absolute top-4 left-4 flex items-center justify-center w-6 h-6 rounded-full bg-primary/70 text-white  text-sm font-bold border border-border">
                 {index + 1}
               </div>
 

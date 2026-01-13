@@ -262,6 +262,7 @@ function Notifications() {
           <div className="w-full flex items-center justify-between gap-2 bg-foreground/10 p-1 rounded-xl">
             {tabs.map((tab) => (
               <button
+              key={tab.key}
                 type="button"
                 onClick={() => setActive(tab.key)}
                 className={`w-full py-1 rounded-md ${
