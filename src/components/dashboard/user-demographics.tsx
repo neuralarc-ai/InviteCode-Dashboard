@@ -336,9 +336,31 @@ export function UserDemographics() {
 
   if (loading || subscriptionsLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2">
-        <Skeleton className="h-80 w-full" />
-        <Skeleton className="h-80 w-full" />
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe2 className="h-4 w-4" />
+              User Demographics by Region
+            </CardTitle>
+          
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="w-full h-[320px]" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PieChartIcon className="h-4 w-4" />
+              Subscription Plans Distribution
+            </CardTitle>
+            
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="w-full h-[320px]" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -421,7 +443,9 @@ export function UserDemographics() {
       {noData ? (
         <Card>
           <CardContent className="py-6">
-            <p className="text-sm text-muted-foreground">No users match the selected filters.</p>
+            <p className="text-sm text-muted-foreground">
+              No users match the selected filters.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -448,7 +472,7 @@ export function UserDemographics() {
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Pie>
-                  <Tooltip 
+                  <Tooltip
                     offset={50} // Move tooltip further from cursor
                     allowEscapeViewBox={{ x: true, y: true }} // Allow tooltip to escape container boundaries if needed
                     content={({ active, payload }) => {
@@ -456,15 +480,27 @@ export function UserDemographics() {
                         const data = payload[0].payload;
                         return (
                           <div className="bg-background/95 border border-border p-3 rounded-lg shadow-lg text-sm max-h-[300px] overflow-y-auto">
-                            <div className="font-bold mb-2 border-b pb-1 text-base text-foreground">{data.name}</div>
+                            <div className="font-bold mb-2 border-b pb-1 text-base text-foreground">
+                              {data.name}
+                            </div>
                             <div className="mb-2 text-muted-foreground">
-                              Total: {data.value} users ({((data.value / filteredProfiles.length) * 100).toFixed(1)}%)
+                              Total: {data.value} users (
+                              {(
+                                (data.value / filteredProfiles.length) *
+                                100
+                              ).toFixed(1)}
+                              %)
                             </div>
                             <div className="space-y-1.5">
                               {data.countries.map((c: any, i: number) => {
-                                const Flag = c.code ? (FlagIcons as any)[c.code] : null;
+                                const Flag = c.code
+                                  ? (FlagIcons as any)[c.code]
+                                  : null;
                                 return (
-                                  <div key={i} className="flex justify-between items-center gap-4 text-xs text-text-foreground">
+                                  <div
+                                    key={i}
+                                    className="flex justify-between items-center gap-4 text-xs text-text-foreground"
+                                  >
                                     <div className="flex items-center gap-2 min-w-0">
                                       {Flag && (
                                         <div className="shrink-0 w-4 h-3 relative shadow-sm rounded-[1px] overflow-hidden">
@@ -473,7 +509,9 @@ export function UserDemographics() {
                                       )}
                                       <span className="truncate">{c.name}</span>
                                     </div>
-                                    <span className="font-mono font-medium text-muted-foreground">{c.count}</span>
+                                    <span className="font-mono font-medium text-muted-foreground">
+                                      {c.count}
+                                    </span>
                                   </div>
                                 );
                               })}
@@ -490,8 +528,8 @@ export function UserDemographics() {
             </CardContent>
           </Card>
 
-          <Card className="flex flex-col items-start">
-            <CardHeader className="items-center pb-0">
+          <Card className="flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <PieChartIcon className="h-4 w-4" />
                 Subscription Plans Distribution
@@ -503,26 +541,41 @@ export function UserDemographics() {
                   data={planData}
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
-                  <XAxis 
-                    dataKey="name" 
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 12, fill: '#888' }}
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#333"
                   />
-                  <YAxis 
+                  <XAxis
+                    dataKey="name"
                     tickLine={false}
                     axisLine={false}
-                    tick={{ fontSize: 12, fill: '#888' }}
+                    tick={{ fontSize: 12, fill: "#888" }}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 12, fill: "#888" }}
                   />
                   <Tooltip
-                    cursor={{ fill: 'transparent' }}
-                    contentStyle={{ background: '#1e1e1e', border: '1px solid #333', borderRadius: '8px', color: '#fff' }}
-                    itemStyle={{ color: '#fff' }}
-                    labelStyle={{ color: '#aaa', marginBottom: '0.5rem' }}
+                    cursor={{ fill: "transparent" }}
+                    contentStyle={{
+                      background: "#1e1e1e",
+                      border: "1px solid #333",
+                      borderRadius: "8px",
+                      color: "#fff",
+                    }}
+                    itemStyle={{ color: "#fff" }}
+                    labelStyle={{ color: "#aaa", marginBottom: "0.5rem" }}
                   />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={50}>
-                    <LabelList dataKey="value" position="top" fontSize={12} fill="#888" formatter={(val: number) => val > 0 ? val : ''} />
+                    <LabelList
+                      dataKey="value"
+                      position="top"
+                      fontSize={12}
+                      fill="#888"
+                      formatter={(val: number) => (val > 0 ? val : "")}
+                    />
                     {planData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}

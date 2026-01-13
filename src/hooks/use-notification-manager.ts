@@ -63,13 +63,13 @@ export function useNotificationManager() {
   const showCreditUsageNotification = (data: any) => {
     if (!shouldShowNotification("credit_usage")) return;
 
-    const name = data.userName || data.user_name  || "A user";
+    const name = data.userName || data.user_name || "A user";
     const credits = data.credits_used || data.amount || 0;
 
     toast({
       title: "Credits Used",
       // description: `${name} used ${credits} credits`,
-      description: `A user just used some credits`,
+      description: `A user just used credits`,
       duration: 5000,
     });
 
@@ -130,7 +130,7 @@ export function useNotificationManager() {
       .on(
         "postgres_changes",
         {
-          event: "*", 
+          event: "*",
           schema: "public",
           table: "subscriptions",
         },
@@ -149,5 +149,5 @@ export function useNotificationManager() {
     };
   }, []);
 
-  return null; 
+  return null;
 }
