@@ -56,22 +56,22 @@ export function useRecentTransactions(limit: number = 10) {
     // Process Subscriptions
     // We treat the latest update as the transaction time
     subscriptions.forEach((sub) => {
-      const profile = userMap.get(sub.userId);
-      const userName = profile?.fullName || `User ${sub.userId.slice(0, 4)}`;
+      const profile = userMap.get(sub?.userId);
+      const userName = profile?.fullName || `User ${sub?.userId?.slice(0, 4)}`;
       const userEmail = profile?.email || "Email not available";
 
       // Determine transaction type based on status/dates
       // This is an approximation since we don't have a transaction log for subs
       let type: TransactionItem["type"] = "Subscription";
-      if (sub.createdAt.getTime() !== sub.updatedAt.getTime()) {
+      if (sub?.createdAt?.getTime() !== sub?.updatedAt?.getTime()) {
         type = "Renewal"; // or Upgrade
       }
 
       // Calculate price based on plan type and name
       // Monthly subscriptions: seed = $5, edge = $10
       let amount = 0;
-      const planName = (sub.planName || "").toLowerCase();
-      const planType = (sub.planType || "").toLowerCase();
+      const planName = (sub?.planName || "").toLowerCase();
+      const planType = (sub?.planType || "").toLowerCase();
       const planInfo = `${planName} ${planType}`.toLowerCase();
 
       // Check planType first for monthly subscriptions
@@ -96,18 +96,18 @@ export function useRecentTransactions(limit: number = 10) {
       }
 
       items.push({
-        id: `sub-${sub.id}`,
-        userId: sub.userId,
+        id: `sub-${sub?.id}`,
+        userId: sub?.userId,
         userName: userName,
         userEmail: userEmail,
         type: type,
-        description: `${sub.planName || "Plan"} ${sub.planType || ""}`,
+        description: `${sub?.planName || "Plan"} ${sub?.planType || ""}`,
         amount: amount,
         status:
-          sub.status === "active" || sub.status === "succeeded"
+          sub?.status === "active" || sub?.status === "succeeded"
             ? "Success"
-            : sub.status || "Active",
-        date: new Date(sub.updatedAt), // Using updated_at as the "transaction" time
+            : sub?.status || "Active",
+        date: new Date(sub?.updatedAt), // Using updated_at as the "transaction" time
         source: "subscription",
       });
     });
