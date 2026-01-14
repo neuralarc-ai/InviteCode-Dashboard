@@ -66,6 +66,16 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+        brand: {
+          'red-passion': 'var(--red-passion)',
+          'quantum-core': 'var(--quantum-core)',
+          'aurora-node': 'var(--aurora-node)',
+          'neural-drift': 'var(--neural-drift)',
+          'solar-pulse': 'var(--solar-pulse)',
+          'dataflow-blue': 'var(--dataflow-blue)',
+          'ion-spark': 'var(--ion-spark)',
+          'verdant-code': 'var(--verdant-code)',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',

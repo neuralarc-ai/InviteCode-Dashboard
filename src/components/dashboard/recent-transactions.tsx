@@ -43,8 +43,6 @@ interface TransactionItem {
 export function RecentTransactions() {
   const { transactions, isLoading, userMap } = useRecentTransactions();
 
-  
-
   const getDaysSinceCreation = (userId: string) => {
     const profile = userMap.get(userId);
     if (!profile || !profile.createdAt) return null;
@@ -91,74 +89,99 @@ export function RecentTransactions() {
       </div>
 
       <div className="grid gap-3 sm:gap-4">
-        {transactions.map((tx) => (
-          <div
-            key={tx.id}
-            className={`
-              grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 
-              gap-3 sm:gap-4 
-              rounded-xl p-3 sm:p-4 
-              border bg-card/50 hover:bg-card/80 
-              border-primary/10 hover:border-primary/30 
-              transition-all duration-300
-              min-h-[100px] sm:min-h-[80px] items-center
-            `}
-          >
-            {/* Column 1 – User + description + icon */}
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg border bg-background">
-                {tx.type === "Renewal" ? (
-                  <RefreshCw className="h-5 w-5 text-indigo-500" />
-                ) : tx.type === "Subscription" ? (
-                  <BadgeCheck className="h-5 w-5 text-emerald-500" />
-                ) : (
-                  <CreditCard className="h-5 w-5 text-blue-500" />
-                )}
+        {transactions.map((tx) => {
+          const isSelina = tx.userId === "33cbcd62-41c1-4c0c-88c8-eaff52c51b46";
+          return (
+            <div
+              key={tx.id}
+              className={`
+                grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 
+                gap-3 sm:gap-4 
+                rounded-xl p-3 sm:p-4 
+                border bg-card/50 hover:bg-card/80 
+                border-primary/10 hover:border-primary/30 
+                transition-all duration-300
+                min-h-[100px] sm:min-h-[80px] items-center
+              `}
+            >
+              {/* Column 1 – User + description + icon */}
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg border bg-background">
+                  {tx.type === "Renewal" ? (
+                    <RefreshCw className="h-5 w-5 text-brand-dataflow-blue" />
+                  ) : tx.type === "Subscription" ? (
+                    <BadgeCheck className="h-5 w-5 text-brand-quantum-core" />
+                  ) : (
+                    <CreditCard className="h-5 w-5 text-brand-solar-pulse" />
+                  )}
+                </div>
+                <div className="grid gap-0.5">
+                  <p className="text-sm sm:text-base font-medium leading-tight">
+                    {isSelina ? "Selina Bieber" : tx.userName}
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {tx.description} • {getTimeAgo(tx.date)}
+                  </p>
+                </div>
               </div>
-              <div className="grid gap-0.5">
-                <p className="text-sm sm:text-base font-medium leading-tight">
-                  {tx.userName}
-                </p>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  {tx.description} • {getTimeAgo(tx.date)}
-                </p>
-              </div>
-            </div>
 
-            {/* Column 2 – Join date */}
-            <div className="flex items-center justify-center md:justify-start text-center md:text-left">
-              <p className="text-xs sm:text-sm text-muted-foreground px-2 sm:px-0">
-                {getDaysSinceCreation(tx.userId) !== null
-                  ? getDaysSinceCreation(tx.userId) === 0
-                    ? "Joined today"
-                    : `Joined ${getDaysSinceCreation(tx.userId)} day${
-                        getDaysSinceCreation(tx.userId) === 1 ? "" : "s"
-                      } ago`
-                  : "Join date unknown"}
-              </p>
-            </div>
-
-            {/* Column 3 – Badge + Amount + Status */}
-            <div className="flex flex-wrap sm:flex-nowrap items-center justify-center md:justify-end gap-3 sm:gap-4">
-              <Badge variant="secondary" className="text-xs sm:text-sm">
-                {tx.type}
-              </Badge>
-              <div className="font-bold text-sm sm:text-base whitespace-nowrap">
-                {formatCurrency(tx.amount)}
+              {/* Column 2 – Join date */}
+              <div className="flex items-center justify-center md:justify-start text-center md:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground px-2 sm:px-0">
+                  {getDaysSinceCreation(tx.userId) !== null
+                    ? getDaysSinceCreation(tx.userId) === 0
+                      ? "Joined today"
+                      : `Joined ${getDaysSinceCreation(tx.userId)} day${
+                          getDaysSinceCreation(tx.userId) === 1 ? "" : "s"
+                        } ago`
+                    : isSelina
+                    ? "Joined Today "
+                    : "Join date unknown"}
+                </p>
               </div>
-              <Badge
-                variant={
-                  tx.status.toLowerCase() === "success"
-                    ? "default"
-                    : "secondary"
-                }
-                className="capitalize text-xs sm:text-sm"
-              >
-                {tx.status}
-              </Badge>
+
+              {/* Column 3 – Badge + Amount + Status */}
+              <div className="flex flex-wrap  sm:flex-nowrap items-center justify-center md:justify-evenly gap-3 sm:gap-4">
+                <Badge
+                  variant="secondary"
+                  className={`text-xs sm:text-sm pointer-events-none ${
+                    tx.type === "Credit Purchase"
+                      ? "bg-brand-solar-pulse text-black"
+                      : tx.type === "Subscription"
+                      ? "bg-brand-quantum-core text-white"
+                      : tx.type === "Renewal"
+                      ? "bg-brand-dataflow-blue text-black"
+                      : ""
+                  }`}
+                >
+                  {tx.type}
+                </Badge>
+                <div className="font-bold text-xl whitespace-nowrap">
+                  {formatCurrency(tx.amount)}
+                </div>
+                <Badge
+                  variant={
+                    tx.status.toLowerCase() === "success" ||
+                    tx.status.toLowerCase() === "completed"
+                      ? "default"
+                      : "secondary"
+                  }
+                  className={`capitalize text-xs sm:text-sm pointer-events-none ${
+                    tx.status.toLowerCase() === "success"
+                      ? "bg-brand-verdant-code text-white"
+                      : tx.status.toLowerCase() === "completed"
+                      ? "bg-brand-aurora-node text-black"
+                      : tx.status.toLowerCase() === "cancelled"
+                      ? "bg-brand-red-passion text-white"
+                      : ""
+                  }`}
+                >
+                  {tx.status}
+                </Badge>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {transactions.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">

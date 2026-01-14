@@ -107,16 +107,34 @@ export function useRecentTransactions(limit: number = 10) {
           sub?.status === "active" || sub?.status === "succeeded"
             ? "Success"
             : sub?.status || "Active",
-        date: new Date(sub?.updatedAt), // Using updated_at as the "transaction" time
+        date: sub?.updatedAt
+          ? new Date(sub.updatedAt)
+          : sub?.createdAt
+          ? new Date(sub.createdAt)
+          : new Date(), // Using updated_at as the "transaction" time, fallback to created_at, then current date
         source: "subscription",
       });
     });
 
+    console.log("items before sort and slice", items);
+
     // Sort by date descending and limit
-    return items
-      .sort((a, b) => b.date.getTime() - a.date.getTime())
+    // Filter out any items with invalid dates before sorting
+    const validItems = items.filter((item) => {
+      const time = item.date.getTime();
+      return !isNaN(time) && time > 0;
+    });
+
+    return validItems
+      .sort((a, b) => {
+        const aTime = a.date.getTime();
+        const bTime = b.date.getTime();
+        return bTime - aTime;
+      })
       .slice(0, limit);
   }, [creditPurchases, subscriptions, userProfiles, limit]);
+
+  console.log("transactions", transactions);
 
   const isLoading = loadingPurchases || loadingSubs || loadingProfiles;
 
