@@ -11,7 +11,7 @@ import { DollarSign, Users, CreditCard, TrendingUp, UserPlus } from 'lucide-reac
 import { useGlobal } from "@/contexts/global-context";
 import { useCreditBalances, useCreditPurchases, useSubscriptions } from '@/hooks/use-realtime-data';
 import { supabase } from '@/lib/supabase';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getUserType } from '@/lib/utils';
 
 export function StatCardsRealtime() {
   const { creditBalances, loading: balancesLoading } = useCreditBalances();
@@ -111,18 +111,19 @@ export function StatCardsRealtime() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Filter out internal users (only count external users)
+    const externalUserProfiles = userProfiles.filter(profile => {
+      const userType = getUserType(profile.email);
+      return userType === 'external';
+    });
+
     const paidUserIds = new Set([
       ...creditPurchases.map(purchase => purchase.userId),
       ...subscriptions.map(sub => sub.userId)
     ]);
 
-    // Calculate total revenue from credit purchases (completed payments only)
-    const creditPurchaseRevenue = creditPurchases
-      .filter(purchase => purchase.status === 'completed')
-      .reduce((sum, purchase) => sum + purchase.amountDollars, 0);
-
-    // Calculate total revenue from subscriptions
-    const subscriptionRevenue = subscriptions.reduce((sum, sub) => {
+    // Helper function to calculate subscription amount based on plan
+    const getSubscriptionAmount = (sub: typeof subscriptions[0]): number => {
       const planName = (sub.planName || '').toLowerCase();
       const planType = (sub.planType || '').toLowerCase();
       const planInfo = `${planName} ${planType}`.toLowerCase();
@@ -150,21 +151,73 @@ export function StatCardsRealtime() {
         amount = 10; // Monthly edge price
       }
       
-      return sum + amount;
+      return amount;
+    };
+
+    // Calculate total revenue from credit purchases (completed payments only)
+    // Note: API already filters by completed status, but we filter again for safety
+    const creditPurchaseRevenue = creditPurchases
+      .filter(purchase => purchase.status === 'completed' && purchase.amountDollars > 0)
+      .reduce((sum, purchase) => sum + (purchase.amountDollars || 0), 0);
+
+    // Separate subscriptions into initial subscriptions and renewals
+    // A renewal is identified when createdAt !== updatedAt (subscription was updated after creation)
+    const activeSubscriptions = subscriptions.filter(sub => {
+      const status = (sub.status || '').toLowerCase();
+      return status === 'active' || status === 'trialing';
+    });
+
+    // Initial subscriptions: subscriptions where createdAt === updatedAt (or very close, within 1 second)
+    const initialSubscriptions = activeSubscriptions.filter(sub => {
+      if (!sub.createdAt || !sub.updatedAt) return false;
+      const timeDiff = Math.abs(sub.updatedAt.getTime() - sub.createdAt.getTime());
+      // Consider it initial if created and updated within 1 second (1000ms)
+      return timeDiff <= 1000;
+    });
+
+    // Renewals: subscriptions where createdAt !== updatedAt (updated after creation)
+    const renewals = activeSubscriptions.filter(sub => {
+      if (!sub.createdAt || !sub.updatedAt) return false;
+      const timeDiff = Math.abs(sub.updatedAt.getTime() - sub.createdAt.getTime());
+      // Consider it a renewal if updated more than 1 second after creation
+      return timeDiff > 1000;
+    });
+
+    // Calculate revenue from initial subscriptions
+    const initialSubscriptionRevenue = initialSubscriptions.reduce((sum, sub) => {
+      return sum + getSubscriptionAmount(sub);
     }, 0);
 
-    // Total Helium Revenue = Credit Purchases + Subscriptions
-    const totalRevenue = creditPurchaseRevenue + subscriptionRevenue;
+    // Calculate revenue from renewals
+    const renewalRevenue = renewals.reduce((sum, sub) => {
+      return sum + getSubscriptionAmount(sub);
+    }, 0);
+
+    // Total subscription revenue (for backward compatibility)
+    const subscriptionRevenue = initialSubscriptionRevenue + renewalRevenue;
+
+    // Total Helium Revenue = Credit Purchases + Initial Subscriptions + Renewals
+    const totalRevenue = creditPurchaseRevenue + initialSubscriptionRevenue + renewalRevenue;
+
+    // Filter paid user IDs to only include external users
+    const externalPaidUserIds = new Set(
+      Array.from(paidUserIds).filter(userId => {
+        const profile = userProfiles.find(p => p.userId === userId);
+        return profile && getUserType(profile.email) === 'external';
+      })
+    );
 
     return {
-      totalUsers: userProfiles.length,
+      totalUsers: externalUserProfiles.length,
       totalCredits: creditBalances.reduce((sum, balance) => sum + Math.round(balance.balanceDollars * 100), 0),
-      newUsersToday: userProfiles.filter(user => user.createdAt >= today).length,
-      paidUsers: paidUserIds.size,
+      newUsersToday: externalUserProfiles.filter(user => user.createdAt >= today).length,
+      paidUsers: externalPaidUserIds.size,
       totalBalance: creditBalances.reduce((sum, balance) => sum + balance.balanceDollars, 0),
       totalRevenue: totalRevenue,
       creditPurchaseRevenue: creditPurchaseRevenue,
-      subscriptionRevenue: subscriptionRevenue,
+      initialSubscriptionRevenue: initialSubscriptionRevenue,
+      renewalRevenue: renewalRevenue,
+      subscriptionRevenue: subscriptionRevenue, // Total for backward compatibility
     };
   }, [userProfiles, creditBalances, creditPurchases, subscriptions]);
 
@@ -178,8 +231,8 @@ export function StatCardsRealtime() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i} className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="h-4 w-20 bg-muted animate-pulse rounded" />
@@ -230,24 +283,26 @@ export function StatCardsRealtime() {
       icon: DollarSign,
       description: 'Made a purchase',
     },
-    {
-      title: 'Helium Revenue',
-      value: formatCurrency(stats.totalRevenue),
-      icon: TrendingUp,
-      description: (
-        <>
-          Purchases: {formatCurrency(stats.creditPurchaseRevenue)}
-          <br />
-          Subscriptions: {formatCurrency(stats.subscriptionRevenue)}
-        </>
-      ),
-    },
+    // {
+    //   title: 'Helium Revenue',
+    //   value: formatCurrency(stats.totalRevenue),
+    //   icon: TrendingUp,
+    //   description: (
+    //     <>
+    //       Purchases: {formatCurrency(stats.creditPurchaseRevenue)}
+    //       <br />
+    //       Subscriptions: {formatCurrency(stats.initialSubscriptionRevenue)}
+    //       <br />
+    //       Renewals: {formatCurrency(stats.renewalRevenue)}
+    //     </>
+    //   ),
+    // },
   ];
 
   const themeColors = ['primary', 'secondary', 'muted', 'accent', 'primary'];
 
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-4">
       {statCards.map((stat, index) => (
         <Card key={stat.title} className="group bg-background border-primary/20 hover:border-primary/70 glare-effect hover:scale-[1.03] duration-500 transition-all ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

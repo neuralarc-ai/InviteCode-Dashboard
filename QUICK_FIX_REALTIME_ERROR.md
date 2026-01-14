@@ -61,3 +61,4 @@ Run `enable-realtime-via-rpc.sql` once - it will automatically enable realtime f
 The app will still work even with this error - it just won't have real-time updates. The hook has been updated to handle this gracefully without spamming the console.
 
 
+
