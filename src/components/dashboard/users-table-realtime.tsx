@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   Table,
   TableBody,
@@ -8,17 +8,28 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Search, RefreshCw, User, Mail, CreditCard, Trash2, Loader2, CheckCircle2, ChevronUp, ChevronDown } from 'lucide-react';
-import type { UserProfile } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
-import { getUserType, getNameFromEmail } from '@/lib/utils';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Search,
+  RefreshCw,
+  User,
+  Mail,
+  CreditCard,
+  Trash2,
+  Loader2,
+  CheckCircle2,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
+import type { UserProfile } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { getUserType, getNameFromEmail } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +39,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 
 type UsageActivity = {
   usageCount: number;
@@ -36,7 +47,7 @@ type UsageActivity = {
 };
 
 interface UsersTableRealtimeProps {
-  userTypeFilter?: 'internal' | 'external';
+  userTypeFilter?: "internal" | "external";
   selectedUserIds?: Set<string>;
   onSelectionChange?: (ids: Set<string>) => void;
   onAssignCredits?: (user: UserProfile) => void;
@@ -45,12 +56,16 @@ interface UsersTableRealtimeProps {
   loading: boolean;
   error: string | null;
   refreshUserProfiles: () => Promise<void>;
-  deleteUserProfile: (id: string) => Promise<{ success: boolean; message: string }>;
-  bulkDeleteUserProfiles: (ids: string[]) => Promise<{ success: boolean; message: string; deletedCount?: number }>;
+  deleteUserProfile: (
+    id: string
+  ) => Promise<{ success: boolean; message: string }>;
+  bulkDeleteUserProfiles: (
+    ids: string[]
+  ) => Promise<{ success: boolean; message: string; deletedCount?: number }>;
 }
 
-export function UsersTableRealtime({ 
-  userTypeFilter = 'external',
+export function UsersTableRealtime({
+  userTypeFilter = "external",
   selectedUserIds: externalSelectedUserIds,
   onSelectionChange,
   onAssignCredits,
@@ -62,29 +77,42 @@ export function UsersTableRealtime({
   deleteUserProfile,
   bulkDeleteUserProfiles,
 }: UsersTableRealtimeProps) {
-  const [filter, setFilter] = React.useState('');
+  const [filter, setFilter] = React.useState("");
   const [page, setPage] = React.useState(0);
   const rowsPerPage = 10;
   const { toast } = useToast();
-  const [internalSelectedUserIds, setInternalSelectedUserIds] = React.useState<Set<string>>(new Set());
+  const [internalSelectedUserIds, setInternalSelectedUserIds] = React.useState<
+    Set<string>
+  >(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = React.useState(false);
-  const [userToDelete, setUserToDelete] = React.useState<UserProfile | null>(null);
+  const [userToDelete, setUserToDelete] = React.useState<UserProfile | null>(
+    null
+  );
   const [isDeleting, setIsDeleting] = React.useState(false);
-  
+
   // Sorting state
-  const [sortField, setSortField] = React.useState<'name' | 'email' | 'created' | 'usageStatus' | 'usageCount' | 'latestActivity'>('created');
-  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('desc');
-  
+  const [sortField, setSortField] = React.useState<
+    | "name"
+    | "email"
+    | "created"
+    | "usageStatus"
+    | "usageCount"
+    | "latestActivity"
+  >("created");
+  const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(
+    "desc"
+  );
+
   // Use external selection state if provided, otherwise use internal state
   const selectedUserIds = externalSelectedUserIds ?? internalSelectedUserIds;
   const setSelectedUserIds = onSelectionChange ?? setInternalSelectedUserIds;
 
   // Debug logging
   React.useEffect(() => {
-    console.log('UsersTableRealtime - userProfiles:', userProfiles);
-    console.log('UsersTableRealtime - loading:', loading);
-    console.log('UsersTableRealtime - error:', error);
+    console.log("UsersTableRealtime - userProfiles:", userProfiles);
+    console.log("UsersTableRealtime - loading:", loading);
+    console.log("UsersTableRealtime - error:", error);
   }, [userProfiles, loading, error]);
 
   // Reset to first page when user type filter changes
@@ -106,71 +134,79 @@ export function UsersTableRealtime({
   // Handle sorting
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('desc');
+      setSortDirection("desc");
     }
     setPage(0); // Reset to first page when sorting
   };
 
   const getSortIcon = (field: typeof sortField) => {
     if (sortField !== field) return null;
-    return sortDirection === 'asc' ? 
-      <ChevronUp className="h-4 w-4" /> : 
-      <ChevronDown className="h-4 w-4" />;
+    return sortDirection === "asc" ? (
+      <ChevronUp className="h-4 w-4" />
+    ) : (
+      <ChevronDown className="h-4 w-4" />
+    );
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(date);
   };
 
   const formatDateOnly = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     }).format(date);
   };
 
   const getInitials = (name: string) => {
     return name
-      .split(' ')
+      .split(" ")
       .map((n) => n[0])
-      .join('')
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
 
   // Check if user has credits email sent
   const isCreditsEmailSent = (profile: UserProfile): boolean => {
-    return !!(profile.metadata?.credits_email_sent_at);
+    return !!profile.metadata?.credits_email_sent_at;
   };
 
   // Check if user has credits assigned
   const isCreditsAssigned = (profile: UserProfile): boolean => {
-    return !!(profile.metadata?.credits_assigned);
+    return !!profile.metadata?.credits_assigned;
   };
 
   // Get status badge for user
   const getStatusBadge = (profile: UserProfile) => {
     const sent = isCreditsEmailSent(profile);
     const assigned = isCreditsAssigned(profile);
-    
+
     if (sent && assigned) {
       return (
         <div className="flex flex-col gap-1">
-          <Badge variant="default" className="bg-green-700 hover:bg-green-800 text-white flex items-center gap-1 w-fit">
+          <Badge
+            variant="default"
+            className="bg-green-700 hover:bg-green-800 text-white flex items-center gap-1 w-fit"
+          >
             <CheckCircle2 className="h-3 w-3" />
             Sent
           </Badge>
-          <Badge variant="default" className="bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1 w-fit">
+          <Badge
+            variant="default"
+            className="bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1 w-fit"
+          >
             <CheckCircle2 className="h-3 w-3" />
             Assigned
           </Badge>
@@ -178,14 +214,20 @@ export function UsersTableRealtime({
       );
     } else if (sent) {
       return (
-        <Badge variant="default" className="bg-green-700 hover:bg-green-800 text-white flex items-center gap-1">
+        <Badge
+          variant="default"
+          className="bg-green-700 hover:bg-green-800 text-white flex items-center gap-1"
+        >
           <CheckCircle2 className="h-3 w-3" />
           Sent
         </Badge>
       );
     } else if (assigned) {
       return (
-        <Badge variant="default" className="bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1">
+        <Badge
+          variant="default"
+          className="bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1"
+        >
           <CheckCircle2 className="h-3 w-3" />
           Assigned
         </Badge>
@@ -202,40 +244,42 @@ export function UsersTableRealtime({
   const getUsageStatus = (userId: string) => {
     const usageInfo = usageActivityMap?.[userId];
     const latestActivity = usageInfo?.latestActivity;
-    
+
     if (!latestActivity) {
-      return 'inactive';
+      return "inactive";
     }
 
     const now = new Date();
-    const daysSinceActivity = Math.floor((now.getTime() - latestActivity.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceActivity = Math.floor(
+      (now.getTime() - latestActivity.getTime()) / (1000 * 60 * 60 * 24)
+    );
 
-    if (daysSinceActivity <= 30) {
-      return 'active';
-    } else if (daysSinceActivity <= 60) {
-      return 'partial';
+    if (daysSinceActivity <= 5) {
+      return "active";
+    } else if (daysSinceActivity <= 10) {
+      return "partial";
     } else {
-      return 'inactive';
+      return "inactive";
     }
   };
 
   const getUsageStatusBadge = (userId: string) => {
     const status = getUsageStatus(userId);
-    
+
     switch (status) {
-      case 'active':
+      case "active":
         return (
           <Badge variant="default" className="bg-green-500 hover:bg-green-600">
             Active
           </Badge>
         );
-      case 'partial':
+      case "partial":
         return (
           <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">
             Partial Active
           </Badge>
         );
-      case 'inactive':
+      case "inactive":
       default:
         return (
           <Badge variant="secondary" className="text-muted-foreground">
@@ -258,7 +302,7 @@ export function UsersTableRealtime({
         (value) =>
           value !== null &&
           value !== undefined &&
-          typeof value === 'string' &&
+          typeof value === "string" &&
           value.toLowerCase().includes(filter.toLowerCase())
       );
       if (!matchesText) {
@@ -274,43 +318,53 @@ export function UsersTableRealtime({
     let bValue: any;
 
     switch (sortField) {
-      case 'name':
-        const aName = (a.fullName && a.fullName.trim() !== '' && a.fullName.trim().toLowerCase() !== 'user') 
-          ? a.fullName 
-          : getNameFromEmail(a.email);
-        const bName = (b.fullName && b.fullName.trim() !== '' && b.fullName.trim().toLowerCase() !== 'user') 
-          ? b.fullName 
-          : getNameFromEmail(b.email);
+      case "name":
+        const aName =
+          a.fullName &&
+          a.fullName.trim() !== "" &&
+          a.fullName.trim().toLowerCase() !== "user"
+            ? a.fullName
+            : getNameFromEmail(a.email);
+        const bName =
+          b.fullName &&
+          b.fullName.trim() !== "" &&
+          b.fullName.trim().toLowerCase() !== "user"
+            ? b.fullName
+            : getNameFromEmail(b.email);
         aValue = aName.toLowerCase();
         bValue = bName.toLowerCase();
         break;
-      case 'email':
+      case "email":
         aValue = a.email.toLowerCase();
         bValue = b.email.toLowerCase();
         break;
-      case 'created':
+      case "created":
         aValue = a.createdAt.getTime();
         bValue = b.createdAt.getTime();
         break;
-      case 'usageStatus':
+      case "usageStatus":
         // Sort by usage status priority: active > partial > inactive
         const getStatusPriority = (userId: string) => {
           const status = getUsageStatus(userId);
           switch (status) {
-            case 'active': return 3;
-            case 'partial': return 2;
-            case 'inactive': return 1;
-            default: return 0;
+            case "active":
+              return 3;
+            case "partial":
+              return 2;
+            case "inactive":
+              return 1;
+            default:
+              return 0;
           }
         };
         aValue = getStatusPriority(a.userId);
         bValue = getStatusPriority(b.userId);
         break;
-      case 'usageCount':
+      case "usageCount":
         aValue = usageActivityMap?.[a.userId]?.usageCount || 0;
         bValue = usageActivityMap?.[b.userId]?.usageCount || 0;
         break;
-      case 'latestActivity':
+      case "latestActivity":
         aValue = usageActivityMap?.[a.userId]?.latestActivity?.getTime() || 0;
         bValue = usageActivityMap?.[b.userId]?.latestActivity?.getTime() || 0;
         break;
@@ -323,7 +377,7 @@ export function UsersTableRealtime({
     if (bValue === null || bValue === undefined) return -1;
 
     // Sort based on direction
-    if (sortDirection === 'asc') {
+    if (sortDirection === "asc") {
       return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
     } else {
       return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
@@ -349,9 +403,13 @@ export function UsersTableRealtime({
   };
 
   const handleSelectAll = () => {
-    const allFilteredUserIds = new Set(sortedProfiles.map(profile => profile.userId));
-    if (selectedUserIds.size === sortedProfiles.length && 
-        sortedProfiles.every(profile => selectedUserIds.has(profile.userId))) {
+    const allFilteredUserIds = new Set(
+      sortedProfiles.map((profile) => profile.userId)
+    );
+    if (
+      selectedUserIds.size === sortedProfiles.length &&
+      sortedProfiles.every((profile) => selectedUserIds.has(profile.userId))
+    ) {
       // All are selected, deselect all
       setSelectedUserIds(new Set());
     } else {
@@ -360,9 +418,12 @@ export function UsersTableRealtime({
     }
   };
 
-  const isAllSelected = sortedProfiles.length > 0 && 
-    sortedProfiles.every(profile => selectedUserIds.has(profile.userId));
-  const isSomeSelected = sortedProfiles.some(profile => selectedUserIds.has(profile.userId));
+  const isAllSelected =
+    sortedProfiles.length > 0 &&
+    sortedProfiles.every((profile) => selectedUserIds.has(profile.userId));
+  const isSomeSelected = sortedProfiles.some((profile) =>
+    selectedUserIds.has(profile.userId)
+  );
 
   const handleRefresh = async () => {
     try {
@@ -391,7 +452,7 @@ export function UsersTableRealtime({
     setIsDeleting(true);
     try {
       const result = await deleteUserProfile(userToDelete.id);
-      
+
       if (result.success) {
         toast({
           title: "Success",
@@ -409,7 +470,8 @@ export function UsersTableRealtime({
     } catch (error) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred while deleting the user profile",
+        description:
+          "An unexpected error occurred while deleting the user profile",
         variant: "destructive",
       });
     } finally {
@@ -435,17 +497,21 @@ export function UsersTableRealtime({
     setIsDeleting(true);
     try {
       // Get profile IDs from selected user IDs
-      const selectedProfiles = sortedProfiles.filter(profile => 
+      const selectedProfiles = sortedProfiles.filter((profile) =>
         selectedUserIds.has(profile.userId)
       );
-      const profileIds = selectedProfiles.map(profile => profile.id);
+      const profileIds = selectedProfiles.map((profile) => profile.id);
 
       const result = await bulkDeleteUserProfiles(profileIds);
-      
+
       if (result.success) {
         toast({
           title: "Success",
-          description: result.message || `Successfully deleted ${result.deletedCount || profileIds.length} user profile(s)`,
+          description:
+            result.message ||
+            `Successfully deleted ${
+              result.deletedCount || profileIds.length
+            } user profile(s)`,
         });
         setSelectedUserIds(new Set());
         setBulkDeleteDialogOpen(false);
@@ -454,7 +520,9 @@ export function UsersTableRealtime({
         if (result.deletedCount && result.deletedCount > 0) {
           toast({
             title: "Partial Success",
-            description: result.message || `Deleted ${result.deletedCount} user(s), but some failed. Check the error details.`,
+            description:
+              result.message ||
+              `Deleted ${result.deletedCount} user(s), but some failed. Check the error details.`,
             variant: "destructive",
           });
           // Still clear selection for successfully deleted users
@@ -471,7 +539,8 @@ export function UsersTableRealtime({
     } catch (error) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred while deleting user profiles",
+        description:
+          "An unexpected error occurred while deleting user profiles",
         variant: "destructive",
       });
     } finally {
@@ -526,23 +595,25 @@ export function UsersTableRealtime({
   }
 
   return (
-    <Card className=''>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row items-start gap-4 md:items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <User size={28} />
-              User Profiles ({sortedProfiles.length} {userTypeFilter === 'internal' ? 'internal' : 'external'} user{sortedProfiles.length !== 1 ? 's' : ''})
-              {selectedUserIds.size > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {selectedUserIds.size} selected
-                </Badge>
-              )}
-            </CardTitle>
+    <Card className="">
+      <CardHeader>
+        <div className="flex flex-col md:flex-row items-start gap-4 md:items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <User size={28} />
+            User Profiles ({sortedProfiles.length}{" "}
+            {userTypeFilter === "internal" ? "internal" : "external"} user
+            {sortedProfiles.length !== 1 ? "s" : ""})
+            {selectedUserIds.size > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {selectedUserIds.size} selected
+              </Badge>
+            )}
+          </CardTitle>
           <div className="flex gap-2 self-end">
             {selectedUserIds.size > 0 && (
-              <Button 
+              <Button
                 onClick={handleBulkDeleteClick}
-                variant="destructive" 
+                variant="destructive"
                 size="sm"
                 disabled={isDeleting}
               >
@@ -563,12 +634,12 @@ export function UsersTableRealtime({
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
-            <Button 
+            <Button
               onClick={() => {
-                console.log('Current state:', { userProfiles, loading, error });
-                console.log('Filtered profiles:', filteredProfiles);
-              }} 
-              variant="outline" 
+                console.log("Current state:", { userProfiles, loading, error });
+                console.log("Filtered profiles:", filteredProfiles);
+              }}
+              variant="outline"
               size="sm"
             >
               Debug
@@ -603,56 +674,56 @@ export function UsersTableRealtime({
                   />
                 </TableHead>
                 <TableHead>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-auto p-0 font-semibold hover:bg-transparent"
-                    onClick={() => handleSort('name')}
+                    onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center gap-1">
                       Name
-                      {getSortIcon('name')}
+                      {getSortIcon("name")}
                     </div>
                   </Button>
                 </TableHead>
                 <TableHead>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-auto p-0 font-semibold hover:bg-transparent"
-                    onClick={() => handleSort('email')}
+                    onClick={() => handleSort("email")}
                   >
                     <div className="flex items-center gap-1">
                       Email
-                      {getSortIcon('email')}
+                      {getSortIcon("email")}
                     </div>
                   </Button>
                 </TableHead>
                 <TableHead>Credit Status</TableHead>
                 <TableHead>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-auto p-0 font-semibold hover:bg-transparent"
-                    onClick={() => handleSort('usageStatus')}
+                    onClick={() => handleSort("usageStatus")}
                   >
                     <div className="flex items-center gap-1">
                       Usage Status
-                      {getSortIcon('usageStatus')}
+                      {getSortIcon("usageStatus")}
                     </div>
                   </Button>
                 </TableHead>
                 <TableHead>Referral Source</TableHead>
                 <TableHead className="text-right">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-auto p-0 font-semibold hover:bg-transparent justify-end"
-                    onClick={() => handleSort('created')}
+                    onClick={() => handleSort("created")}
                   >
                     <div className="flex items-center gap-1">
                       Created
-                      {getSortIcon('created')}
+                      {getSortIcon("created")}
                     </div>
                   </Button>
                 </TableHead>
@@ -666,13 +737,22 @@ export function UsersTableRealtime({
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
-                        {filter 
-                          ? `No ${userTypeFilter} users found matching your search` 
+                        {filter
+                          ? `No ${userTypeFilter} users found matching your search`
                           : `No ${userTypeFilter} user profiles found`}
                       </p>
                       {userProfiles.length > 0 && (
                         <p className="text-xs text-muted-foreground mt-2">
-                          Showing {userTypeFilter} users only. {userProfiles.length - sortedProfiles.length} {userTypeFilter === 'internal' ? 'external' : 'internal'} user{userProfiles.length - sortedProfiles.length !== 1 ? 's' : ''} hidden.
+                          Showing {userTypeFilter} users only.{" "}
+                          {userProfiles.length - sortedProfiles.length}{" "}
+                          {userTypeFilter === "internal"
+                            ? "external"
+                            : "internal"}{" "}
+                          user
+                          {userProfiles.length - sortedProfiles.length !== 1
+                            ? "s"
+                            : ""}{" "}
+                          hidden.
                         </p>
                       )}
                     </div>
@@ -684,8 +764,16 @@ export function UsersTableRealtime({
                     <TableCell>
                       <Checkbox
                         checked={selectedUserIds.has(profile.userId)}
-                        onCheckedChange={() => handleToggleSelect(profile.userId)}
-                        aria-label={`Select ${profile.fullName && profile.fullName.trim() !== '' && profile.fullName.trim().toLowerCase() !== 'user' ? profile.fullName : getNameFromEmail(profile.email)}`}
+                        onCheckedChange={() =>
+                          handleToggleSelect(profile.userId)
+                        }
+                        aria-label={`Select ${
+                          profile.fullName &&
+                          profile.fullName.trim() !== "" &&
+                          profile.fullName.trim().toLowerCase() !== "user"
+                            ? profile.fullName
+                            : getNameFromEmail(profile.email)
+                        }`}
                       />
                     </TableCell>
                     <TableCell>
@@ -693,18 +781,26 @@ export function UsersTableRealtime({
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={profile.avatarUrl || undefined} />
                           <AvatarFallback className="text-xs">
-                            {getInitials(profile.fullName || getNameFromEmail(profile.email))}
+                            {getInitials(
+                              profile.fullName ||
+                                getNameFromEmail(profile.email)
+                            )}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <p className="font-medium">
-                            {profile.fullName && profile.fullName.trim() !== '' && profile.fullName.trim().toLowerCase() !== 'user' 
-                              ? profile.fullName 
+                            {profile.fullName &&
+                            profile.fullName.trim() !== "" &&
+                            profile.fullName.trim().toLowerCase() !== "user"
+                              ? profile.fullName
                               : getNameFromEmail(profile.email)}
                           </p>
-                          {profile.preferredName && profile.preferredName !== profile.fullName && (
-                            <p className="text-sm text-muted-foreground">({profile.preferredName})</p>
-                          )}
+                          {profile.preferredName &&
+                            profile.preferredName !== profile.fullName && (
+                              <p className="text-sm text-muted-foreground">
+                                ({profile.preferredName})
+                              </p>
+                            )}
                         </div>
                       </div>
                     </TableCell>
@@ -714,12 +810,8 @@ export function UsersTableRealtime({
                         <span className="text-sm">{profile.email}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {getStatusBadge(profile)}
-                    </TableCell>
-                    <TableCell>
-                      {getUsageStatusBadge(profile.userId)}
-                    </TableCell>
+                    <TableCell>{getStatusBadge(profile)}</TableCell>
+                    <TableCell>{getUsageStatusBadge(profile.userId)}</TableCell>
                     <TableCell>
                       <span className="text-sm">
                         {profile.referralSource || (
@@ -734,17 +826,17 @@ export function UsersTableRealtime({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                      {onAssignCredits && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onAssignCredits(profile)}
-                          className="p-2"
-                          aria-label="Assign Credits"
-                        >
-                          <CreditCard className="h-4 w-4" />
-                        </Button>
-                      )}
+                        {onAssignCredits && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onAssignCredits(profile)}
+                            className="p-2"
+                            aria-label="Assign Credits"
+                          >
+                            <CreditCard className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -768,7 +860,9 @@ export function UsersTableRealtime({
         {totalPages > 1 && (
           <div className="flex w-full flex-col md:flex-row gap-4 items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {page * rowsPerPage + 1} to {Math.min((page + 1) * rowsPerPage, sortedProfiles.length)} of {sortedProfiles.length} users
+              Showing {page * rowsPerPage + 1} to{" "}
+              {Math.min((page + 1) * rowsPerPage, sortedProfiles.length)} of{" "}
+              {sortedProfiles.length} users
             </p>
             <div className="flex w-full md:w-fit items-center gap-2">
               <Button
@@ -776,7 +870,7 @@ export function UsersTableRealtime({
                 size="sm"
                 onClick={() => setPage(Math.max(0, page - 1))}
                 disabled={page === 0}
-                className='w-full'
+                className="w-full"
               >
                 Previous
               </Button>
@@ -788,7 +882,7 @@ export function UsersTableRealtime({
                 size="sm"
                 onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
                 disabled={page === totalPages - 1}
-                className='w-full'
+                className="w-full"
               >
                 Next
               </Button>
@@ -803,12 +897,16 @@ export function UsersTableRealtime({
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user profile for{' '}
+              This action cannot be undone. This will permanently delete the
+              user profile for{" "}
               <strong>
-                {userToDelete?.fullName && userToDelete.fullName.trim() !== '' && userToDelete.fullName.trim().toLowerCase() !== 'user' 
-                  ? userToDelete.fullName 
+                {userToDelete?.fullName &&
+                userToDelete.fullName.trim() !== "" &&
+                userToDelete.fullName.trim().toLowerCase() !== "user"
+                  ? userToDelete.fullName
                   : getNameFromEmail(userToDelete?.email)}
-              </strong> ({userToDelete?.email}).
+              </strong>{" "}
+              ({userToDelete?.email}).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -824,7 +922,7 @@ export function UsersTableRealtime({
                   Deleting...
                 </>
               ) : (
-                'Delete'
+                "Delete"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -832,13 +930,20 @@ export function UsersTableRealtime({
       </AlertDialog>
 
       {/* Bulk Delete Confirmation Dialog */}
-      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+      <AlertDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete{' '}
-              <strong>{selectedUserIds.size} user profile{selectedUserIds.size !== 1 ? 's' : ''}</strong>.
+              This action cannot be undone. This will permanently delete{" "}
+              <strong>
+                {selectedUserIds.size} user profile
+                {selectedUserIds.size !== 1 ? "s" : ""}
+              </strong>
+              .
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -854,7 +959,9 @@ export function UsersTableRealtime({
                   Deleting...
                 </>
               ) : (
-                `Delete ${selectedUserIds.size} user${selectedUserIds.size !== 1 ? 's' : ''}`
+                `Delete ${selectedUserIds.size} user${
+                  selectedUserIds.size !== 1 ? "s" : ""
+                }`
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

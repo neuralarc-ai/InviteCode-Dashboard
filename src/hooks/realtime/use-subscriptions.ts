@@ -21,7 +21,6 @@ export function useSubscriptions() {
 
       const data = payload.data || [];
 
-      console.log('data from use subscriptions', data)
 
       const transformedSubscriptions = data.map((row: any) => ({
         id: row.id,

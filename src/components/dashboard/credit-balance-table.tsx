@@ -202,6 +202,7 @@ export function CreditBalanceTable() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Total Credits</TableHead>
+                <TableHead>Balance</TableHead>
                 <TableHead>Usage</TableHead>
                 <TableHead>Last Updated</TableHead>
                 <TableHead>Actions</TableHead>
@@ -242,6 +243,14 @@ export function CreditBalanceTable() {
                         {formatCredits(balance.totalPurchased)}
                       </span>
                         <span className="text-xs text-muted-foreground">total purchased</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                      <span className="font-mono font-semibold text-foreground">
+                        {formatCredits(balance.balanceDollars)}
+                      </span>
+                        <span className="text-xs text-muted-foreground">total balance</span>
                       </div>
                     </TableCell>
                     <TableCell>

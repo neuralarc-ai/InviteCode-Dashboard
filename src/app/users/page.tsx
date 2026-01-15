@@ -188,6 +188,8 @@ The Helium Team 🌟`
         }
 
         const result = await response.json();
+
+        console.log('result', result)
         
         if (isMounted) {
           const map: Record<string, { usageCount: number; latestActivity: Date | null }> = {};
@@ -628,8 +630,8 @@ The Helium Team 🌟`
   });
 
   const now = new Date();
-  const activeThreshold = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days
-  const partialThreshold = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000); // 60 days
+  const activeThreshold = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000); // 30 days
+  const partialThreshold = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000); // 60 days
 
   filteredProfilesForStats.forEach(user => {
     const activity = usageActivityMap[user.userId];

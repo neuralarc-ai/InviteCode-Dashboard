@@ -116,7 +116,6 @@ export function useRecentTransactions(limit: number = 10) {
       });
     });
 
-    console.log("items before sort and slice", items);
 
     // Sort by date descending and limit
     // Filter out any items with invalid dates before sorting
@@ -134,7 +133,6 @@ export function useRecentTransactions(limit: number = 10) {
       .slice(0, limit);
   }, [creditPurchases, subscriptions, userProfiles, limit]);
 
-  console.log("transactions", transactions);
 
   const isLoading = loadingPurchases || loadingSubs || loadingProfiles;
 

@@ -19,9 +19,9 @@ import { formatCurrency, generateAvatar, getTimeAgo } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
 
 const tabs = [
-  { label: "Transactions", key: "transactions" },
   { label: "Users", key: "users" },
-  { label: "Credits", key: "credits" },
+  { label: "Credit Usage", key: "credits" },
+  { label: "Transactions", key: "transactions" },
 ];
 
 function Notifications() {
@@ -47,7 +47,7 @@ function Notifications() {
   const { refreshSubscriptions } = useSubscriptions();
   const { refreshUserProfiles, refreshCreditUsage } = useGlobal();
 
-  const [active, setActive] = useState<string>("transactions");
+  const [active, setActive] = useState<string>("users");
 
   const getDaysSinceCreation = (userId: string) => {
     const profile = userMap.get(userId);

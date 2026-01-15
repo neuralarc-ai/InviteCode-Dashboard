@@ -14,7 +14,6 @@ export async function GET() {
       .select(`*`)
       .order('created', { ascending: false });
 
-      console.log('data from subscriptions api', data)
 
     if (error) {
       throw error;
