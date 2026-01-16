@@ -6,10 +6,13 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import { supabase, supabaseAdmin } from "@/lib/supabase";
 import { dbOperations } from "@/lib/db";
 import { getNameFromEmail } from "@/lib/utils";
+import { useAuth } from "@/components/auth-provider";
+import { logSecurityEvent } from "@/lib/security-logger";
 import type {
   CreditUsage,
   CreditUsageGrouped,
@@ -21,19 +24,66 @@ import type {
 let isFetchingCreditUsage = false;
 let isFetchingUserProfiles = false;
 
+// Utility function for fetch with AbortController support
+interface FetchWithAbortOptions extends RequestInit {
+  abortKey: string;
+}
+
+const fetchWithAbort = async (
+  url: string,
+  options: FetchWithAbortOptions,
+  abortControllers: Map<string, AbortController>
+): Promise<Response> => {
+  const { abortKey, ...fetchOptions } = options;
+
+  // Create new AbortController
+  const controller = new AbortController();
+  abortControllers.set(abortKey, controller);
+
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal,
+    });
+
+    return response;
+  } finally {
+    // Cleanup controller from Map after request completes
+    abortControllers.delete(abortKey);
+  }
+};
+
 // Helper to fetch emails for users
 const fetchEmailsForUsers = async (
-  userIds: string[]
+  userIds: string[],
+  abortControllers?: Map<string, AbortController>
 ): Promise<Map<string, string>> => {
   const userIdToEmail = new Map<string, string>();
   if (userIds.length === 0) return userIdToEmail;
 
   try {
-    const response = await fetch("/api/fetch-user-emails", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userIds }),
-    });
+    let response: Response;
+
+    if (abortControllers) {
+      // Use fetchWithAbort if abortControllers provided
+      response = await fetchWithAbort(
+        "/api/fetch-user-emails",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userIds }),
+          abortKey: "fetch-user-emails",
+        },
+        abortControllers
+      );
+    } else {
+      // Fallback to regular fetch for backward compatibility
+      response = await fetch("/api/fetch-user-emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds }),
+      });
+    }
 
     if (response.ok) {
       const userData = await response.json();
@@ -58,7 +108,12 @@ const fetchEmailsForUsers = async (
         }
       }
     }
-  } catch (e) {
+  } catch (e: any) {
+    // Handle AbortError gracefully
+    if (e.name === "AbortError") {
+      console.log("[Security] Request aborted: fetch-user-emails");
+      return userIdToEmail;
+    }
     console.warn("Failed to fetch emails", e);
   }
   return userIdToEmail;
@@ -211,8 +266,11 @@ type GlobalContextProps = {
     users: boolean;
     credits: boolean;
   };
-  setTabNotifications: (tab: 'transactions' | 'users' | 'credits', hasNotification: boolean) => void;
-  clearTabNotification: (tab: 'transactions' | 'users' | 'credits') => void;
+  setTabNotifications: (
+    tab: "transactions" | "users" | "credits",
+    hasNotification: boolean
+  ) => void;
+  clearTabNotification: (tab: "transactions" | "users" | "credits") => void;
 
   // Credit Usage
   creditUsage: CreditUsageGrouped[];
@@ -229,9 +287,7 @@ type GlobalContextProps = {
   deleteUserProfile: (
     profileId: string
   ) => Promise<{ success: boolean; message: string }>;
-  bulkDeleteUserProfiles: (
-    profileIds: string[]
-  ) => Promise<{
+  bulkDeleteUserProfiles: (profileIds: string[]) => Promise<{
     success: boolean;
     message: string;
     deletedCount?: number;
@@ -247,11 +303,29 @@ type GlobalContextProps = {
   grandTotalTokens: number;
   grandTotalCost: number;
   refreshUsageLogs: (config?: any) => Promise<void>;
+
+  // Cleanup functions
+  abortAllRequests: () => void;
+  cleanupRealtimeSubscriptions: () => Promise<void>;
+  clearAllData: () => Promise<void>;
 };
 
 const GlobalContext = createContext<GlobalContextProps | null>(null);
 
 export const GlobalProvider = ({ children }: { children: ReactNode }) => {
+  // Consume authentication state from AuthProvider
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Refs for tracking abort controllers and subscriptions
+  const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
+  const subscriptionsRef = useRef<Map<string, any>>(new Map());
+
+  // Ref to track previous authentication state for logging
+  const prevAuthStateRef = useRef<{
+    isAuthenticated: boolean;
+    isLoading: boolean;
+  } | null>(null);
+
   // Notification state
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [hasNotifications, setHasNotifications] = useState<boolean>(false);
@@ -288,24 +362,34 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const [grandTotalCost, setGrandTotalCost] = useState(0);
 
   // Tab notification functions
-  const setTabNotifications = useCallback((tab: 'transactions' | 'users' | 'credits', hasNotification: boolean) => {
-    setTabNotificationsState(prev => ({
-      ...prev,
-      [tab]: hasNotification
-    }));
-  }, []);
+  const setTabNotifications = useCallback(
+    (tab: "transactions" | "users" | "credits", hasNotification: boolean) => {
+      setTabNotificationsState((prev) => ({
+        ...prev,
+        [tab]: hasNotification,
+      }));
+    },
+    []
+  );
 
-  const clearTabNotification = useCallback((tab: 'transactions' | 'users' | 'credits') => {
-    setTabNotificationsState(prev => ({
-      ...prev,
-      [tab]: false
-    }));
-  }, []);
+  const clearTabNotification = useCallback(
+    (tab: "transactions" | "users" | "credits") => {
+      setTabNotificationsState((prev) => ({
+        ...prev,
+        [tab]: false,
+      }));
+    },
+    []
+  );
 
   // Credit Usage functions
   const fetchCreditUsage = useCallback(async () => {
     if (isFetchingCreditUsage) return;
     isFetchingCreditUsage = true;
+
+    // Create AbortController for this request
+    const controller = new AbortController();
+    abortControllersRef.current.set("fetch-credit-usage", controller);
 
     try {
       console.log("Fetching recent credit usage...");
@@ -319,7 +403,8 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         .from("credit_usage")
         .select("*")
         .gte("created_at", thirtyDaysAgo.toISOString())
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .abortSignal(controller.signal);
 
       if (error) throw error;
 
@@ -335,7 +420,10 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
       // Fetch user emails for recent usage
       const userIds = [...new Set(transformedUsage.map((u) => u.userId))];
-      const emailMap = await fetchEmailsForUsers(userIds);
+      const emailMap = await fetchEmailsForUsers(
+        userIds,
+        abortControllersRef.current
+      );
 
       // Apply emails to usage data
       transformedUsage.forEach((usage) => {
@@ -349,14 +437,29 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
       setCreditUsage(groupUsageData(transformedUsage));
       setCreditUsageError(null);
 
-      // Cache the data
-      await dbOperations.putAll("credit_usage", transformedUsage);
-    } catch (err) {
+      // Cache the data with error handling
+      try {
+        await dbOperations.putAll("credit_usage", transformedUsage);
+      } catch (cacheError) {
+        console.error(
+          "[Security] Error caching credit usage to IndexedDB:",
+          cacheError
+        );
+        // Continue even if caching fails - data is already in state
+      }
+    } catch (err: any) {
+      // Handle AbortError gracefully
+      if (err.name === "AbortError") {
+        console.log("[Security] Request aborted: fetch-credit-usage");
+        return;
+      }
       console.error("Error fetching credit usage:", err);
       setCreditUsageError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setCreditUsageLoading(false);
       isFetchingCreditUsage = false;
+      // Cleanup controller from Map
+      abortControllersRef.current.delete("fetch-credit-usage");
     }
   }, []);
 
@@ -364,6 +467,10 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const fetchUserProfiles = useCallback(async () => {
     if (isFetchingUserProfiles) return;
     isFetchingUserProfiles = true;
+
+    // Create AbortController for this request
+    const controller = new AbortController();
+    abortControllersRef.current.set("fetch-user-profiles", controller);
 
     try {
       console.log("Fetching user profiles...");
@@ -384,7 +491,8 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
             .from(table)
             .select("*")
             .range(from, from + limit - 1)
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false })
+            .abortSignal(controller.signal);
 
           if (error) throw error;
 
@@ -448,7 +556,10 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
       // Fetch emails for profiles that need them
       if (profilesToFetchEmail.length > 0) {
-        const emailMap = await fetchEmailsForUsers(profilesToFetchEmail);
+        const emailMap = await fetchEmailsForUsers(
+          profilesToFetchEmail,
+          abortControllersRef.current
+        );
 
         for (let i = 0; i < transformedProfiles.length; i++) {
           const p = transformedProfiles[i];
@@ -466,8 +577,23 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
       setUserProfiles(transformedProfiles);
       setUserProfilesError(null);
-      await dbOperations.putAll("user_profiles", transformedProfiles);
-    } catch (err) {
+
+      // Cache the data with error handling
+      try {
+        await dbOperations.putAll("user_profiles", transformedProfiles);
+      } catch (cacheError) {
+        console.error(
+          "[Security] Error caching user profiles to IndexedDB:",
+          cacheError
+        );
+        // Continue even if caching fails - data is already in state
+      }
+    } catch (err: any) {
+      // Handle AbortError gracefully
+      if (err.name === "AbortError") {
+        console.log("[Security] Request aborted: fetch-user-profiles");
+        return;
+      }
       console.error("Error fetching user profiles:", err);
       setUserProfilesError(
         err instanceof Error ? err.message : "Unknown error"
@@ -475,6 +601,8 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setUserProfilesLoading(false);
       isFetchingUserProfiles = false;
+      // Cleanup controller from Map
+      abortControllersRef.current.delete("fetch-user-profiles");
     }
   }, []);
 
@@ -484,19 +612,24 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
       setUsageLogsLoading(true);
       setUsageLogsError(null);
 
-      const response = await fetch("/api/usage-logs-aggregated", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          page: config.page || 1,
-          limit: config.limit || 10,
-          searchQuery: config.search || "",
-          activityFilter: config.activity || "all",
-          userTypeFilter: config.userType || "external",
-          sortBy: config.sort || "latest_activity",
-          timeRange: config.range || "all",
-        }),
-      });
+      const response = await fetchWithAbort(
+        "/api/usage-logs-aggregated",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            page: config.page || 1,
+            limit: config.limit || 10,
+            searchQuery: config.search || "",
+            activityFilter: config.activity || "all",
+            userTypeFilter: config.userType || "external",
+            sortBy: config.sort || "latest_activity",
+            timeRange: config.range || "all",
+          }),
+          abortKey: "fetch-usage-logs",
+        },
+        abortControllersRef.current
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -512,7 +645,12 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
       } else {
         throw new Error(result.error || "Failed to fetch usage logs");
       }
-    } catch (err) {
+    } catch (err: any) {
+      // Handle AbortError gracefully
+      if (err.name === "AbortError") {
+        console.log("[Security] Request aborted: fetch-usage-logs");
+        return;
+      }
       console.error("Error fetching usage logs:", err);
       setUsageLogsError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -553,7 +691,18 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         const result = await response.json();
         if (result.success) {
           setUserProfiles((prev) => prev.filter((p) => p.id !== profileId));
-          await dbOperations.delete("user_profiles", profileId);
+
+          // Delete from cache with error handling
+          try {
+            await dbOperations.delete("user_profiles", profileId);
+          } catch (cacheError) {
+            console.error(
+              "[Security] Error deleting user profile from cache:",
+              cacheError
+            );
+            // Continue - the profile is already removed from state
+          }
+
           return {
             success: true,
             message: result.message || "User profile deleted successfully",
@@ -602,8 +751,18 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           setUserProfiles((prev) =>
             prev.filter((p) => !successfulDeletes.includes(p.id))
           );
+
+          // Delete from cache with error handling
           for (const id of successfulDeletes) {
-            await dbOperations.delete("user_profiles", id);
+            try {
+              await dbOperations.delete("user_profiles", id);
+            } catch (cacheError) {
+              console.error(
+                `[Security] Error deleting user profile ${id} from cache:`,
+                cacheError
+              );
+              // Continue with other deletions
+            }
           }
         }
 
@@ -634,10 +793,213 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     []
   );
 
-  // Initialize data on mount
+  // Clear all data function
+  const clearAllData = useCallback(async () => {
+    try {
+      // Log data clearing start
+      logSecurityEvent({
+        type: "data_clear",
+        details: {
+          action: "clear_started",
+        },
+      });
+
+      // Clear component state
+      setCreditUsage([]);
+      setRawUsage([]);
+      setUserProfiles([]);
+      setUsageLogs([]);
+      setTotalCount(0);
+      setGrandTotalTokens(0);
+      setGrandTotalCost(0);
+
+      // Clear notification state
+      setShowNotifications(false);
+      setHasNotifications(false);
+      setTabNotificationsState({
+        transactions: false,
+        users: false,
+        credits: false,
+      });
+
+      // Log notification state clearing
+      logSecurityEvent({
+        type: "data_clear",
+        details: {
+          action: "notification_state_cleared",
+        },
+      });
+
+      // Delete entire IndexedDB database with fallback strategy
+      try {
+        await dbOperations.deleteDatabase();
+        console.log("[Security] IndexedDB database deleted successfully");
+
+        // Log IndexedDB deletion success
+        logSecurityEvent({
+          type: "data_clear",
+          details: {
+            action: "indexeddb_database_deleted",
+          },
+        });
+      } catch (error) {
+        console.error("[Security] Error deleting IndexedDB database:", error);
+
+        // Log IndexedDB deletion error
+        logSecurityEvent({
+          type: "data_clear",
+          details: {
+            action: "indexeddb_delete_error",
+            error: error instanceof Error ? error.message : "Unknown error",
+          },
+        });
+
+        // Fallback: Clear individual stores
+        console.log(
+          "[Security] Attempting fallback: clearing individual stores..."
+        );
+
+        const storesToClear = [
+          "waitlist",
+          "invite_codes",
+          "user_profiles",
+          "credit_usage",
+          "credit_purchases",
+          "subscriptions",
+          "credit_balances",
+          "sync_metadata",
+        ] as const;
+
+        for (const storeName of storesToClear) {
+          try {
+            await dbOperations.clear(storeName);
+            console.log(`[Security] Cleared IndexedDB store: ${storeName}`);
+          } catch (storeError) {
+            console.error(
+              `[Security] Error clearing store ${storeName}:`,
+              storeError
+            );
+
+            // Log store clearing error
+            logSecurityEvent({
+              type: "data_clear",
+              details: {
+                action: "indexeddb_store_clear_error",
+                store: storeName,
+                error:
+                  storeError instanceof Error
+                    ? storeError.message
+                    : "Unknown error",
+              },
+            });
+          }
+        }
+
+        // Log fallback completion
+        logSecurityEvent({
+          type: "data_clear",
+          details: {
+            action: "indexeddb_fallback_cleared",
+            stores: Array.from(storesToClear),
+          },
+        });
+      }
+
+      // Clear sessionStorage sensitive data (excluding auth tokens which are handled by logout)
+      // Add any other sensitive data keys here if needed
+
+      console.log("[Security] All data cleared");
+
+      // Log data clearing completion
+      logSecurityEvent({
+        type: "data_clear",
+        details: {
+          action: "clear_completed",
+        },
+      });
+    } catch (error) {
+      console.error("[Security] Error in clearAllData:", error);
+
+      // Log data clearing error
+      logSecurityEvent({
+        type: "data_clear",
+        details: {
+          action: "clear_error",
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      });
+      // Don't throw - we want to continue even if clearing fails
+    }
+  }, []);
+
+  // Abort all requests function
+  const abortAllRequests = useCallback(() => {
+    try {
+      // Iterate through all abort controllers
+      abortControllersRef.current.forEach((controller, key) => {
+        console.log(`[Security] Aborting request: ${key}`);
+        controller.abort();
+      });
+
+      // Clear the Map after aborting all
+      abortControllersRef.current.clear();
+
+      console.log("[Security] All requests aborted");
+    } catch (error) {
+      console.error("[Security] Error in abortAllRequests:", error);
+      // Don't throw - we want to continue even if aborting fails
+    }
+  }, []);
+
+  // Log authentication state changes
   useEffect(() => {
-    // Load cached data first for better UX
+    // Only log if we have a previous state to compare
+    if (prevAuthStateRef.current !== null) {
+      const previousAuth = prevAuthStateRef.current.isAuthenticated;
+      const currentAuth = isAuthenticated;
+
+      // Log only if authentication state actually changed
+      if (previousAuth !== currentAuth) {
+        logSecurityEvent({
+          type: "auth_change",
+          details: {
+            previous_state: previousAuth,
+            new_state: currentAuth,
+            is_loading: isLoading,
+          },
+        });
+
+        console.log(
+          `[Security] Authentication state changed: ${previousAuth} -> ${currentAuth}`
+        );
+      }
+    }
+
+    // Update previous state
+    prevAuthStateRef.current = { isAuthenticated, isLoading };
+  }, [isAuthenticated, isLoading]);
+
+  // Clear data when authentication becomes false
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      clearAllData();
+    }
+  }, [isAuthenticated, isLoading, clearAllData]);
+
+  // Initialize data on mount - only when authenticated
+  useEffect(() => {
+    // Early return if not authenticated or still loading
+    if (!isAuthenticated || isLoading) {
+      return;
+    }
+
+    // Load cached data first for better UX - only when authenticated
     const loadCache = async () => {
+      // Double-check authentication before loading cache
+      if (!isAuthenticated) {
+        return;
+      }
+
       try {
         const cachedUsage = await dbOperations.getAll("credit_usage");
         if (cachedUsage && cachedUsage.length > 0) {
@@ -645,14 +1007,20 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           setCreditUsage(groupUsageData(cachedUsage));
           setCreditUsageLoading(false);
         }
+      } catch (error) {
+        console.error("[Security] Error loading cached credit usage:", error);
+        // Continue without cached data
+      }
 
+      try {
         const cachedProfiles = await dbOperations.getAll("user_profiles");
         if (cachedProfiles && cachedProfiles.length > 0) {
           setUserProfiles(cachedProfiles);
           setUserProfilesLoading(false);
         }
-      } catch (e) {
-        console.warn(e);
+      } catch (error) {
+        console.error("[Security] Error loading cached user profiles:", error);
+        // Continue without cached data
       }
     };
 
@@ -661,10 +1029,21 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     // Fetch fresh data
     fetchCreditUsage();
     fetchUserProfiles();
-  }, [fetchCreditUsage, fetchUserProfiles]);
 
-  // Realtime subscriptions
-  useEffect(() => {
+    // Cleanup function that aborts all requests
+    return () => {
+      abortAllRequests();
+    };
+  }, [
+    isAuthenticated,
+    isLoading,
+    fetchCreditUsage,
+    fetchUserProfiles,
+    abortAllRequests,
+  ]);
+
+  // Setup realtime subscriptions function
+  const setupRealtimeSubscriptions = useCallback(() => {
     // Credit usage realtime
     const creditUsageSubscription = supabase
       .channel("global_credit_usage")
@@ -673,6 +1052,15 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         { event: "*", schema: "public", table: "credit_usage" },
         async (payload) => {
           console.log("Global credit usage update:", payload);
+
+          // Check authentication before processing subscription data
+          if (!isAuthenticated) {
+            console.warn(
+              "[Security] Received subscription data when unauthenticated - ignoring"
+            );
+            return;
+          }
+
           if (
             payload.eventType === "INSERT" ||
             payload.eventType === "UPDATE"
@@ -693,7 +1081,15 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
                   ? [newUsage, ...prev]
                   : prev.map((u) => (u.id === newUsage.id ? newUsage : u));
               setCreditUsage(groupUsageData(updated));
-              dbOperations.put("credit_usage", newUsage);
+
+              // Cache with error handling
+              dbOperations.put("credit_usage", newUsage).catch((error) => {
+                console.error(
+                  "[Security] Error caching credit usage update:",
+                  error
+                );
+              });
+
               return updated;
             });
           } else if (payload.eventType === "DELETE") {
@@ -701,7 +1097,15 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
             setRawUsage((prev) => {
               const updated = prev.filter((u) => u.id !== deletedId);
               setCreditUsage(groupUsageData(updated));
-              dbOperations.delete("credit_usage", deletedId);
+
+              // Delete from cache with error handling
+              dbOperations.delete("credit_usage", deletedId).catch((error) => {
+                console.error(
+                  "[Security] Error deleting credit usage from cache:",
+                  error
+                );
+              });
+
               return updated;
             });
           }
@@ -721,6 +1125,15 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         },
         async (payload) => {
           console.log("Global user profiles update:", payload);
+
+          // Check authentication before processing subscription data
+          if (!isAuthenticated) {
+            console.warn(
+              "[Security] Received subscription data when unauthenticated - ignoring"
+            );
+            return;
+          }
+
           if (
             payload.eventType === "INSERT" ||
             payload.eventType === "UPDATE"
@@ -735,21 +1148,136 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
                 ? [newProfile, ...prev]
                 : prev.map((p) => (p.id === newProfile.id ? newProfile : p))
             );
-            dbOperations.put("user_profiles", newProfile);
+
+            // Cache with error handling
+            dbOperations.put("user_profiles", newProfile).catch((error) => {
+              console.error(
+                "[Security] Error caching user profile update:",
+                error
+              );
+            });
           } else if (payload.eventType === "DELETE") {
             const deletedId = payload.old.id;
             setUserProfiles((prev) => prev.filter((p) => p.id !== deletedId));
-            dbOperations.delete("user_profiles", deletedId);
+
+            // Delete from cache with error handling
+            dbOperations.delete("user_profiles", deletedId).catch((error) => {
+              console.error(
+                "[Security] Error deleting user profile from cache:",
+                error
+              );
+            });
           }
         }
       )
       .subscribe();
 
+    // Store subscriptions in ref Map
+    subscriptionsRef.current.set("credit_usage", creditUsageSubscription);
+    subscriptionsRef.current.set("user_profiles", userProfilesSubscription);
+
+    console.log("[Security] Realtime subscriptions setup complete");
+  }, [isAuthenticated, userProfilesTableName]);
+
+  // Cleanup realtime subscriptions function
+  const cleanupRealtimeSubscriptions = useCallback(async () => {
+    try {
+      const subscriptionKeys = Array.from(subscriptionsRef.current.keys());
+
+      // Log the start of cleanup
+      logSecurityEvent({
+        type: "subscription_cleanup",
+        details: {
+          action: "cleanup_started",
+          subscription_count: subscriptionKeys.length,
+          subscriptions: subscriptionKeys,
+        },
+      });
+
+      // Iterate through all subscriptions
+      const unsubscribePromises = Array.from(
+        subscriptionsRef.current.entries()
+      ).map(async ([key, channel]) => {
+        try {
+          await channel.unsubscribe();
+          console.log(`[Security] Unsubscribed from ${key}`);
+
+          // Log each unsubscription event
+          logSecurityEvent({
+            type: "subscription_cleanup",
+            details: {
+              action: "unsubscribed",
+              subscription_key: key,
+            },
+          });
+        } catch (error) {
+          console.error(`[Security] Failed to unsubscribe from ${key}:`, error);
+
+          // Log unsubscription failure
+          logSecurityEvent({
+            type: "subscription_cleanup",
+            details: {
+              action: "unsubscribe_failed",
+              subscription_key: key,
+              error: error instanceof Error ? error.message : "Unknown error",
+            },
+          });
+          // Continue with other unsubscriptions
+        }
+      });
+
+      // Wait for all unsubscriptions to complete
+      await Promise.allSettled(unsubscribePromises);
+
+      // Clear the Map after unsubscribing all
+      subscriptionsRef.current.clear();
+
+      console.log("[Security] All realtime subscriptions cleaned up");
+
+      // Log cleanup completion
+      logSecurityEvent({
+        type: "subscription_cleanup",
+        details: {
+          action: "cleanup_completed",
+          subscription_count: subscriptionKeys.length,
+        },
+      });
+    } catch (error) {
+      console.error("[Security] Error in cleanupRealtimeSubscriptions:", error);
+
+      // Log cleanup error
+      logSecurityEvent({
+        type: "subscription_cleanup",
+        details: {
+          action: "cleanup_error",
+          error: error instanceof Error ? error.message : "Unknown error",
+        },
+      });
+      // Don't throw - we want to continue even if cleanup fails
+    }
+  }, []);
+
+  // Realtime subscriptions - only when authenticated
+  useEffect(() => {
+    // Early return if not authenticated or still loading
+    if (!isAuthenticated || isLoading) {
+      return;
+    }
+
+    // Setup subscriptions when authenticated
+    setupRealtimeSubscriptions();
+
+    // Cleanup function
     return () => {
-      creditUsageSubscription.unsubscribe();
-      userProfilesSubscription.unsubscribe();
+      cleanupRealtimeSubscriptions();
     };
-  }, [userProfilesTableName]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    userProfilesTableName,
+    setupRealtimeSubscriptions,
+    cleanupRealtimeSubscriptions,
+  ]);
 
   return (
     <GlobalContext.Provider
@@ -788,6 +1316,11 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         grandTotalTokens,
         grandTotalCost,
         refreshUsageLogs,
+
+        // Cleanup functions
+        abortAllRequests,
+        cleanupRealtimeSubscriptions,
+        clearAllData,
       }}
     >
       {children}

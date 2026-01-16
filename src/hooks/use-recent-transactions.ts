@@ -130,6 +130,7 @@ export function useRecentTransactions(limit: number = 10) {
         const bTime = b.date.getTime();
         return bTime - aTime;
       })
+      .slice(0, limit)
   }, [creditPurchases, subscriptions, userProfiles, limit]);
 
 

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobal } from "@/contexts/global-context";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/components/auth-provider";
 
 interface NotificationEvent {
   type: "transaction" | "user_joined" | "credit_usage";
@@ -12,6 +13,7 @@ interface NotificationEvent {
 }
 
 export function useNotificationManager() {
+  const { isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const { setHasNotifications, setTabNotifications } = useGlobal();
   const lastNotificationTimes = useRef<Map<string, number>>(new Map());
@@ -80,6 +82,11 @@ export function useNotificationManager() {
   };
 
   useEffect(() => {
+    // Early return if not authenticated or still loading
+    if (!isAuthenticated || isLoading) {
+      return;
+    }
+
     const creditPurchasesChannel = supabase
       .channel("notification_credit_purchases")
       .on(
@@ -150,7 +157,7 @@ export function useNotificationManager() {
       creditUsageChannel.unsubscribe();
       subscriptionsChannel.unsubscribe();
     };
-  }, []);
+  }, [isAuthenticated, isLoading]);
 
   return null;
 }

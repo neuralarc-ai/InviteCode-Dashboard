@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { createContext, useContext, useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -22,16 +22,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check authentication status
     const checkAuth = () => {
-      const sessionAuth = sessionStorage.getItem('isAuthenticated') === 'true';
-      const cookieAuth = document.cookie.includes('isAuthenticated=true');
-      
+      const sessionAuth = sessionStorage.getItem("isAuthenticated") === "true";
+      const cookieAuth = document.cookie.includes("isAuthenticated=true");
+
       const authenticated = sessionAuth || cookieAuth;
       setIsAuthenticated(authenticated);
       setIsLoading(false);
 
       // If not authenticated and not on login page, redirect to login
-      if (!authenticated && pathname !== '/login') {
-        router.push('/login');
+      if (!authenticated && pathname !== "/login") {
+        router.push("/login");
       }
     };
 
@@ -49,7 +49,7 @@ export const useAuth = () => {
   const context = useContext(AuthContext);
 
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

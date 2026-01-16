@@ -9,6 +9,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,6 +34,8 @@ import {
   CheckCircle2,
   ChevronUp,
   ChevronDown,
+  EllipsisVertical,
+  ArrowLeftRight,
 } from "lucide-react";
 import type { UserProfile } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +50,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import ChangePlanDialog from "../change-plan-dialog";
 
 type UsageActivity = {
   usageCount: number;
@@ -90,6 +101,9 @@ export function UsersTableRealtime({
     null
   );
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [openDialog, setOpenDialog] = React.useState(false);
+  const [selectedProfile, setSelectedProfile] =
+    React.useState<UserProfile | null>(null);
 
   // Sorting state
   const [sortField, setSortField] = React.useState<
@@ -825,29 +839,58 @@ export function UsersTableRealtime({
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        {onAssignCredits && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onAssignCredits(profile)}
-                            className="p-2"
-                            aria-label="Assign Credits"
-                          >
-                            <CreditCard className="h-4 w-4" />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant={"outline"} size={"icon"}>
+                            <EllipsisVertical />
                           </Button>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteClick(profile)}
-                          className="p-2 text-destructive hover:text-destructive"
-                          disabled={isDeleting}
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="space-y-2">
+                          {onAssignCredits && (
+                            <DropdownMenuItem asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onAssignCredits(profile)}
+                                className="w-full justify-start"
+                                aria-label="Assign Credits"
+                              >
+                                <CreditCard className="h-4 w-4" />
+                                Assign Credits
+                              </Button>
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setOpenDialog(true);
+                                setSelectedProfile(profile);
+                              }}
+                              className="w-full justify-start"
+                              disabled={isDeleting}
+                              aria-label="Change Plan"
+                            >
+                              <ArrowLeftRight className="h-4 w-4" />
+                              Change Plan
+                            </Button>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteClick(profile)}
+                              className="w-full justify-start"
+                              disabled={isDeleting}
+                              aria-label="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete User
+                            </Button>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
@@ -967,6 +1010,12 @@ export function UsersTableRealtime({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <ChangePlanDialog
+        open={openDialog}
+        onOpenChange={setOpenDialog}
+        profile={selectedProfile}
+        onSuccess={refreshUserProfiles}
+      />
     </Card>
   );
 }

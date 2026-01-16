@@ -17,14 +17,16 @@ import { useSubscriptions } from "@/hooks/realtime/use-subscriptions";
 import { useGlobal } from "@/contexts/global-context";
 import { formatCurrency, generateAvatar, getTimeAgo } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
-
-const tabs = [
-  { label: "Users", key: "users" },
-  { label: "Credit Usage", key: "credits" },
-  { label: "Transactions", key: "transactions" },
-];
+import { useAuth } from "./auth-provider";
 
 function Notifications() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Defense in depth: don't render if not authenticated
+  if (!isAuthenticated || isLoading) {
+    return null;
+  }
+
   const {
     showNotifications,
     setShowNotifications,
@@ -126,7 +128,7 @@ function Notifications() {
             ) : transactions.length === 0 ? (
               <p>No recent transactions</p>
             ) : (
-              transactions.slice(0,10).map((tx) => (
+              transactions.slice(0, 10).map((tx) => (
                 <div
                   key={tx.id}
                   className="flex items-center justify-between gap-2 rounded-[12px] h-20 px-4 border bg-card/50 hover:bg-card/80 transition-colors"
@@ -279,6 +281,30 @@ function Notifications() {
         return null;
     }
   };
+
+  const tabs = [
+    {
+      label: "Users",
+      key: "users",
+      header: "Recent Transactions",
+      loading: txnLoading,
+      url: "/transactions",
+    },
+    {
+      label: "Credit Usage",
+      key: "credits",
+      header: "New Users",
+      loading: userLoading,
+      url: "/users",
+    },
+    {
+      label: "Transactions",
+      key: "transactions",
+      header: "Credits Usage",
+      loading: usageLoading,
+      url: "/credits",
+    },
+  ];
 
   return (
     <div>
