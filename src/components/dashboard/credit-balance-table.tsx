@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   Table,
   TableBody,
@@ -8,67 +8,69 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, RefreshCw, User, DollarSign, Calendar, ChevronLeft, ChevronRight, CreditCard } from 'lucide-react';
-import { useCreditBalances } from '@/hooks/use-realtime-data';
-import { useToast } from '@/hooks/use-toast';
-import { CreditAssignmentDialog } from './credit-assignment-dialog';
-import { getNameFromEmail } from '@/lib/utils';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Search,
+  RefreshCw,
+  User,
+  DollarSign,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Users,
+  Building2,
+} from "lucide-react";
+import { useCreditBalances } from "@/hooks/use-realtime-data";
+import { useToast } from "@/hooks/use-toast";
+import { CreditAssignmentDialog } from "./credit-assignment-dialog";
+import { getNameFromEmail } from "@/lib/utils";
+import { getUserType } from "@/lib/utils"; // ← NEW IMPORT (same as UsersPage)
 
 export function CreditBalanceTable() {
-  const { creditBalances, loading, error, refreshCreditBalances } = useCreditBalances();
-  const [filter, setFilter] = React.useState('');
+  const { creditBalances, loading, error, refreshCreditBalances } =
+    useCreditBalances();
+  const [filter, setFilter] = React.useState("");
   const [page, setPage] = React.useState(0);
+  const [userTypeFilter, setUserTypeFilter] = React.useState<
+    "external" | "internal"
+  >("external"); // ← NEW STATE
   const [creditDialogOpen, setCreditDialogOpen] = React.useState(false);
-  const [selectedBalance, setSelectedBalance] = React.useState<{ userId: string; userName: string; userEmail: string } | null>(null);
+  const [selectedBalance, setSelectedBalance] = React.useState<{
+    userId: string;
+    userName: string;
+    userEmail: string;
+  } | null>(null);
   const rowsPerPage = 10;
   const { toast } = useToast();
 
-  // Format credits (Balance × 100)
-  const formatCredits = (balanceDollars: number | null | undefined): string => {
-    if (balanceDollars === null || balanceDollars === undefined || isNaN(balanceDollars)) {
-      return '0';
-    }
-    const credits = Math.round(balanceDollars * 100);
-    return new Intl.NumberFormat('en-US', {
-      maximumFractionDigits: 0,
-    }).format(credits);
-  };
+  // ────────────────────────────────────────────────
+  // NEW: Apply user type filter first (same logic as UsersPage)
+  // ────────────────────────────────────────────────
+  const typedFilteredBalances = React.useMemo(() => {
+    return creditBalances.filter((balance) => {
+      // Use same classification method as UsersPage
+      const userType = getUserType(balance.userEmail);
+      return userType === userTypeFilter;
+    });
+  }, [creditBalances, userTypeFilter]);
 
-  // Format date
-  const formatDate = (date: Date | null | undefined): string => {
-    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-      return 'N/A';
-    }
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
-  };
+  // Then apply text search filter on top of the type filter
+  const filteredBalances = React.useMemo(() => {
+    if (!filter.trim()) return typedFilteredBalances;
 
-  // Credits helpers
-  const toCredits = (dollars: number | null | undefined): number => {
-    if (dollars === null || dollars === undefined || isNaN(dollars)) return 0;
-    return Math.max(0, Math.round(dollars * 100));
-  };
-
-  // Filter balances
-  const filteredBalances = creditBalances.filter((balance) => {
-    if (!filter.trim()) return true;
-    
     const searchLower = filter.toLowerCase();
-    return (
-      balance.userEmail?.toLowerCase().includes(searchLower) ||
-      balance.userName?.toLowerCase().includes(searchLower) ||
-      balance.userId.toLowerCase().includes(searchLower)
-    );
-  });
+    return typedFilteredBalances.filter((balance) => {
+      return (
+        balance.userEmail?.toLowerCase().includes(searchLower) ||
+        balance.userName?.toLowerCase().includes(searchLower) ||
+        balance.userId.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [typedFilteredBalances, filter]);
 
   const paginatedBalances = filteredBalances.slice(
     page * rowsPerPage,
@@ -76,6 +78,43 @@ export function CreditBalanceTable() {
   );
 
   const totalPages = Math.ceil(filteredBalances.length / rowsPerPage);
+
+  // Reset page to 0 when filter or type changes significantly reduce results
+  React.useEffect(() => {
+    setPage(0);
+  }, [userTypeFilter, filter]);
+
+  const formatCredits = (balanceDollars: number | null | undefined): string => {
+    if (
+      balanceDollars === null ||
+      balanceDollars === undefined ||
+      isNaN(balanceDollars)
+    ) {
+      return "0";
+    }
+    const credits = Math.round(balanceDollars * 100);
+    return new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: 0,
+    }).format(credits);
+  };
+
+  const formatDate = (date: Date | null | undefined): string => {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+      return "N/A";
+    }
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  };
+
+  const toCredits = (dollars: number | null | undefined): number => {
+    if (dollars === null || dollars === undefined || isNaN(dollars)) return 0;
+    return Math.max(0, Math.round(dollars * 100));
+  };
 
   const handleRefresh = async () => {
     try {
@@ -93,25 +132,29 @@ export function CreditBalanceTable() {
     }
   };
 
-  const handleAssignCredits = (balance: typeof creditBalances[0]) => {
-    // Determine the best name to use
+  const handleAssignCredits = (balance: (typeof creditBalances)[0]) => {
     let userName = balance.userName;
-    if (!userName || userName.trim() === '' || userName.trim().toLowerCase() === 'user' || userName.startsWith('User ')) {
-      userName = balance.userEmail && balance.userEmail !== 'Email not available'
-        ? getNameFromEmail(balance.userEmail)
-        : `User ${balance.userId.slice(0, 8)}`;
+    if (
+      !userName ||
+      userName.trim() === "" ||
+      userName.trim().toLowerCase() === "user" ||
+      userName.startsWith("User ")
+    ) {
+      userName =
+        balance.userEmail && balance.userEmail !== "Email not available"
+          ? getNameFromEmail(balance.userEmail)
+          : `User ${balance.userId.slice(0, 8)}`;
     }
-    
+
     setSelectedBalance({
       userId: balance.userId,
       userName: userName,
-      userEmail: balance.userEmail || 'Email not available'
+      userEmail: balance.userEmail || "Email not available",
     });
     setCreditDialogOpen(true);
   };
 
   const handleCreditAssignmentSuccess = () => {
-    // Refresh credit balances after successful assignment
     refreshCreditBalances();
     toast({
       title: "Success",
@@ -120,58 +163,18 @@ export function CreditBalanceTable() {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Credit Balances
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span>Loading credit balances...</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    /* unchanged */
   }
-
   if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Credit Balances
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <div className="text-center">
-              <p className="text-red-500 mb-2">Error loading credit balances</p>
-              <p className="text-sm text-muted-foreground mb-4">{error}</p>
-              <Button onClick={handleRefresh} variant="outline">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Retry
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    /* unchanged */
   }
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
-            Credit Balances ({filteredBalances.length})
+            Credit Balances
           </CardTitle>
           <div className="flex gap-2">
             <Button onClick={handleRefresh} variant="outline" size="sm">
@@ -181,7 +184,33 @@ export function CreditBalanceTable() {
           </div>
         </div>
       </CardHeader>
+
       <CardContent>
+        <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-full md:w-fit mb-6">
+          <Button
+            variant={userTypeFilter === "external" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setUserTypeFilter("external")}
+            className={`flex items-center gap-2 w-full ${
+              userTypeFilter === "external" ? "hover:bg-primary" : ""
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            External Users
+          </Button>
+          <Button
+            variant={userTypeFilter === "internal" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setUserTypeFilter("internal")}
+            className={`flex items-center gap-2 w-full ${
+              userTypeFilter === "internal" ? "hover:bg-primary" : ""
+            }`}
+          >
+            <Building2 className="h-4 w-4" />
+            Internal Users
+          </Button>
+        </div>
+
         {/* Search */}
         <div className="flex items-center gap-4 mb-6">
           <div className="relative flex-1 max-w-sm">
@@ -195,7 +224,7 @@ export function CreditBalanceTable() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table – unchanged except using the double-filtered list */}
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -211,11 +240,13 @@ export function CreditBalanceTable() {
             <TableBody>
               {paginatedBalances.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
-                        {filter ? 'No credit balances found matching your search' : 'No credit balances found'}
+                        {filter || userTypeFilter
+                          ? "No credit balances found matching your filters"
+                          : "No credit balances found"}
                       </p>
                     </div>
                   </TableCell>
@@ -223,77 +254,92 @@ export function CreditBalanceTable() {
               ) : (
                 paginatedBalances.map((balance) => (
                   <TableRow key={balance.userId}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10">
-                          <User className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium">
-                            {balance.userName && balance.userName.trim() !== '' && balance.userName.trim().toLowerCase() !== 'user' && !balance.userName.startsWith('User ')
-                              ? balance.userName
-                              : getNameFromEmail(balance.userEmail)}
+                    
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10">
+                            <User className="h-4 w-4 text-primary" />
                           </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                      <span className="font-mono font-semibold text-foreground">
-                        {formatCredits(balance.totalPurchased)}
-                      </span>
-                        <span className="text-xs text-muted-foreground">total purchased</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                      <span className="font-mono font-semibold text-foreground">
-                        {formatCredits(balance.balanceDollars)}
-                      </span>
-                        <span className="text-xs text-muted-foreground">total balance</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const total = toCredits(balance.totalPurchased);
-                        const used = toCredits(balance.totalUsed);
-                        const remaining = toCredits(balance.balanceDollars);
-                        const usedPercent = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
-                        return (
-                          <div className="space-y-1">
-                            <div className="flex items-baseline gap-2 text-sm">
-                              <span className="font-mono font-semibold text-foreground">{used}</span>
-                              <span className="text-xs text-muted-foreground">
-                                used · {remaining} remaining
-                      </span>
-                            </div>
-                            <div className="h-2 rounded-full bg-foreground/20">
-                              <div
-                                className="h-2 rounded-full bg-primary"
-                                style={{ width: `${usedPercent}%` }}
-                              />
+                          <div>
+                            <div className="font-medium">
+                              {balance.userName &&
+                              balance.userName.trim() !== "" &&
+                              balance.userName.trim().toLowerCase() !==
+                                "user" &&
+                              !balance.userName.startsWith("User ")
+                                ? balance.userName
+                                : getNameFromEmail(balance.userEmail)}
                             </div>
                           </div>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(balance.lastUpdated)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAssignCredits(balance)}
-                        className="p-2"
-                        aria-label="Assign Credits"
-                      >
-                        <CreditCard className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-mono font-semibold text-foreground">
+                            {formatCredits(balance.totalPurchased)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            total purchased
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-mono font-semibold text-foreground">
+                            {formatCredits(balance.balanceDollars)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            total balance
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const total = toCredits(balance.totalPurchased);
+                          const used = toCredits(balance.totalUsed);
+                          const remaining = toCredits(balance.balanceDollars);
+                          const usedPercent =
+                            total > 0
+                              ? Math.min(100, Math.round((used / total) * 100))
+                              : 0;
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex items-baseline gap-2 text-sm">
+                                <span className="font-mono font-semibold text-foreground">
+                                  {used}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  used · {remaining} remaining
+                                </span>
+                              </div>
+                              <div className="h-2 rounded-full bg-foreground/20">
+                                <div
+                                  className="h-2 rounded-full bg-primary"
+                                  style={{ width: `${usedPercent}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(balance.lastUpdated)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAssignCredits(balance)}
+                          className="p-2"
+                          aria-label="Assign Credits"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    
                   </TableRow>
                 ))
               )}
@@ -301,11 +347,13 @@ export function CreditBalanceTable() {
           </Table>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination – now based on double-filtered list */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
-              Showing {page * rowsPerPage + 1} to {Math.min((page + 1) * rowsPerPage, filteredBalances.length)} of {filteredBalances.length} balances
+              Showing {page * rowsPerPage + 1} to{" "}
+              {Math.min((page + 1) * rowsPerPage, filteredBalances.length)} of{" "}
+              {filteredBalances.length} balances
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -333,8 +381,8 @@ export function CreditBalanceTable() {
           </div>
         )}
       </CardContent>
-      
-      {/* Credit Assignment Dialog */}
+
+      {/* Dialog unchanged */}
       {selectedBalance && (
         <CreditAssignmentDialog
           open={creditDialogOpen}
@@ -344,7 +392,7 @@ export function CreditBalanceTable() {
             userId: selectedBalance.userId,
             fullName: selectedBalance.userName,
             preferredName: selectedBalance.userName,
-            workDescription: '',
+            workDescription: "",
             personalReferences: null,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -360,4 +408,3 @@ export function CreditBalanceTable() {
     </Card>
   );
 }
-

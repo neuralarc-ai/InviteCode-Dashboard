@@ -112,6 +112,23 @@ export type CreditBalance = {
   metadata: Record<string, any>;
 };
 
+export type Subscription = {
+  id: string;
+  userId: string;
+  stripeSubscriptionId: string;
+  stripeCustomerId: string;
+  status: string;
+  currentPeriodStart: Date | null;
+  currentPeriodEnd: Date | null;
+  trialEnd: Date | null;
+  planName: string | null;
+  planType: string | null;
+  monthlyCreditAllocation: number | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+  metadata?: Record<string, any>;
+};
+
 export type InviteCode = {
   id: string;
   code: string;

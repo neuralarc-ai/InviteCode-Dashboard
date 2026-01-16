@@ -19,7 +19,6 @@ export default function RecentActivitiesPage() {
           <h1 className="text-2xl font-bold">Recent Activities</h1>
         </PageHeader>
         <main className="flex-1 space-y-6 p-4 md:p-6">
-          <RecentTransactions />
           <RecentlyOnboardedUsers />
           <RecentlyUsedCredits />
         </main>

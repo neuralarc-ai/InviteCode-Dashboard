@@ -1,47 +1,23 @@
 "use client";
 
-import {
-  useCreditPurchases,
-  useSubscriptions,
-  useUserProfiles,
-} from "@/hooks/use-realtime-data";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  CreditCard,
-  RefreshCw,
-  ArrowUpCircle,
-  ExternalLink,
-  BadgeCheck,
-} from "lucide-react";
-import { useMemo } from "react";
-import Link from "next/link";
 import { useRecentTransactions } from "@/hooks/use-recent-transactions";
 import { formatCurrency, getTimeAgo } from "@/lib/utils";
+import { BadgeCheck, CreditCard, RefreshCw } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 
-interface TransactionItem {
-  id: string;
-  userId: string;
-  userName: string | undefined;
-  userEmail: string | undefined;
-  type: "Credit Purchase" | "Subscription" | "Renewal" | "Upgrade";
-  description: string;
-  amount: number;
-  status: string;
-  date: Date;
-  source: "credit_purchase" | "subscription";
-}
+type TransactionTypeFilter =
+  | "all"
+  | "Credit Purchase"
+  | "Subscription"
+  | "Renewal";
 
 export function RecentTransactions() {
   const { transactions, isLoading, userMap } = useRecentTransactions();
+  const [transactionTypeFilter, setTransactionTypeFilter] =
+    useState<TransactionTypeFilter>("all");
 
   const getDaysSinceCreation = (userId: string) => {
     const profile = userMap.get(userId);
@@ -53,7 +29,41 @@ export function RecentTransactions() {
     return diffInDays;
   };
 
+  const handleTransactionTypeFilter = (filter: TransactionTypeFilter) => {
+    setTransactionTypeFilter(filter);
+  };
+
+  // Filter transactions based on selected type
+  const filteredTransactions =
+    transactionTypeFilter === "all"
+      ? transactions
+      : transactions.filter((tx) => tx.type === transactionTypeFilter);
+
   // const isLoading = loadingPurchases || loadingSubs || loadingProfiles;
+
+  const transactionFilters = [
+    {
+      label: "All",
+      value: "all",
+      icon: CreditCard,
+    },
+    {
+      label: "Credit Purchase",
+      value: "Credit Purchase",
+      icon: CreditCard,
+    },
+    {
+      label: "Subscription",
+      value: "Subscription",
+      icon: BadgeCheck,
+    },
+    {
+      label: "Renewal",
+      value: "Renewal",
+      icon: RefreshCw,
+    },
+  ];
+
 
   if (isLoading) {
     return (
@@ -68,7 +78,7 @@ export function RecentTransactions() {
             </p>
           </div>
         </div>
-        {[...Array(3)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <Skeleton key={i} className="w-full h-20 rounded-lg" />
         ))}
       </div>
@@ -77,20 +87,35 @@ export function RecentTransactions() {
 
   return (
     <div className="space-y-5 sm:space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-            Recent Transactions
+            Transactions
           </h2>
           <p className="text-sm text-muted-foreground">
             Latest payment and subscription activities
           </p>
         </div>
+
+        {/* Transaction Type Filter */}
+        <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-fit">
+          {transactionFilters.map(({ label, value, icon: Icon }) => (
+            <Button
+              key={value}
+              variant={transactionTypeFilter === value ? "default" : "ghost"}
+              size="sm"
+              onClick={() => handleTransactionTypeFilter(value)}
+              className={`flex items-center gap-2 ${transactionTypeFilter === value ? "hover:bg-primary/80":""}`}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-3 sm:gap-4">
-        {transactions.map((tx) => {
-          const isSelina = tx.userId === "33cbcd62-41c1-4c0c-88c8-eaff52c51b46";
+        {filteredTransactions.map((tx) => {
           return (
             <div
               key={tx.id}
@@ -117,7 +142,7 @@ export function RecentTransactions() {
                 </div>
                 <div className="grid gap-0.5">
                   <p className="text-sm sm:text-base font-medium leading-tight">
-                    {isSelina ? "Selina Bieber" : tx.userName}
+                    {tx.userName}
                   </p>
                   <p className="text-xs sm:text-sm text-muted-foreground">
                     {tx.description} • {getTimeAgo(tx.date)}
@@ -126,7 +151,7 @@ export function RecentTransactions() {
               </div>
 
               {/* Column 2 – Join date */}
-              <div className="flex items-center justify-center md:justify-start text-center md:text-left">
+              <div className="flex items-center justify-center text-center md:text-left">
                 <p className="text-xs sm:text-sm text-muted-foreground px-2 sm:px-0">
                   {getDaysSinceCreation(tx.userId) !== null
                     ? getDaysSinceCreation(tx.userId) === 0
@@ -134,8 +159,6 @@ export function RecentTransactions() {
                       : `Joined ${getDaysSinceCreation(tx.userId)} day${
                           getDaysSinceCreation(tx.userId) === 1 ? "" : "s"
                         } ago`
-                    : isSelina
-                    ? "Joined Today "
                     : "Join date unknown"}
                 </p>
               </div>
@@ -183,9 +206,11 @@ export function RecentTransactions() {
           );
         })}
 
-        {transactions.length === 0 && (
+        {filteredTransactions.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
-            No recent transactions found.
+            {transactionTypeFilter === "all"
+              ? "No transactions found."
+              : `No ${transactionTypeFilter} transactions found.`}
           </div>
         )}
       </div>

@@ -90,7 +90,7 @@ export const getTimeAgo = (date: Date) => {
   );
 
   if (diffInHours < 1) return "Just now";
-  if (diffInHours < 24) return `${diffInHours} hours ago`;
+  if (diffInHours < 24) return `${diffInHours} hour${diffInHours === 1 ? "": "s"} ago`;
   const diffInDays = Math.floor(diffInHours / 24);
   return `${diffInDays} days ago`;
 };

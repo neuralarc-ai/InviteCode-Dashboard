@@ -1,19 +1,7 @@
 "use client"
 
-import Link from 'next/link';
-import {
-  LayoutDashboard,
-  KeyRound,
-  Users,
-  Settings,
-  UserCheck,
-  CreditCard,
-  ShoppingCart,
-  FileText,
-  Activity,
-  BarChart,
-  PanelLeft,
-} from 'lucide-react';
+import { Logo } from '@/components/logo';
+import { LogoutButton } from '@/components/logout-button';
 import {
   Sidebar,
   SidebarContent,
@@ -24,8 +12,16 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Logo } from '@/components/logo';
-import { LogoutButton } from '@/components/logout-button';
+import {
+  Activity,
+  BarChart,
+  CreditCard,
+  LayoutDashboard,
+  PanelLeft,
+  TrendingUp,
+  UserCheck
+} from 'lucide-react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const sidebarItems = [
@@ -83,6 +79,13 @@ const sidebarItems = [
     href: "/recent-activities",
     icon: Activity,
     tooltip: "Recent Activities",
+    enabled: true,
+  },
+  {
+    label: "Transactions",
+    href: "/transactions",
+    icon: TrendingUp,
+    tooltip: "Transactions",
     enabled: true,
   },
   {

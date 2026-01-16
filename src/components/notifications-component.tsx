@@ -126,7 +126,7 @@ function Notifications() {
             ) : transactions.length === 0 ? (
               <p>No recent transactions</p>
             ) : (
-              transactions.map((tx) => (
+              transactions.slice(0,10).map((tx) => (
                 <div
                   key={tx.id}
                   className="flex items-center justify-between gap-2 rounded-[12px] h-20 px-4 border bg-card/50 hover:bg-card/80 transition-colors"
