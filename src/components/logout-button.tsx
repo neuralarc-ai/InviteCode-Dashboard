@@ -11,75 +11,141 @@ export function LogoutButton() {
   const { clearAllData, abortAllRequests, cleanupRealtimeSubscriptions } =
     useGlobal();
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    // Changed from async - critical path is now synchronous
     const logoutStartTime = new Date();
 
+    // Log logout event with timestamp
+    logSecurityEvent({
+      type: "logout",
+      details: {
+        timestamp: logoutStartTime.toISOString(),
+        action: "logout_initiated",
+      },
+    });
+
+    // CRITICAL: Clear auth tokens FIRST (synchronous)
+    console.log("[Security] Step 1: Clearing authentication tokens...");
     try {
-      // Log logout event with timestamp
+      sessionStorage.removeItem("isAuthenticated");
+      sessionStorage.removeItem("loginTime");
+      document.cookie =
+        "isAuthenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    } catch (error) {
+      console.error("[Security] Failed to clear auth tokens:", error);
+    }
+
+    // CRITICAL: Redirect IMMEDIATELY (synchronous)
+    console.log("[Security] Step 2: Redirecting to login...");
+    router.push("/login");
+
+    // Fire-and-forget cleanup in background (non-blocking)
+    console.log("[Security] Step 3: Starting background cleanup...");
+    performBackgroundCleanup(logoutStartTime);
+  };
+
+  // Separate async function for background cleanup
+  const performBackgroundCleanup = async (startTime: Date) => {
+    try {
+      // Log background cleanup start
       logSecurityEvent({
         type: "logout",
         details: {
-          timestamp: logoutStartTime.toISOString(),
-          action: "logout_initiated",
+          timestamp: new Date().toISOString(),
+          action: "background_cleanup_started",
         },
       });
 
-      // 1. Abort all ongoing requests
-      console.log("[Security] Step 1: Aborting all requests...");
+      // 1. Abort requests
+      console.log("[Security] Background: Aborting all requests...");
       try {
         abortAllRequests();
+        logSecurityEvent({
+          type: "logout",
+          details: {
+            timestamp: new Date().toISOString(),
+            action: "abort_requests_completed",
+          },
+        });
       } catch (error) {
         console.error("[Security] Failed to abort requests:", error);
+        logSecurityEvent({
+          type: "logout",
+          details: {
+            timestamp: new Date().toISOString(),
+            action: "abort_requests_error",
+            error: error instanceof Error ? error.message : "Unknown error",
+          },
+        });
       }
 
-      // 2. Unsubscribe from realtime channels
-      console.log("[Security] Step 2: Cleaning up realtime subscriptions...");
+      // 2. Cleanup subscriptions
+      console.log(
+        "[Security] Background: Cleaning up realtime subscriptions..."
+      );
       try {
         await cleanupRealtimeSubscriptions();
+        logSecurityEvent({
+          type: "logout",
+          details: {
+            timestamp: new Date().toISOString(),
+            action: "cleanup_subscriptions_completed",
+          },
+        });
       } catch (error) {
         console.error("[Security] Failed to cleanup subscriptions:", error);
+        logSecurityEvent({
+          type: "logout",
+          details: {
+            timestamp: new Date().toISOString(),
+            action: "cleanup_subscriptions_error",
+            error: error instanceof Error ? error.message : "Unknown error",
+          },
+        });
       }
 
-      // 3. Clear cached data
-      console.log("[Security] Step 3: Clearing all data...");
+      // 3. Clear data
+      console.log("[Security] Background: Clearing all data...");
       try {
         await clearAllData();
+        logSecurityEvent({
+          type: "logout",
+          details: {
+            timestamp: new Date().toISOString(),
+            action: "clear_data_completed",
+          },
+        });
       } catch (error) {
         console.error("[Security] Failed to clear data:", error);
+        logSecurityEvent({
+          type: "logout",
+          details: {
+            timestamp: new Date().toISOString(),
+            action: "clear_data_error",
+            error: error instanceof Error ? error.message : "Unknown error",
+          },
+        });
       }
 
-      // 4. Clear authentication tokens
-      console.log("[Security] Step 4: Clearing authentication tokens...");
-      try {
-        sessionStorage.removeItem("isAuthenticated");
-        sessionStorage.removeItem("loginTime");
-        document.cookie =
-          "isAuthenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      } catch (error) {
-        console.error("[Security] Failed to clear auth tokens:", error);
-      }
-
-      // 5. Log logout completion
-      const logoutEndTime = new Date();
-      const duration = logoutEndTime.getTime() - logoutStartTime.getTime();
+      // Log completion
+      const endTime = new Date();
+      const duration = endTime.getTime() - startTime.getTime();
 
       logSecurityEvent({
         type: "logout",
         details: {
-          timestamp: logoutEndTime.toISOString(),
+          timestamp: endTime.toISOString(),
           action: "logout_completed",
           duration_ms: duration,
         },
       });
 
-      console.log("[Security] User logged out at", logoutEndTime.toISOString());
-
-      // 6. Redirect to login
-      router.push("/login");
+      console.log(
+        "[Security] Background cleanup completed at",
+        endTime.toISOString()
+      );
     } catch (error) {
-      // Even if cleanup fails, proceed with logout
-      console.error("[Security] Logout cleanup error:", error);
-
+      console.error("[Security] Background cleanup error:", error);
       logSecurityEvent({
         type: "logout",
         details: {
@@ -88,8 +154,6 @@ export function LogoutButton() {
           error: error instanceof Error ? error.message : "Unknown error",
         },
       });
-
-      router.push("/login");
     }
   };
 

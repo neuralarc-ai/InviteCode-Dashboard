@@ -24,6 +24,12 @@ import type {
 let isFetchingCreditUsage = false;
 let isFetchingUserProfiles = false;
 
+// Cleanup guard interface
+interface CleanupGuard {
+  isCleaningUp: boolean;
+  lastCleanupTime: number | null;
+}
+
 // Utility function for fetch with AbortController support
 interface FetchWithAbortOptions extends RequestInit {
   abortKey: string;
@@ -320,6 +326,12 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const subscriptionsRef = useRef<Map<string, any>>(new Map());
 
+  // Cleanup guard ref
+  const cleanupGuardRef = useRef<CleanupGuard>({
+    isCleaningUp: false,
+    lastCleanupTime: null,
+  });
+
   // Ref to track previous authentication state for logging
   const prevAuthStateRef = useRef<{
     isAuthenticated: boolean;
@@ -360,6 +372,24 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const [totalCount, setTotalCount] = useState(0);
   const [grandTotalTokens, setGrandTotalTokens] = useState(0);
   const [grandTotalCost, setGrandTotalCost] = useState(0);
+
+  // Cleanup guard helper functions
+  const shouldProceedWithCleanup = useCallback((): boolean => {
+    if (cleanupGuardRef.current.isCleaningUp) {
+      console.log("[Security] Cleanup already in progress, skipping");
+      return false;
+    }
+    return true;
+  }, []);
+
+  const markCleanupStarted = useCallback((): void => {
+    cleanupGuardRef.current.isCleaningUp = true;
+    cleanupGuardRef.current.lastCleanupTime = Date.now();
+  }, []);
+
+  const markCleanupCompleted = useCallback((): void => {
+    cleanupGuardRef.current.isCleaningUp = false;
+  }, []);
 
   // Tab notification functions
   const setTabNotifications = useCallback(
@@ -795,6 +825,14 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
   // Clear all data function
   const clearAllData = useCallback(async () => {
+    // Check cleanup guard - prevent duplicate execution
+    if (!shouldProceedWithCleanup()) {
+      return;
+    }
+
+    // Mark cleanup as started
+    markCleanupStarted();
+
     try {
       // Log data clearing start
       logSecurityEvent({
@@ -929,19 +967,33 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         },
       });
       // Don't throw - we want to continue even if clearing fails
+    } finally {
+      // Always mark cleanup as completed, even if errors occurred
+      markCleanupCompleted();
     }
-  }, []);
+  }, [shouldProceedWithCleanup, markCleanupStarted, markCleanupCompleted]);
 
   // Abort all requests function
   const abortAllRequests = useCallback(() => {
     try {
+      // Check if there are any controllers to abort
+      if (abortControllersRef.current.size === 0) {
+        console.log("[Security] No requests to abort");
+        return;
+      }
+
       // Iterate through all abort controllers
       abortControllersRef.current.forEach((controller, key) => {
-        console.log(`[Security] Aborting request: ${key}`);
-        controller.abort();
+        try {
+          console.log(`[Security] Aborting request: ${key}`);
+          controller.abort();
+        } catch (error) {
+          console.error(`[Security] Error aborting ${key}:`, error);
+          // Continue with other aborts
+        }
       });
 
-      // Clear the Map after aborting all
+      // Always clear the Map after aborting all
       abortControllersRef.current.clear();
 
       console.log("[Security] All requests aborted");
@@ -978,13 +1030,6 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     // Update previous state
     prevAuthStateRef.current = { isAuthenticated, isLoading };
   }, [isAuthenticated, isLoading]);
-
-  // Clear data when authentication becomes false
-  useEffect(() => {
-    if (!isAuthenticated && !isLoading) {
-      clearAllData();
-    }
-  }, [isAuthenticated, isLoading, clearAllData]);
 
   // Initialize data on mount - only when authenticated
   useEffect(() => {
@@ -1182,6 +1227,12 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
   // Cleanup realtime subscriptions function
   const cleanupRealtimeSubscriptions = useCallback(async () => {
     try {
+      // Check if there are any subscriptions to clean up (idempotent check)
+      if (subscriptionsRef.current.size === 0) {
+        console.log("[Security] No subscriptions to clean up");
+        return;
+      }
+
       const subscriptionKeys = Array.from(subscriptionsRef.current.keys());
 
       // Log the start of cleanup
@@ -1194,7 +1245,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         },
       });
 
-      // Iterate through all subscriptions
+      // Use Promise.allSettled to handle individual failures gracefully
       const unsubscribePromises = Array.from(
         subscriptionsRef.current.entries()
       ).map(async ([key, channel]) => {
@@ -1222,14 +1273,14 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
               error: error instanceof Error ? error.message : "Unknown error",
             },
           });
-          // Continue with other unsubscriptions
+          // Don't throw - let Promise.allSettled handle it
         }
       });
 
-      // Wait for all unsubscriptions to complete
+      // Wait for all unsubscriptions to complete (using Promise.allSettled)
       await Promise.allSettled(unsubscribePromises);
 
-      // Clear the Map after unsubscribing all
+      // Always clear the subscriptions ref, even if some unsubscribes failed
       subscriptionsRef.current.clear();
 
       console.log("[Security] All realtime subscriptions cleaned up");
@@ -1245,6 +1296,9 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("[Security] Error in cleanupRealtimeSubscriptions:", error);
 
+      // Always clear the ref on error
+      subscriptionsRef.current.clear();
+
       // Log cleanup error
       logSecurityEvent({
         type: "subscription_cleanup",
@@ -1253,7 +1307,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           error: error instanceof Error ? error.message : "Unknown error",
         },
       });
-      // Don't throw - we want to continue even if cleanup fails
+      // Don't throw - ensure function completes
     }
   }, []);
 
@@ -1267,9 +1321,12 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     // Setup subscriptions when authenticated
     setupRealtimeSubscriptions();
 
-    // Cleanup function
+    // Cleanup function that respects the cleanup guard
     return () => {
-      cleanupRealtimeSubscriptions();
+      // Only cleanup if not already cleaning up
+      if (!cleanupGuardRef.current.isCleaningUp) {
+        cleanupRealtimeSubscriptions();
+      }
     };
   }, [
     isAuthenticated,
