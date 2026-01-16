@@ -126,7 +126,7 @@ export function useNotificationManager() {
         {
           event: "INSERT",
           schema: "public",
-          table: "usage_logs",
+          table: "credit_usage",
         },
         (payload) => {
           // console.log("Credit usage:", payload.new);

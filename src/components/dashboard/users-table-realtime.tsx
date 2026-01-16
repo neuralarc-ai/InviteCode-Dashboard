@@ -1,45 +1,5 @@
 "use client";
 
-import * as React from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Search,
-  RefreshCw,
-  User,
-  Mail,
-  CreditCard,
-  Trash2,
-  Loader2,
-  CheckCircle2,
-  ChevronUp,
-  ChevronDown,
-  EllipsisVertical,
-  ArrowLeftRight,
-} from "lucide-react";
-import type { UserProfile } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
-import { getUserType, getNameFromEmail } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +10,44 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import type { UserProfile } from "@/lib/types";
+import { getNameFromEmail, getUserType } from "@/lib/utils";
+import {
+  ArrowLeftRight,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  EllipsisVertical,
+  Loader2,
+  Mail,
+  RefreshCw,
+  Search,
+  Trash2,
+  User,
+} from "lucide-react";
+import * as React from "react";
 import ChangePlanDialog from "../change-plan-dialog";
 
 type UsageActivity = {

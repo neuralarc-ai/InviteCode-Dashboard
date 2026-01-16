@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         account_type: accountType,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", profileId)
+      .eq("user_id", profileId)
       .select("id, plan_type, account_type")
       .single();
 

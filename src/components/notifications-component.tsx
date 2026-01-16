@@ -85,7 +85,7 @@ function Notifications() {
     setShowNotifications(open);
     if (!open) {
       // Reset to transactions tab when dialog closes
-      setActive("transactions");
+      setActive("users");
     }
   };
 

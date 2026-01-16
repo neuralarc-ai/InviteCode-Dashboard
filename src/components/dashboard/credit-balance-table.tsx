@@ -1,6 +1,14 @@
 "use client";
 
-import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -9,26 +17,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCreditBalances } from "@/hooks/use-realtime-data";
+import { useToast } from "@/hooks/use-toast";
+import { getNameFromEmail, getUserType } from "@/lib/utils";
 import {
-  Search,
-  RefreshCw,
-  User,
-  DollarSign,
+  ArrowLeftRight,
+  Building2,
   Calendar,
   ChevronLeft,
   ChevronRight,
   CreditCard,
-  Users,
-  Building2,
+  EllipsisVertical,
+  RefreshCw,
+  Search,
+  User,
+  Users
 } from "lucide-react";
-import { useCreditBalances } from "@/hooks/use-realtime-data";
-import { useToast } from "@/hooks/use-toast";
+import * as React from "react";
+import ChangePlanDialog from "../change-plan-dialog";
 import { CreditAssignmentDialog } from "./credit-assignment-dialog";
-import { getNameFromEmail } from "@/lib/utils";
-import { getUserType } from "@/lib/utils"; // ← NEW IMPORT (same as UsersPage)
+import { UserProfile } from "@/lib/types";
 
 export function CreditBalanceTable() {
   const { creditBalances, loading, error, refreshCreditBalances } =
@@ -37,7 +45,7 @@ export function CreditBalanceTable() {
   const [page, setPage] = React.useState(0);
   const [userTypeFilter, setUserTypeFilter] = React.useState<
     "external" | "internal"
-  >("external"); // ← NEW STATE
+  >("external");
   const [creditDialogOpen, setCreditDialogOpen] = React.useState(false);
   const [selectedBalance, setSelectedBalance] = React.useState<{
     userId: string;
@@ -47,18 +55,19 @@ export function CreditBalanceTable() {
   const rowsPerPage = 10;
   const { toast } = useToast();
 
-  // ────────────────────────────────────────────────
-  // NEW: Apply user type filter first (same logic as UsersPage)
-  // ────────────────────────────────────────────────
+  const [isDeleting, setIsDeleting] = React.useState(false);
+    const [openDialog, setOpenDialog] = React.useState(false);
+    const [selectedProfile, setSelectedProfile] =
+      React.useState<UserProfile | null>(null);
+
+  
   const typedFilteredBalances = React.useMemo(() => {
     return creditBalances.filter((balance) => {
-      // Use same classification method as UsersPage
       const userType = getUserType(balance.userEmail);
       return userType === userTypeFilter;
     });
   }, [creditBalances, userTypeFilter]);
 
-  // Then apply text search filter on top of the type filter
   const filteredBalances = React.useMemo(() => {
     if (!filter.trim()) return typedFilteredBalances;
 
@@ -79,7 +88,6 @@ export function CreditBalanceTable() {
 
   const totalPages = Math.ceil(filteredBalances.length / rowsPerPage);
 
-  // Reset page to 0 when filter or type changes significantly reduce results
   React.useEffect(() => {
     setPage(0);
   }, [userTypeFilter, filter]);
@@ -254,92 +262,117 @@ export function CreditBalanceTable() {
               ) : (
                 paginatedBalances.map((balance) => (
                   <TableRow key={balance.userId}>
-                    
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10">
-                            <User className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <div className="font-medium">
-                              {balance.userName &&
-                              balance.userName.trim() !== "" &&
-                              balance.userName.trim().toLowerCase() !==
-                                "user" &&
-                              !balance.userName.startsWith("User ")
-                                ? balance.userName
-                                : getNameFromEmail(balance.userEmail)}
-                            </div>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-medium">
+                            {balance.userName &&
+                            balance.userName.trim() !== "" &&
+                            balance.userName.trim().toLowerCase() !== "user" &&
+                            !balance.userName.startsWith("User ")
+                              ? balance.userName
+                              : getNameFromEmail(balance.userEmail)}
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-mono font-semibold text-foreground">
-                            {formatCredits(balance.totalPurchased)}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            total purchased
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-mono font-semibold text-foreground">
-                            {formatCredits(balance.balanceDollars)}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            total balance
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const total = toCredits(balance.totalPurchased);
-                          const used = toCredits(balance.totalUsed);
-                          const remaining = toCredits(balance.balanceDollars);
-                          const usedPercent =
-                            total > 0
-                              ? Math.min(100, Math.round((used / total) * 100))
-                              : 0;
-                          return (
-                            <div className="space-y-1">
-                              <div className="flex items-baseline gap-2 text-sm">
-                                <span className="font-mono font-semibold text-foreground">
-                                  {used}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  used · {remaining} remaining
-                                </span>
-                              </div>
-                              <div className="h-2 rounded-full bg-foreground/20">
-                                <div
-                                  className="h-2 rounded-full bg-primary"
-                                  style={{ width: `${usedPercent}%` }}
-                                />
-                              </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-mono font-semibold text-foreground">
+                          {formatCredits(balance.totalPurchased)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          total purchased
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-mono font-semibold text-foreground">
+                          {formatCredits(balance.balanceDollars)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          total balance
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const total = toCredits(balance.totalPurchased);
+                        const used = toCredits(balance.totalUsed);
+                        const remaining = toCredits(balance.balanceDollars);
+                        const usedPercent =
+                          total > 0
+                            ? Math.min(100, Math.round((used / total) * 100))
+                            : 0;
+                        return (
+                          <div className="space-y-1">
+                            <div className="flex items-baseline gap-2 text-sm">
+                              <span className="font-mono font-semibold text-foreground">
+                                {used}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                used · {remaining} remaining
+                              </span>
                             </div>
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(balance.lastUpdated)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAssignCredits(balance)}
-                          className="p-2"
-                          aria-label="Assign Credits"
-                        >
-                          <CreditCard className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    
+                            <div className="h-2 rounded-full bg-foreground/20">
+                              <div
+                                className="h-2 rounded-full bg-primary"
+                                style={{ width: `${usedPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        {formatDate(balance.lastUpdated)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant={"outline"} size={"icon"}>
+                            <EllipsisVertical />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="space-y-2">
+                          <DropdownMenuItem asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAssignCredits(balance)}
+                              className="w-full justify-start"
+                              aria-label="Assign Credits"
+                            >
+                              <CreditCard className="h-4 w-4" />
+                              Assign Credits
+                            </Button>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setOpenDialog(true);
+                                setSelectedProfile(balance);
+                              }}
+                              className="w-full justify-start"
+                              disabled={isDeleting}
+                              aria-label="Change Plan"
+                            >
+                              <ArrowLeftRight className="h-4 w-4" />
+                              Change Plan
+                            </Button>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -405,6 +438,13 @@ export function CreditBalanceTable() {
           onSuccess={handleCreditAssignmentSuccess}
         />
       )}
+
+      <ChangePlanDialog
+        open={openDialog}
+        onOpenChange={setOpenDialog}
+        profile={selectedProfile}
+        // onSuccess={refreshUserProfiles}
+      />
     </Card>
   );
 }

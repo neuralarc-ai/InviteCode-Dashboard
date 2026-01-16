@@ -37,7 +37,6 @@ type Props = {
 };
 
 function ChangePlanDialog({ onOpenChange, open, profile, onSuccess }: Props) {
-    console.log('profile', profile)
   const [selectedPlan, setSelectedPlan] = useState<string | undefined>(
     profile?.planType
   );
@@ -71,7 +70,7 @@ function ChangePlanDialog({ onOpenChange, open, profile, onSuccess }: Props) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          profileId: profile.id,
+          profileId: profile.userId,
           newPlanType: selectedPlan,
         }),
       });
