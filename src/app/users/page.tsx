@@ -1,46 +1,70 @@
-"use client"
+"use client";
 
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { PageHeader } from "@/components/page-header";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SharedSidebar } from "@/components/shared-sidebar";
+import { UsersTableRealtime } from "@/components/dashboard/users-table-realtime";
 import {
-  SidebarProvider,
-  SidebarInset,
-} from '@/components/ui/sidebar';
-import { PageHeader } from '@/components/page-header';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { SharedSidebar } from '@/components/shared-sidebar';
-import { UsersTableRealtime } from '@/components/dashboard/users-table-realtime';
-import { EmailCustomizationDialog, type EmailData } from '@/components/dashboard/email-customization-dialog';
-import { WelcomeEmailDialog } from '@/components/dashboard/welcome-email-dialog';
-import { CreditAssignmentDialog } from '@/components/dashboard/credit-assignment-dialog';
-import { CreateUserDialog } from '@/components/dashboard/create-user-dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useState, useEffect } from 'react';
-import { Mail, Loader2, Users, Building2, UserPlus, CreditCard, Download, Activity, UserX, Clock } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import type { UserProfile } from '@/lib/types';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+  EmailCustomizationDialog,
+  type EmailData,
+} from "@/components/dashboard/email-customization-dialog";
+import { WelcomeEmailDialog } from "@/components/dashboard/welcome-email-dialog";
+import { CreditAssignmentDialog } from "@/components/dashboard/credit-assignment-dialog";
+import { CreateUserDialog } from "@/components/dashboard/create-user-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import {
+  Mail,
+  Loader2,
+  Users,
+  Building2,
+  UserPlus,
+  CreditCard,
+  Download,
+  Activity,
+  UserX,
+  Clock,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import type { UserProfile } from "@/lib/types";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGlobal } from "@/contexts/global-context";
-import { getUserType } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { getUserType } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 export default function UsersPage() {
-  const { userProfiles, userProfilesLoading: loading, userProfilesError: error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles } = useGlobal();
+  const {
+    userProfiles,
+    userProfilesLoading: loading,
+    userProfilesError: error,
+    refreshUserProfiles,
+    deleteUserProfile,
+    bulkDeleteUserProfiles,
+  } = useGlobal();
   const [showCustomizationDialog, setShowCustomizationDialog] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [userTypeFilter, setUserTypeFilter] = useState<'internal' | 'external'>('external'); // Default to external users
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [userTypeFilter, setUserTypeFilter] = useState<"internal" | "external">(
+    "external",
+  ); // Default to external users
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [creditDialogOpen, setCreditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
-  const [bulkCreditsInput, setBulkCreditsInput] = useState('');
+  const [bulkCreditsInput, setBulkCreditsInput] = useState("");
   const [isAssigningCredits, setIsAssigningCredits] = useState(false);
-  const [usageActivityMap, setUsageActivityMap] = useState<Record<string, { usageCount: number; latestActivity: Date | null }>>({});
+  const [usageActivityMap, setUsageActivityMap] = useState<
+    Record<string, { usageCount: number; latestActivity: Date | null }>
+  >({});
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
   const [emailDialogOverride, setEmailDialogOverride] = useState<{
-    section: 'activity';
+    section: "activity";
     subject: string;
     textContent: string;
   } | null>(null);
@@ -49,14 +73,16 @@ export default function UsersPage() {
   // Clear bulk credits input when selection is cleared or user type filter changes
   useEffect(() => {
     if (selectedUserIds.size === 0) {
-      setBulkCreditsInput('');
+      setBulkCreditsInput("");
       // Also clear email override when selection is cleared (if we want that behavior)
-      // but usually we keep it until dialog closes. 
+      // but usually we keep it until dialog closes.
       // Actually we should clear it when dialog closes.
     }
   }, [selectedUserIds.size, userTypeFilter]);
 
-  const handleOpenEmailForGroup = (group: 'active' | 'partial' | 'inactive') => {
+  const handleOpenEmailForGroup = (
+    group: "active" | "partial" | "inactive",
+  ) => {
     // 1. Identify users
     const filteredProfiles = userProfiles.filter((profile) => {
       const profileUserType = getUserType(profile.email);
@@ -69,19 +95,29 @@ export default function UsersPage() {
 
     const targetUserIds = new Set<string>();
 
-    filteredProfiles.forEach(user => {
+    filteredProfiles.forEach((user) => {
       const activity = usageActivityMap[user.userId];
-      const lastActive = activity?.latestActivity ? new Date(activity.latestActivity) : null;
-      
-      const isInactive = !activity || activity.usageCount === 0 || (lastActive && lastActive <= partialThreshold);
-      const isPartial = !isInactive && lastActive && lastActive <= activeThreshold && lastActive > partialThreshold;
-      const isActive = !isInactive && !isPartial && lastActive && lastActive > activeThreshold;
-      
-      if (group === 'inactive' && isInactive) {
+      const lastActive = activity?.latestActivity
+        ? new Date(activity.latestActivity)
+        : null;
+
+      const isInactive =
+        !activity ||
+        activity.usageCount === 0 ||
+        (lastActive && lastActive <= partialThreshold);
+      const isPartial =
+        !isInactive &&
+        lastActive &&
+        lastActive <= activeThreshold &&
+        lastActive > partialThreshold;
+      const isActive =
+        !isInactive && !isPartial && lastActive && lastActive > activeThreshold;
+
+      if (group === "inactive" && isInactive) {
         targetUserIds.add(user.userId);
-      } else if (group === 'partial' && isPartial) {
+      } else if (group === "partial" && isPartial) {
         targetUserIds.add(user.userId);
-      } else if (group === 'active' && isActive) {
+      } else if (group === "active" && isActive) {
         targetUserIds.add(user.userId);
       }
     });
@@ -99,12 +135,12 @@ export default function UsersPage() {
     setSelectedUserIds(targetUserIds);
 
     // 3. Prepare content
-    if (group === 'active') {
+    if (group === "active") {
       setShowWelcomeDialog(true);
       return;
-    } else if (group === 'partial') {
+    } else if (group === "partial") {
       setEmailDialogOverride({
-        section: 'activity',
+        section: "activity",
         subject: "We miss you! Come back to Helium",
         textContent: `Hi there! 👋
 
@@ -125,11 +161,11 @@ Remember, every great journey has its pauses - and that's perfectly okay! When y
 Take care, and we hope to see you back soon! 🌟
 
 With warm regards,
-The Helium Team 💙`
+The Helium Team 💙`,
       });
     } else {
       setEmailDialogOverride({
-        section: 'activity',
+        section: "activity",
         subject: "We're here when you're ready",
         textContent: `Hello, 💙
 
@@ -150,7 +186,7 @@ Whether you return tomorrow, next month, or next year, know that you'll always h
 Take all the time you need. We're here when you are. 💙
 
 With understanding and care,
-The Helium Team 🌟`
+The Helium Team 🌟`,
       });
     }
 
@@ -169,16 +205,16 @@ The Helium Team 🌟`
       if (!hasData) {
         setIsLoadingActivity(true);
       }
-      
+
       try {
-        const response = await fetch('/api/usage-logs-aggregated', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/usage-logs-aggregated", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             page: 1,
             limit: 2000, // enough for typical dashboards; adjust if dataset grows
-            searchQuery: '',
-            activityFilter: 'all',
+            searchQuery: "",
+            activityFilter: "all",
             userTypeFilter,
           }),
         });
@@ -189,27 +225,32 @@ The Helium Team 🌟`
 
         const result = await response.json();
 
-        console.log('result', result)
-        
+        console.log("result", result);
+
         if (isMounted) {
-          const map: Record<string, { usageCount: number; latestActivity: Date | null }> = {};
+          const map: Record<
+            string,
+            { usageCount: number; latestActivity: Date | null }
+          > = {};
 
           (result.data || []).forEach((row: any) => {
             map[row.user_id] = {
               usageCount: Number(row.usage_count || 0),
-              latestActivity: row.latest_activity ? new Date(row.latest_activity) : null,
+              latestActivity: row.latest_activity
+                ? new Date(row.latest_activity)
+                : null,
             };
           });
 
           setUsageActivityMap(map);
         }
       } catch (err) {
-        console.error('Error fetching usage activity', err);
+        console.error("Error fetching usage activity", err);
         if (isMounted) {
           toast({
-            title: 'Error',
-            description: 'Failed to load activity data for user tabs.',
-            variant: 'destructive',
+            title: "Error",
+            description: "Failed to load activity data for user tabs.",
+            variant: "destructive",
           });
         }
       } finally {
@@ -223,13 +264,13 @@ The Helium Team 🌟`
 
     // Subscribe to usage_logs changes to update activity status in real-time
     const subscription = supabase
-      .channel('users_page_activity_updates')
+      .channel("users_page_activity_updates")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'usage_logs',
+          event: "*",
+          schema: "public",
+          table: "usage_logs",
         },
         () => {
           // Debounce updates to avoid excessive API calls
@@ -237,7 +278,7 @@ The Helium Team 🌟`
           debounceTimeout = setTimeout(() => {
             fetchActivity();
           }, 1000);
-        }
+        },
       )
       .subscribe();
 
@@ -263,18 +304,18 @@ The Helium Team 🌟`
       return;
     }
 
-    const headers = ['Name', 'Email', 'Status', 'Referral Source', 'Created'];
+    const headers = ["Name", "Email", "Status", "Referral Source", "Created"];
     const csvContent = [
-      headers.join(','),
-      ...filteredProfiles.map(profile => {
-        const sent = !!(profile.metadata?.credits_email_sent_at);
-        const assigned = !!(profile.metadata?.credits_assigned);
-        let status = 'Not Sent';
-        if (sent && assigned) status = 'Sent & Assigned';
-        else if (sent) status = 'Sent';
-        else if (assigned) status = 'Assigned';
+      headers.join(","),
+      ...filteredProfiles.map((profile) => {
+        const sent = !!profile.metadata?.credits_email_sent_at;
+        const assigned = !!profile.metadata?.credits_assigned;
+        let status = "Not Sent";
+        if (sent && assigned) status = "Sent & Assigned";
+        else if (sent) status = "Sent";
+        else if (assigned) status = "Assigned";
 
-        const referral = profile.referralSource || 'N/A';
+        const referral = profile.referralSource || "N/A";
         const created = new Date(profile.createdAt).toLocaleDateString();
 
         return [
@@ -282,42 +323,47 @@ The Helium Team 🌟`
           `"${profile.email}"`,
           `"${status}"`,
           `"${referral}"`,
-          `"${created}"`
-        ].join(',');
-      })
-    ].join('\n');
+          `"${created}"`,
+        ].join(",");
+      }),
+    ].join("\n");
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${userTypeFilter}_users_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `${userTypeFilter}_users_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const handleSendEmail = async (emailData: EmailData, selectedOnly: boolean = false) => {
+  const handleSendEmail = async (
+    emailData: EmailData,
+    selectedOnly: boolean = false,
+  ) => {
     setIsSending(true);
     try {
       // Extract only the fields needed for the API (subject, textContent, htmlContent)
       const requestBody: any = {
         subject: emailData.subject,
-        textContent: emailData.textContent || '',
-        htmlContent: emailData.htmlContent || '',
+        textContent: emailData.textContent || "",
+        htmlContent: emailData.htmlContent || "",
       };
-      
+
       // If sending to selected users only, include their user IDs
       if (selectedOnly && selectedUserIds.size > 0) {
         requestBody.selectedUserIds = Array.from(selectedUserIds);
       }
-      
 
-      const response = await fetch('/api/send-bulk-email', {
-        method: 'POST',
+      const response = await fetch("/api/send-bulk-email", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
       });
@@ -326,7 +372,7 @@ The Helium Team 🌟`
       if (!response.ok) {
         let errorMessage = `Server error: ${response.status} ${response.statusText}`;
         let errorDetails: any = null;
-        
+
         try {
           // Try to get response as text first to see what we're dealing with
           const responseText = await response.text();
@@ -335,14 +381,18 @@ The Helium Team 🌟`
           if (responseText && responseText.trim().length > 0) {
             try {
               errorDetails = JSON.parse(responseText);
-              
+
               // Check if errorDetails is empty object or has no message
-              if (errorDetails && typeof errorDetails === 'object') {
+              if (errorDetails && typeof errorDetails === "object") {
                 if (Object.keys(errorDetails).length === 0) {
                   errorMessage = `Server returned empty error response (${response.status}). This usually means the selected users don't exist in the database.`;
                 } else {
-                  errorMessage = errorDetails.message || errorDetails.hint || errorDetails.error || errorMessage;
-                  
+                  errorMessage =
+                    errorDetails.message ||
+                    errorDetails.hint ||
+                    errorDetails.error ||
+                    errorMessage;
+
                   // Include additional details if available
                   if (errorDetails.details) {
                     if (errorDetails.details.selectedUserIds) {
@@ -353,7 +403,10 @@ The Helium Team 🌟`
               }
             } catch (jsonParseError) {
               // Not valid JSON, use text as error message
-              console.error('Failed to parse error response as JSON:', jsonParseError);
+              console.error(
+                "Failed to parse error response as JSON:",
+                jsonParseError,
+              );
               errorMessage = responseText || errorMessage;
             }
           } else {
@@ -361,17 +414,17 @@ The Helium Team 🌟`
             errorMessage = `Server returned empty response (${response.status}). This usually means the selected users don't exist in the database or there was a validation error.`;
           }
         } catch (parseError) {
-          console.error('Failed to read error response:', parseError);
-          errorMessage = `Failed to read error response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`;
+          console.error("Failed to read error response:", parseError);
+          errorMessage = `Failed to read error response: ${parseError instanceof Error ? parseError.message : "Unknown error"}`;
         }
-        
-        console.error('Bulk email error response:', {
+
+        console.error("Bulk email error response:", {
           status: response.status,
           statusText: response.statusText,
           errorDetails,
-          finalErrorMessage: errorMessage
+          finalErrorMessage: errorMessage,
         });
-        
+
         toast({
           title: "Error",
           description: errorMessage,
@@ -383,10 +436,10 @@ The Helium Team 🌟`
       const result = await response.json();
 
       if (result.success) {
-        const recipientCount = selectedOnly ? selectedUserIds.size : 'all';
+        const recipientCount = selectedOnly ? selectedUserIds.size : "all";
         toast({
           title: "Success",
-          description: `Emails sent successfully! ${result.details.successCount} emails delivered to ${selectedOnly ? `${selectedUserIds.size} selected` : 'all'} users.`,
+          description: `Emails sent successfully! ${result.details.successCount} emails delivered to ${selectedOnly ? `${selectedUserIds.size} selected` : "all"} users.`,
         });
         // Clear selection after successful send
         if (selectedOnly) {
@@ -395,7 +448,7 @@ The Helium Team 🌟`
         // Note: Real-time subscription should automatically refresh the user profiles
         // when the metadata is updated in the database
       } else {
-        console.error('Bulk email error:', result);
+        console.error("Bulk email error:", result);
         toast({
           title: "Error",
           description: result.message || result.hint || "Failed to send emails",
@@ -403,7 +456,7 @@ The Helium Team 🌟`
         });
       }
     } catch (error) {
-      console.error('Error sending bulk emails:', error);
+      console.error("Error sending bulk emails:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while sending emails",
@@ -415,20 +468,23 @@ The Helium Team 🌟`
     }
   };
 
-  const handleSendToIndividual = async (emailData: EmailData, emailAddress: string) => {
+  const handleSendToIndividual = async (
+    emailData: EmailData,
+    emailAddress: string,
+  ) => {
     setIsSending(true);
     try {
       // Extract only the fields needed for the API (subject, textContent, htmlContent)
       const requestBody = {
         subject: emailData.subject,
-        textContent: emailData.textContent || '',
-        htmlContent: emailData.htmlContent || '',
-        individualEmail: emailAddress
+        textContent: emailData.textContent || "",
+        htmlContent: emailData.htmlContent || "",
+        individualEmail: emailAddress,
       };
-      const response = await fetch('/api/send-individual-email', {
-        method: 'POST',
+      const response = await fetch("/api/send-individual-email", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
       });
@@ -438,22 +494,23 @@ The Helium Team 🌟`
         let errorMessage = `Server error: ${response.status} ${response.statusText}`;
         try {
           const errorResult = await response.json();
-          errorMessage = errorResult.message || errorResult.hint || errorMessage;
-          console.error('Individual email error response:', {
+          errorMessage =
+            errorResult.message || errorResult.hint || errorMessage;
+          console.error("Individual email error response:", {
             status: response.status,
             statusText: response.statusText,
-            error: errorResult
+            error: errorResult,
           });
         } catch (parseError) {
           const text = await response.text();
-          console.error('Failed to parse error response:', {
+          console.error("Failed to parse error response:", {
             status: response.status,
             statusText: response.statusText,
-            body: text
+            body: text,
           });
           errorMessage = text || errorMessage;
         }
-        
+
         toast({
           title: "Error",
           description: errorMessage,
@@ -472,7 +529,7 @@ The Helium Team 🌟`
         // Note: Real-time subscription should automatically refresh the user profiles
         // when the metadata is updated in the database
       } else {
-        console.error('Individual email error:', result);
+        console.error("Individual email error:", result);
         toast({
           title: "Error",
           description: result.message || result.hint || "Failed to send email",
@@ -480,7 +537,7 @@ The Helium Team 🌟`
         });
       }
     } catch (error) {
-      console.error('Error sending individual email:', error);
+      console.error("Error sending individual email:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while sending email",
@@ -512,7 +569,8 @@ The Helium Team 🌟`
   const handleCreateUserSuccess = () => {
     toast({
       title: "Success",
-      description: "User created successfully! The user list will update automatically.",
+      description:
+        "User created successfully! The user list will update automatically.",
     });
     // The real-time subscription should automatically refresh the user profiles
     // when a new user_profiles entry is created
@@ -549,10 +607,10 @@ The Helium Team 🌟`
       const userIds = Array.from(selectedUserIds);
       const results = await Promise.allSettled(
         userIds.map(async (userId) => {
-          const response = await fetch('/api/credit-balance', {
-            method: 'POST',
+          const response = await fetch("/api/credit-balance", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               userId,
@@ -565,48 +623,51 @@ The Helium Team 🌟`
 
           const result = await response.json();
           if (!result.success) {
-            throw new Error(result.message || 'Failed to assign credits');
+            throw new Error(result.message || "Failed to assign credits");
           }
           return { userId, success: true };
-        })
+        }),
       );
 
-      const successful = results.filter((r) => r.status === 'fulfilled').length;
-      const failed = results.filter((r) => r.status === 'rejected').length;
+      const successful = results.filter((r) => r.status === "fulfilled").length;
+      const failed = results.filter((r) => r.status === "rejected").length;
 
       if (failed === 0) {
         toast({
           title: "Success",
-          description: `Successfully assigned ${creditsValue} credits to ${successful} user${successful !== 1 ? 's' : ''}! Credits email sent and status updated.`,
+          description: `Successfully assigned ${creditsValue} credits to ${successful} user${successful !== 1 ? "s" : ""}! Credits email sent and status updated.`,
         });
         // Clear selection and input after successful assignment
         setSelectedUserIds(new Set());
-        setBulkCreditsInput('');
+        setBulkCreditsInput("");
         // Status will update automatically via real-time subscription
       } else if (successful > 0) {
         toast({
           title: "Partial Success",
-          description: `Assigned credits to ${successful} user${successful !== 1 ? 's' : ''} (emails sent), but ${failed} assignment${failed !== 1 ? 's' : ''} failed.`,
+          description: `Assigned credits to ${successful} user${successful !== 1 ? "s" : ""} (emails sent), but ${failed} assignment${failed !== 1 ? "s" : ""} failed.`,
         });
         // Clear selection for successful assignments
         setSelectedUserIds(new Set());
-        setBulkCreditsInput('');
+        setBulkCreditsInput("");
       } else {
         toast({
           title: "Error",
-          description: `Failed to assign credits to all ${userIds.length} selected user${userIds.length !== 1 ? 's' : ''}. Please try again.`,
+          description: `Failed to assign credits to all ${userIds.length} selected user${userIds.length !== 1 ? "s" : ""}. Please try again.`,
           variant: "destructive",
         });
       }
 
       // Log errors for debugging
       results.forEach((result, index) => {
-        if (result.status === 'rejected') {
-          console.error(`Failed to assign credits to user ${userIds[index]}:`, result.reason);
+        if (result.status === "rejected") {
+          console.error(
+            `Failed to assign credits to user ${userIds[index]}:`,
+            result.reason,
+          );
         }
       });
     } catch (error) {
-      console.error('Error in bulk credit assignment:', error);
+      console.error("Error in bulk credit assignment:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while assigning credits",
@@ -621,7 +682,7 @@ The Helium Team 🌟`
   const userStats = {
     active: 0,
     inactive: 0,
-    partial: 0
+    partial: 0,
   };
 
   const filteredProfilesForStats = userProfiles.filter((profile) => {
@@ -633,11 +694,17 @@ The Helium Team 🌟`
   const activeThreshold = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000); // 30 days
   const partialThreshold = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000); // 60 days
 
-  filteredProfilesForStats.forEach(user => {
+  filteredProfilesForStats.forEach((user) => {
     const activity = usageActivityMap[user.userId];
-    const lastActive = activity?.latestActivity ? new Date(activity.latestActivity) : null;
+    const lastActive = activity?.latestActivity
+      ? new Date(activity.latestActivity)
+      : null;
 
-    if (!activity || activity.usageCount === 0 || (lastActive && lastActive <= partialThreshold)) {
+    if (
+      !activity ||
+      activity.usageCount === 0 ||
+      (lastActive && lastActive <= partialThreshold)
+    ) {
       userStats.inactive++;
     } else if (lastActive && lastActive > activeThreshold) {
       userStats.active++;
@@ -647,37 +714,37 @@ The Helium Team 🌟`
   });
 
   const userStatCards = [
-  {
-    key: 'active',
-    title: 'Active Users',
-    icon: Activity,
-    count: userStats.active,
-    description: 'Active in last 30 days',
-    buttonText: 'Send Email',
-    onClick: () => handleOpenEmailForGroup('active'),
-    disabled: userStats.active === 0
-  },
-  {
-    key: 'partial',
-    title: 'Partially Active',
-    icon: Clock,
-    count: userStats.partial,
-    description: 'Inactive for 30-60 days',
-    buttonText: 'Send Email',
-    onClick: () => handleOpenEmailForGroup('partial'),
-    disabled: userStats.partial === 0
-  },
-  {
-    key: 'inactive',
-    title: 'Inactive Users',
-    icon: UserX,
-    count: userStats.inactive,
-    description: 'No recent activity (> 60 days)',
-    buttonText: 'Send Email',
-    onClick: () => handleOpenEmailForGroup('inactive'),
-    disabled: userStats.inactive === 0
-  }
-];
+    {
+      key: "active",
+      title: "Active Users",
+      icon: Activity,
+      count: userStats.active,
+      description: "Active in last 30 days",
+      buttonText: "Send Email",
+      onClick: () => handleOpenEmailForGroup("active"),
+      disabled: userStats.active === 0,
+    },
+    {
+      key: "partial",
+      title: "Partially Active",
+      icon: Clock,
+      count: userStats.partial,
+      description: "Inactive for 30-60 days",
+      buttonText: "Send Email",
+      onClick: () => handleOpenEmailForGroup("partial"),
+      disabled: userStats.partial === 0,
+    },
+    {
+      key: "inactive",
+      title: "Inactive Users",
+      icon: UserX,
+      count: userStats.inactive,
+      description: "No recent activity (> 60 days)",
+      buttonText: "Send Email",
+      onClick: () => handleOpenEmailForGroup("inactive"),
+      disabled: userStats.inactive === 0,
+    },
+  ];
 
   return (
     <>
@@ -690,35 +757,49 @@ The Helium Team 🌟`
           </PageHeader>
           <main className="flex-1 space-y-6 p-4 md:p-6">
             {/* User Statistics Cards */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4 items-center justify-center">
               {userStatCards.map((card) => (
-                <Card
-                  key={card.key}
-                  className="border-primary/20 hover:border-primary/50 duration-300 ease-in-out transition-all"
+                <div
+                  key={card.title}
+                  className={`group relative  overflow-hidden rounded-xl  border bg-card p-5 transition-all hover:shadow-md hover:border-primary/40${card.disabled ? "opacity-60" : ""} `}
                 >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                    <CardTitle className="text-sm font-medium">
-                      {card.title}
-                    </CardTitle>
-                    <card.icon className="w-5 text-primary" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{card.count}</div>
-                    <p className="text-xs text-muted-foreground mb-4">
-                      {card.description}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full h-8 text-xs"
-                      onClick={card.onClick}
-                      disabled={card.disabled}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {card.title}
+                      </p>
+                      <p className="text-3xl font-bold tracking-tight">
+                        {card.count}
+                      </p>
+                      <p className="text-xs text-muted-foreground/90">
+                        {card.description}
+                      </p>
+                    </div>
+
+                    <div
+                      className={`
+        rounded-lg bg-primary/10 p-3 text-primary transition-colors
+        group-hover:bg-primary/20
+      `}
                     >
-                      <Mail className="h-3 w-3 mr-2" />
-                      {card.buttonText}
-                    </Button>
-                  </CardContent>
-                </Card>
+                      <card.icon className="h-6 w-6" />
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className={`
+        mt-4 w-full justify-center gap-2 text-xs font-medium
+        ${card.disabled ? "" : "hover:bg-primary/10 hover:text-primary"}
+      `}
+                    onClick={card.onClick}
+                    disabled={card.disabled}
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    {card.buttonText}
+                  </Button>
+                </div>
               ))}
             </div>
 
