@@ -100,6 +100,7 @@ function getActivityStatusBadge(
 
 interface UsersTableRealtimeProps {
   userTypeFilter?: "internal" | "external";
+  activityFilter?: "all" | "active" | "inactive";
   selectedUserIds?: Set<string>;
   onSelectionChange?: (ids: Set<string>) => void;
   onAssignCredits?: (user: UserProfile) => void;
@@ -118,6 +119,7 @@ interface UsersTableRealtimeProps {
 
 export function UsersTableRealtime({
   userTypeFilter = "external",
+  activityFilter = "all",
   selectedUserIds: externalSelectedUserIds,
   onSelectionChange,
   onAssignCredits,
@@ -174,6 +176,11 @@ export function UsersTableRealtime({
   React.useEffect(() => {
     setPage(0);
   }, [userTypeFilter]);
+
+  // Reset to first page when activity filter changes
+  React.useEffect(() => {
+    setPage(0);
+  }, [activityFilter]);
 
   // Reset selection when user type filter changes
   React.useEffect(() => {
@@ -349,6 +356,17 @@ export function UsersTableRealtime({
     const profileUserType = getUserType(profile.email);
     if (profileUserType !== userTypeFilter) {
       return false;
+    }
+
+    // Filter by activity status
+    if (activityFilter !== "all") {
+      const isActive = activityMap.get(profile.userId) ?? false;
+      if (activityFilter === "active" && !isActive) {
+        return false;
+      }
+      if (activityFilter === "inactive" && isActive) {
+        return false;
+      }
     }
 
     // Filter by text search (only if filter is provided)

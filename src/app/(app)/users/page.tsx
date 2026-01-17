@@ -51,6 +51,9 @@ export default function UsersPage() {
   const [userTypeFilter, setUserTypeFilter] = useState<"internal" | "external">(
     "external",
   ); // Default to external users
+  const [activityFilter, setActivityFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
     new Set(),
   );
@@ -225,7 +228,6 @@ The Helium Team 🌟`,
 
         const result = await response.json();
 
-        
         if (isMounted) {
           const map: Record<
             string,
@@ -240,7 +242,6 @@ The Helium Team 🌟`,
                 : null,
             };
           });
-          
 
           setUsageActivityMap(map);
         }
@@ -748,187 +749,226 @@ The Helium Team 🌟`,
 
   return (
     <>
-      
-          <main className="w-full h-full space-y-8">
-            {/* User Statistics Cards */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4 items-center justify-center">
-              {userStatCards.map((card) => (
-                <div
-                  key={card.title}
-                  className={`group relative  overflow-hidden rounded-xl  border bg-card p-5 transition-all hover:shadow-md hover:border-primary/40${card.disabled ? "opacity-60" : ""} `}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        {card.title}
-                      </p>
-                      <p className="text-3xl font-bold tracking-tight">
-                        {card.count}
-                      </p>
-                      <p className="text-xs text-muted-foreground/90">
-                        {card.description}
-                      </p>
-                    </div>
+      <main className="w-full h-full space-y-8">
+        {/* User Statistics Cards */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4 items-center justify-center">
+          {userStatCards.map((card) => (
+            <div
+              key={card.title}
+              className={`group relative  overflow-hidden rounded-xl  border bg-card p-5 transition-all hover:shadow-md hover:border-primary/40${card.disabled ? "opacity-60" : ""} `}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {card.title}
+                  </p>
+                  <p className="text-3xl font-bold tracking-tight">
+                    {card.count}
+                  </p>
+                  <p className="text-xs text-muted-foreground/90">
+                    {card.description}
+                  </p>
+                </div>
 
-                    <div
-                      className={`
+                <div
+                  className={`
         rounded-lg bg-primary/10 p-3 text-primary transition-colors
         group-hover:bg-primary/20
       `}
-                    >
-                      <card.icon className="h-6 w-6" />
-                    </div>
-                  </div>
+                >
+                  <card.icon className="h-6 w-6" />
+                </div>
+              </div>
 
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className={`
+              <Button
+                variant="secondary"
+                size="sm"
+                className={`
         mt-4 w-full justify-center gap-2 text-xs font-medium
         ${card.disabled ? "" : "hover:bg-primary/10 hover:text-primary"}
       `}
-                    onClick={card.onClick}
-                    disabled={card.disabled}
-                  >
-                    <Mail className="h-3.5 w-3.5" />
-                    {card.buttonText}
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-              <h2 className="text-xl font-semibold">User Profiles</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 md:w-fit w-full gap-2">
-                <Button
-                  onClick={() => setCreateUserDialogOpen(true)}
-                  variant="default"
-                  className="flex items-center gap-2"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Create User
-                </Button>
-                <Button
-                  onClick={() => setShowCustomizationDialog(true)}
-                  disabled={isSending}
-                  variant={"secondary"}
-                  className="flex items-center gap-2"
-                >
-                  {isSending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Mail className="h-4 w-4" />
-                  )}
-                  {isSending ? "Sending..." : "Send Email"}
-                </Button>
-                <Button
-                  onClick={handleDownloadCsv}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download CSV
-                </Button>
-              </div>
-            </div>
-
-            {/* User Type Toggle */}
-            <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-full md:w-fit">
-              <Button
-                variant={userTypeFilter === "external" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setUserTypeFilter("external")}
-                className={`flex items-center gap-2 w-full ${
-                  userTypeFilter === "external" ? "hover:bg-primary" : ""
-                }`}
+                onClick={card.onClick}
+                disabled={card.disabled}
               >
-                <Users className="h-4 w-4" />
-                External Users
-              </Button>
-              <Button
-                variant={userTypeFilter === "internal" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setUserTypeFilter("internal")}
-                className={`flex items-center gap-2 w-full ${
-                  userTypeFilter === "internal" ? "hover:bg-primary" : ""
-                }`}
-              >
-                <Building2 className="h-4 w-4" />
-                Internal Users
+                <Mail className="h-3.5 w-3.5" />
+                {card.buttonText}
               </Button>
             </div>
+          ))}
+        </div>
 
-            {/* Bulk Credit Assignment Controls */}
-            {selectedUserIds.size > 0 && (
-              <div className="flex flex-col md:flex-row items-end gap-3 p-4 bg-muted/50 rounded-lg border">
-                <div className="flex-1 space-y-2">
-                  <Label htmlFor="bulk-credits" className="text-sm font-medium">
-                    Assign Credits to {selectedUserIds.size} Selected User
-                    {selectedUserIds.size !== 1 ? "s" : ""}
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="bulk-credits"
-                      type="number"
-                      min="1"
-                      step="1"
-                      placeholder="Enter number of credits"
-                      value={bulkCreditsInput}
-                      onChange={(e) => setBulkCreditsInput(e.target.value)}
-                      disabled={isAssigningCredits}
-                      className="max-w-xs"
-                    />
-                    {bulkCreditsInput &&
-                      !isNaN(parseFloat(bulkCreditsInput)) &&
-                      parseFloat(bulkCreditsInput) > 0 && (
-                        <span className="text-sm text-muted-foreground">
-                          = ${(parseFloat(bulkCreditsInput) / 100).toFixed(2)}
-                        </span>
-                      )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Enter the number of credits to add to all selected users'
-                    accounts (100 credits = $1.00)
-                  </p>
-                </div>
-                <Button
-                  onClick={handleBulkAssignCredits}
-                  disabled={
-                    isAssigningCredits ||
-                    !bulkCreditsInput ||
-                    parseFloat(bulkCreditsInput) <= 0
-                  }
-                  className="flex items-center gap-2"
-                >
-                  {isAssigningCredits ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Assigning...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="h-4 w-4" />
-                      Assign Credits
-                    </>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+          <h2 className="text-xl font-semibold">User Profiles</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 md:w-fit w-full gap-2">
+            <Button
+              onClick={() => setCreateUserDialogOpen(true)}
+              variant="default"
+              className="flex items-center gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              Create User
+            </Button>
+            <Button
+              onClick={() => setShowCustomizationDialog(true)}
+              disabled={isSending}
+              variant={"secondary"}
+              className="flex items-center gap-2"
+            >
+              {isSending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4" />
+              )}
+              {isSending ? "Sending..." : "Send Email"}
+            </Button>
+            <Button
+              onClick={handleDownloadCsv}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download CSV
+            </Button>
+          </div>
+        </div>
+
+        <div className="w-full flex items-center justify-between">
+          {/* User Type Toggle */}
+          <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-full md:w-fit">
+            <Button
+              variant={userTypeFilter === "external" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setUserTypeFilter("external")}
+              className={`flex items-center gap-2 w-full ${
+                userTypeFilter === "external" ? "hover:bg-primary" : ""
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              External Users
+            </Button>
+            <Button
+              variant={userTypeFilter === "internal" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setUserTypeFilter("internal")}
+              className={`flex items-center gap-2 w-full ${
+                userTypeFilter === "internal" ? "hover:bg-primary" : ""
+              }`}
+            >
+              <Building2 className="h-4 w-4" />
+              Internal Users
+            </Button>
+          </div>
+
+          {/* Activity Filter */}
+          <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-full md:w-fit">
+            <Button
+              variant={activityFilter === "all" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActivityFilter("all")}
+              className={`flex items-center gap-2 w-full ${
+                activityFilter === "all" ? "hover:bg-primary" : ""
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              All Users
+            </Button>
+            <Button
+              variant={activityFilter === "active" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActivityFilter("active")}
+              className={`flex items-center gap-2 w-full ${
+                activityFilter === "active" ? "hover:bg-primary" : ""
+              }`}
+            >
+              <Activity className="h-4 w-4" />
+              Active
+            </Button>
+            <Button
+              variant={activityFilter === "inactive" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActivityFilter("inactive")}
+              className={`flex items-center gap-2 w-full ${
+                activityFilter === "inactive" ? "hover:bg-primary" : ""
+              }`}
+            >
+              <UserX className="h-4 w-4" />
+              Inactive
+            </Button>
+          </div>
+        </div>
+
+        {/* Bulk Credit Assignment Controls */}
+        {selectedUserIds.size > 0 && (
+          <div className="flex flex-col md:flex-row items-end gap-3 p-4 bg-muted/50 rounded-lg border">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="bulk-credits" className="text-sm font-medium">
+                Assign Credits to {selectedUserIds.size} Selected User
+                {selectedUserIds.size !== 1 ? "s" : ""}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="bulk-credits"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Enter number of credits"
+                  value={bulkCreditsInput}
+                  onChange={(e) => setBulkCreditsInput(e.target.value)}
+                  disabled={isAssigningCredits}
+                  className="max-w-xs"
+                />
+                {bulkCreditsInput &&
+                  !isNaN(parseFloat(bulkCreditsInput)) &&
+                  parseFloat(bulkCreditsInput) > 0 && (
+                    <span className="text-sm text-muted-foreground">
+                      = ${(parseFloat(bulkCreditsInput) / 100).toFixed(2)}
+                    </span>
                   )}
-                </Button>
               </div>
-            )}
+              <p className="text-xs text-muted-foreground">
+                Enter the number of credits to add to all selected users'
+                accounts (100 credits = $1.00)
+              </p>
+            </div>
+            <Button
+              onClick={handleBulkAssignCredits}
+              disabled={
+                isAssigningCredits ||
+                !bulkCreditsInput ||
+                parseFloat(bulkCreditsInput) <= 0
+              }
+              className="flex items-center gap-2"
+            >
+              {isAssigningCredits ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Assigning...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-4 w-4" />
+                  Assign Credits
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
-            <UsersTableRealtime
-              userTypeFilter={userTypeFilter}
-              selectedUserIds={selectedUserIds}
-              onSelectionChange={setSelectedUserIds}
-              onAssignCredits={handleAssignCredits}
-              usageActivityMap={usageActivityMap}
-              userProfiles={userProfiles}
-              loading={loading}
-              error={error}
-              refreshUserProfiles={refreshUserProfiles}
-              deleteUserProfile={deleteUserProfile}
-              bulkDeleteUserProfiles={bulkDeleteUserProfiles}
-            />
-          </main>
+        <UsersTableRealtime
+          userTypeFilter={userTypeFilter}
+          activityFilter={activityFilter}
+          selectedUserIds={selectedUserIds}
+          onSelectionChange={setSelectedUserIds}
+          onAssignCredits={handleAssignCredits}
+          usageActivityMap={usageActivityMap}
+          userProfiles={userProfiles}
+          loading={loading}
+          error={error}
+          refreshUserProfiles={refreshUserProfiles}
+          deleteUserProfile={deleteUserProfile}
+          bulkDeleteUserProfiles={bulkDeleteUserProfiles}
+        />
+      </main>
 
       <EmailCustomizationDialog
         open={showCustomizationDialog}
