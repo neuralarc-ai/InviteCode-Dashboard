@@ -18,6 +18,7 @@ import {
   CreditCard,
   LayoutDashboard,
   PanelLeft,
+  Receipt,
   TrendingUp,
   UserCheck
 } from 'lucide-react';
@@ -86,6 +87,13 @@ const sidebarItems = [
     href: "/transactions",
     icon: TrendingUp,
     tooltip: "Transactions",
+    enabled: true,
+  },
+  {
+    label: "Stripe Transaction",
+    href: "/stripe-transaction",
+    icon: Receipt,
+    tooltip: "Stripe Transaction",
     enabled: true,
   },
   {
