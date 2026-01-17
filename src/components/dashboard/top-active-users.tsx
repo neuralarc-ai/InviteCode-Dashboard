@@ -22,7 +22,7 @@ export function TopActiveUsers() {
 
   if (loading && usageLogs.length === 0) {
     return (
-      <Card>
+      <Card className="w-full">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="space-y-1">
             <CardTitle className="text-xl font-bold flex items-center gap-2">
@@ -35,7 +35,7 @@ export function TopActiveUsers() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2  lg:grid-cols-5 gap-4">
+          <div className="w-full grid grid-cols-2  lg:grid-cols-5 gap-4">
     4 xl:grid-cols-5      {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex flex-col items-center space-y-4 p-4 border rounded-lg">
                 <Skeleton className="h-12 w-12 rounded-full" />

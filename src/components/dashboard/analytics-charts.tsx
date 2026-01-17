@@ -127,7 +127,7 @@ export function AnalyticsCharts() {
 
   if (usersLoading || creditLoading || purchasesLoading) {
     return (
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="w-full grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -162,7 +162,7 @@ export function AnalyticsCharts() {
 
   if (usersError || creditError || purchasesError) {
     return (
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="w-full grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -200,7 +200,7 @@ export function AnalyticsCharts() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className=" space-y-6 w-full">
       <UserDemographics />
       <div className="grid gap-6 md:grid-cols-2 w-full">
         {/* User Registration Trends Chart */}

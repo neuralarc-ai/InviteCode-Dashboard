@@ -19,7 +19,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,7 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import type { UserProfile } from "@/lib/types";
+import type { CreditUsage, UserProfile } from "@/lib/types";
 import { getNameFromEmail, getUserType } from "@/lib/utils";
 import {
   ArrowLeftRight,
@@ -49,11 +49,54 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import ChangePlanDialog from "../change-plan-dialog";
+import { useGlobal } from "@/contexts/global-context";
 
 type UsageActivity = {
   usageCount: number;
   latestActivity: Date | null;
 };
+
+function calculateActivityStatusMap(
+  rawUsage: CreditUsage[],
+  activityWindowDays: number = 5,
+): Map<string, boolean> {
+  const now = new Date();
+  const cutoffDate = new Date(
+    now.getTime() - activityWindowDays * 24 * 60 * 60 * 1000,
+  );
+
+  const activityMap = new Map<string, boolean>();
+
+  // Single pass through rawUsage array
+  for (const usage of rawUsage) {
+    if (usage.createdAt >= cutoffDate) {
+      activityMap.set(usage.userId, true);
+    }
+  }
+
+  return activityMap;
+}
+
+function getActivityStatusBadge(
+  userId: string,
+  activityMap: Map<string, boolean>,
+): JSX.Element {
+  const isActive = activityMap.get(userId) ?? false;
+
+  if (isActive) {
+    return (
+      <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+        Active
+      </Badge>
+    );
+  } else {
+    return (
+      <Badge variant="secondary" className="text-muted-foreground">
+        Inactive
+      </Badge>
+    );
+  }
+}
 
 interface UsersTableRealtimeProps {
   userTypeFilter?: "internal" | "external";
@@ -66,10 +109,10 @@ interface UsersTableRealtimeProps {
   error: string | null;
   refreshUserProfiles: () => Promise<void>;
   deleteUserProfile: (
-    id: string
+    id: string,
   ) => Promise<{ success: boolean; message: string }>;
   bulkDeleteUserProfiles: (
-    ids: string[]
+    ids: string[],
   ) => Promise<{ success: boolean; message: string; deletedCount?: number }>;
 }
 
@@ -90,13 +133,14 @@ export function UsersTableRealtime({
   const [page, setPage] = React.useState(0);
   const rowsPerPage = 10;
   const { toast } = useToast();
+  const { rawUsage } = useGlobal();
   const [internalSelectedUserIds, setInternalSelectedUserIds] = React.useState<
     Set<string>
   >(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = React.useState(false);
   const [userToDelete, setUserToDelete] = React.useState<UserProfile | null>(
-    null
+    null,
   );
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [openDialog, setOpenDialog] = React.useState(false);
@@ -111,14 +155,20 @@ export function UsersTableRealtime({
     | "usageStatus"
     | "usageCount"
     | "latestActivity"
+    | "activityStatus"
   >("created");
   const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">(
-    "desc"
+    "desc",
   );
 
   // Use external selection state if provided, otherwise use internal state
   const selectedUserIds = externalSelectedUserIds ?? internalSelectedUserIds;
   const setSelectedUserIds = onSelectionChange ?? setInternalSelectedUserIds;
+
+  // Calculate activity status map from rawUsage
+  const activityMap = React.useMemo(() => {
+    return calculateActivityStatusMap(rawUsage || []);
+  }, [rawUsage]);
 
   // Reset to first page when user type filter changes
   React.useEffect(() => {
@@ -256,7 +306,7 @@ export function UsersTableRealtime({
 
     const now = new Date();
     const daysSinceActivity = Math.floor(
-      (now.getTime() - latestActivity.getTime()) / (1000 * 60 * 60 * 24)
+      (now.getTime() - latestActivity.getTime()) / (1000 * 60 * 60 * 24),
     );
 
     if (daysSinceActivity <= 5) {
@@ -308,7 +358,7 @@ export function UsersTableRealtime({
           value !== null &&
           value !== undefined &&
           typeof value === "string" &&
-          value.toLowerCase().includes(filter.toLowerCase())
+          value.toLowerCase().includes(filter.toLowerCase()),
       );
       if (!matchesText) {
         return false;
@@ -373,6 +423,14 @@ export function UsersTableRealtime({
         aValue = usageActivityMap?.[a.userId]?.latestActivity?.getTime() || 0;
         bValue = usageActivityMap?.[b.userId]?.latestActivity?.getTime() || 0;
         break;
+      case "activityStatus":
+        // Sort by activity status priority: Active = 1, Inactive = 0
+        const getActivityPriority = (userId: string) => {
+          return activityMap.get(userId) ? 1 : 0; // Active = 1, Inactive = 0
+        };
+        aValue = getActivityPriority(a.userId);
+        bValue = getActivityPriority(b.userId);
+        break;
       default:
         return 0;
     }
@@ -391,7 +449,7 @@ export function UsersTableRealtime({
 
   const paginatedProfiles = sortedProfiles.slice(
     page * rowsPerPage,
-    (page + 1) * rowsPerPage
+    (page + 1) * rowsPerPage,
   );
 
   const totalPages = Math.ceil(sortedProfiles.length / rowsPerPage);
@@ -409,7 +467,7 @@ export function UsersTableRealtime({
 
   const handleSelectAll = () => {
     const allFilteredUserIds = new Set(
-      sortedProfiles.map((profile) => profile.userId)
+      sortedProfiles.map((profile) => profile.userId),
     );
     if (
       selectedUserIds.size === sortedProfiles.length &&
@@ -427,7 +485,7 @@ export function UsersTableRealtime({
     sortedProfiles.length > 0 &&
     sortedProfiles.every((profile) => selectedUserIds.has(profile.userId));
   const isSomeSelected = sortedProfiles.some((profile) =>
-    selectedUserIds.has(profile.userId)
+    selectedUserIds.has(profile.userId),
   );
 
   const handleRefresh = async () => {
@@ -503,7 +561,7 @@ export function UsersTableRealtime({
     try {
       // Get profile IDs from selected user IDs
       const selectedProfiles = sortedProfiles.filter((profile) =>
-        selectedUserIds.has(profile.userId)
+        selectedUserIds.has(profile.userId),
       );
       const profileIds = selectedProfiles.map((profile) => profile.id);
 
@@ -700,11 +758,11 @@ export function UsersTableRealtime({
                     variant="ghost"
                     size="sm"
                     className="h-auto p-0 font-semibold hover:bg-transparent"
-                    onClick={() => handleSort("usageStatus")}
+                    onClick={() => handleSort("activityStatus")}
                   >
                     <div className="flex items-center gap-1">
-                      Usage Status
-                      {getSortIcon("usageStatus")}
+                      Activity Status
+                      {getSortIcon("activityStatus")}
                     </div>
                   </Button>
                 </TableHead>
@@ -728,7 +786,7 @@ export function UsersTableRealtime({
             <TableBody>
               {paginatedProfiles.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <User className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
@@ -778,7 +836,7 @@ export function UsersTableRealtime({
                           <AvatarFallback className="text-xs">
                             {getInitials(
                               profile.fullName ||
-                                getNameFromEmail(profile.email)
+                                getNameFromEmail(profile.email),
                             )}
                           </AvatarFallback>
                         </Avatar>
@@ -806,7 +864,9 @@ export function UsersTableRealtime({
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(profile)}</TableCell>
-                    <TableCell>{getUsageStatusBadge(profile.userId)}</TableCell>
+                    <TableCell>
+                      {getActivityStatusBadge(profile.userId, activityMap)}
+                    </TableCell>
                     <TableCell>
                       <span className="text-sm">
                         {profile.referralSource || (

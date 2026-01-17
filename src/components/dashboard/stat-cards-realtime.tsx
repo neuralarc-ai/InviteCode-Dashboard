@@ -231,7 +231,7 @@ export function StatCardsRealtime() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+      <div className="w-full grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i} className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -302,7 +302,7 @@ export function StatCardsRealtime() {
   const themeColors = ['primary', 'secondary', 'muted', 'accent', 'primary'];
 
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-4">
+    <div className="w-full grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-4">
       {statCards.map((stat, index) => (
         <Card key={stat.title} className="group bg-background border-primary/20 hover:border-primary/70 glare-effect hover:scale-[1.03] duration-500 transition-all ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

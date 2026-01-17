@@ -126,12 +126,12 @@ function Notifications() {
                 <Skeleton key={i} className="w-full h-20 rounded-lg" />
               ))
             ) : transactions.length === 0 ? (
-              <p>No recent transactions</p>
+              <p>No transactions</p>
             ) : (
               transactions.slice(0, 10).map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex items-center justify-between gap-2 rounded-[12px] h-20 px-4 border bg-card/50 hover:bg-card/80 transition-colors"
+                  className="w-full flex items-center justify-between gap-2 rounded-[12px] h-20 px-4 border bg-card/50 hover:bg-card/80 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex h-10 w-10 aspect-square items-center justify-center rounded-lg border bg-background">
@@ -307,7 +307,7 @@ function Notifications() {
   ];
 
   return (
-    <div>
+    <div className="w-full">
       <Button
         onClick={handleNotificationClick}
         size={"icon"}

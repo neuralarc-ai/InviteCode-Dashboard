@@ -74,14 +74,9 @@ export function AnalyticsDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h2>
-          <p className="text-muted-foreground">
-            Overview of website performance for he2.ai (Last 30 Days)
-          </p>
-        </div>
+        
         <Button onClick={fetchData} disabled={loading} size="sm" variant="outline">
            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
            Refresh

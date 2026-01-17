@@ -748,14 +748,8 @@ The Helium Team 🌟`,
 
   return (
     <>
-      <SidebarProvider>
-        <SharedSidebar />
-        <SidebarInset className="flex flex-col">
-          <PageHeader>
-            <SidebarTrigger className="md:hidden" />
-            <h1 className="text-2xl font-bold">Users</h1>
-          </PageHeader>
-          <main className="flex-1 space-y-6 p-4 md:p-6">
+      
+          <main className="w-full h-full space-y-8">
             {/* User Statistics Cards */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-4 items-center justify-center">
               {userStatCards.map((card) => (
@@ -935,8 +929,6 @@ The Helium Team 🌟`,
               bulkDeleteUserProfiles={bulkDeleteUserProfiles}
             />
           </main>
-        </SidebarInset>
-      </SidebarProvider>
 
       <EmailCustomizationDialog
         open={showCustomizationDialog}
