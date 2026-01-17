@@ -422,7 +422,6 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     abortControllersRef.current.set("fetch-credit-usage", controller);
 
     try {
-      console.log("Fetching recent credit usage...");
       setCreditUsageLoading(true);
 
       // Fetch only last 30 days of data instead of all historical data
@@ -503,7 +502,6 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
     abortControllersRef.current.set("fetch-user-profiles", controller);
 
     try {
-      console.log("Fetching user profiles...");
       setUserProfilesLoading(true);
 
       let profilesData: any[] = [];
@@ -1021,9 +1019,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           },
         });
 
-        console.log(
-          `[Security] Authentication state changed: ${previousAuth} -> ${currentAuth}`
-        );
+       
       }
     }
 
@@ -1096,7 +1092,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
         "postgres_changes",
         { event: "*", schema: "public", table: "credit_usage" },
         async (payload) => {
-          console.log("Global credit usage update:", payload);
+          // console.log("Global credit usage update:", payload);
 
           // Check authentication before processing subscription data
           if (!isAuthenticated) {
@@ -1169,7 +1165,7 @@ export const GlobalProvider = ({ children }: { children: ReactNode }) => {
           table: userProfilesTableName || "user_profiles",
         },
         async (payload) => {
-          console.log("Global user profiles update:", payload);
+          // console.log("Global user profiles update:", payload);
 
           // Check authentication before processing subscription data
           if (!isAuthenticated) {

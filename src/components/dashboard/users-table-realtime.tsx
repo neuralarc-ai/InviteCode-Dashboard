@@ -120,13 +120,6 @@ export function UsersTableRealtime({
   const selectedUserIds = externalSelectedUserIds ?? internalSelectedUserIds;
   const setSelectedUserIds = onSelectionChange ?? setInternalSelectedUserIds;
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log("UsersTableRealtime - userProfiles:", userProfiles);
-    console.log("UsersTableRealtime - loading:", loading);
-    console.log("UsersTableRealtime - error:", error);
-  }, [userProfiles, loading, error]);
-
   // Reset to first page when user type filter changes
   React.useEffect(() => {
     setPage(0);
@@ -645,16 +638,6 @@ export function UsersTableRealtime({
             <Button onClick={handleRefresh} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
-            </Button>
-            <Button
-              onClick={() => {
-                console.log("Current state:", { userProfiles, loading, error });
-                console.log("Filtered profiles:", filteredProfiles);
-              }}
-              variant="outline"
-              size="sm"
-            >
-              Debug
             </Button>
           </div>
         </div>

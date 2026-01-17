@@ -13,7 +13,6 @@ export function useCreditBalances() {
 
   const fetchCreditBalances = async () => {
     try {
-      console.log('Fetching credit balances...');
       
       const response = await fetch('/api/credit-balances', {
         method: 'GET',

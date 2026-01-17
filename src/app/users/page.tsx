@@ -225,8 +225,7 @@ The Helium Team 🌟`,
 
         const result = await response.json();
 
-        console.log("result", result);
-
+        
         if (isMounted) {
           const map: Record<
             string,
@@ -241,6 +240,7 @@ The Helium Team 🌟`,
                 : null,
             };
           });
+          
 
           setUsageActivityMap(map);
         }

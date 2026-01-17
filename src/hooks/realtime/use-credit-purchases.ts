@@ -35,7 +35,6 @@ export function useCreditPurchases() {
 
   const fetchCreditPurchases = async () => {
     try {
-      console.log('Fetching credit purchases...');
       
       const response = await fetch('/api/credit-purchases', { method: 'GET' });
       const payload = await response.json();
@@ -170,7 +169,7 @@ export function useCreditPurchases() {
           { event: '*', schema: 'public', table: tableName },
           async (payload) => {
             try {
-              console.log('Real-time credit purchases update (Delta):', payload);
+              // console.log('Real-time credit purchases update (Delta):', payload);
               if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
                   const row = payload.new;
                   // Basic transform without metadata fetch for speed
@@ -214,7 +213,7 @@ export function useCreditPurchases() {
         )
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log(`✅ Subscribed to ${tableName} realtime changes`);
+            // console.log(`✅ Subscribed to ${tableName} realtime changes`);
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             // Only log once to prevent spam
             if (!hasLoggedWarning) {

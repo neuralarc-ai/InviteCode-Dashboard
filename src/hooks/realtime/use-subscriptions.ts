@@ -34,7 +34,6 @@ export function useSubscriptions() {
 
   const fetchSubscriptions = async () => {
     try {
-      console.log("Fetching subscriptions...");
 
       const response = await fetch("/api/subscriptions", { method: "GET" });
       const payload = await response.json();
@@ -94,7 +93,7 @@ export function useSubscriptions() {
         { event: "*", schema: "basejump", table: "billing_subscriptions" },
         async (payload) => {
           try {
-            console.log("Real-time subscriptions update (Delta):", payload);
+            // console.log("Real-time subscriptions update (Delta):", payload);
             if (
               payload.eventType === "INSERT" ||
               payload.eventType === "UPDATE"
@@ -136,7 +135,6 @@ export function useSubscriptions() {
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log("✅ Subscribed to subscriptions realtime changes");
         } else if (
           status === "CHANNEL_ERROR" ||
           status === "TIMED_OUT" ||

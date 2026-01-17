@@ -68,7 +68,6 @@ export function useCreditUsage() {
 
   const fetchCreditUsage = async () => {
     try {
-      console.log('Fetching credit usage...');
       
       let allData: any[] = [];
       let page = 0;
@@ -215,7 +214,7 @@ export function useCreditUsage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'credit_usage' },
         async (payload) => {
-             console.log('Real-time credit usage update (Delta):', payload);
+            //  console.log('Real-time credit usage update (Delta):', payload);
              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
                   // For simple logic, assume we might miss user email/name on immediate insert 
                   // or we can fetch it single-item style.

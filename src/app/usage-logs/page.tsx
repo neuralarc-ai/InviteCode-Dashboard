@@ -224,11 +224,7 @@ export default function UsageLogsPage() {
 
     const fetchAndLogUserData = async () => {
       try {
-        console.log(
-          "[fetch-user-from-logs] Requesting user data for",
-          userIds.length,
-          "users"
-        );
+       
         const response = await fetch("/api/fetch-user-from-logs", {
           method: "POST",
           headers: {
@@ -248,7 +244,6 @@ export default function UsageLogsPage() {
           return;
         }
 
-        console.log("[fetch-user-from-logs] Response payload:", payload);
       } catch (err) {
         console.error("[fetch-user-from-logs] Unexpected error", err);
         hasLoggedUserDataRef.current = false;
@@ -643,9 +638,7 @@ The AI Team`);
       // Check for new users
       if (totalCount > previousUserCount && previousUserCount > 0) {
         setNewUsersDetected(true);
-        console.log(
-          `🆕 Frontend: New users detected! Total users: ${totalCount}, Previous: ${previousUserCount}`
-        );
+       
 
         // Clear the new users indicator after 5 seconds
         setTimeout(() => {
