@@ -18,6 +18,7 @@ import { useGlobal } from "@/contexts/global-context";
 import { formatCurrency, generateAvatar, getTimeAgo } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
 import { useAuth } from "./auth-provider";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 function Notifications() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -183,7 +184,7 @@ function Notifications() {
                       <Avatar className="h-20 w-20">
                         <AvatarImage
                           src={`data:image/svg+xml;utf8,${encodeURIComponent(
-                            generateAvatar(user.userId)
+                            generateAvatar(user.userId),
                           )}`}
                           alt={user.fullName}
                         />
@@ -307,18 +308,25 @@ function Notifications() {
   ];
 
   return (
-    <div className="w-full">
-      <Button
-        onClick={handleNotificationClick}
-        size={"icon"}
-        variant={"outline"}
-        className="relative"
-      >
-        {hasNotifications && (
-          <div className="absolute -top-1 -right-1 aspect-square w-3 rounded-full bg-red-500 border-2 border-background" />
-        )}
-        <Bell />
-      </Button>
+    <div className="">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            onClick={handleNotificationClick}
+            size={"icon"}
+            variant={"outline"}
+            className="relative"
+          >
+            {hasNotifications && (
+              <div className="absolute -top-1 -right-1 aspect-square w-3 rounded-full bg-red-500 border-2 border-background" />
+            )}
+            <Bell />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          View Notifications
+        </TooltipContent>
+      </Tooltip>
       <CustomDialog
         hideOptions
         open={showNotifications}

@@ -453,3 +453,24 @@ export interface DashboardStats {
   activeCodes: number;
   emailsSent: number;
 }
+
+// Stripe types
+export type StripeCharge = {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  description: string | null;
+  customer: string | null;
+  customerEmail: string | null;
+  created: number;
+  paymentMethodDetails?: {
+    card?: {
+      brand: string;
+      last4: string;
+    };
+  };
+  receiptUrl: string | null;
+  refunded: boolean;
+  amountRefunded: number;
+};

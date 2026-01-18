@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useGlobal } from "@/contexts/global-context";
 import { logSecurityEvent } from "@/lib/security-logger";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -81,7 +82,7 @@ export function LogoutButton() {
 
       // 2. Cleanup subscriptions
       console.log(
-        "[Security] Background: Cleaning up realtime subscriptions..."
+        "[Security] Background: Cleaning up realtime subscriptions...",
       );
       try {
         await cleanupRealtimeSubscriptions();
@@ -142,7 +143,7 @@ export function LogoutButton() {
 
       console.log(
         "[Security] Background cleanup completed at",
-        endTime.toISOString()
+        endTime.toISOString(),
       );
     } catch (error) {
       console.error("[Security] Background cleanup error:", error);
@@ -158,13 +159,20 @@ export function LogoutButton() {
   };
 
   return (
-    <Button
-      variant="outline"
-      size="icon"
-      onClick={handleLogout}
-      className="flex items-center gap-2 border-neon-orange text-neon-orange hover:bg-neon-orange hover:text-destructive hover:bg-destructive/10 hover:border-destructive"
-    >
-      <LogOut className="h-4 w-4" />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleLogout}
+          className="flex items-center gap-2 bg-destructive/10 border-destructive/30 hover:bg-destructive/20 hover:border-destructive/50 hover:text-destructive border text-destructive"
+        >
+          <LogOut />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        Logout
+      </TooltipContent>
+    </Tooltip>
   );
 }

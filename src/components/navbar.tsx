@@ -8,18 +8,22 @@ import {
   CreditCard,
   LayoutDashboard,
   LayoutGrid,
+  Receipt,
   TrendingUp,
   UserCheck,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "./auth-provider";
+import Notifications from "./notifications-component";
 
 function Navbar() {
+  const { isAuthenticated, isLoading } = useAuth();
   const [show, setShow] = useState<boolean>(false);
   const router = useRouter();
   const pathname = usePathname();
 
-  const sidebarItems = [
+  const navItems = [
     {
       label: "Dashboard",
       href: "/",
@@ -56,6 +60,13 @@ function Navbar() {
       enabled: true,
     },
     {
+      label: "Stripe Transaction",
+      href: "/stripe-transaction",
+      icon: Receipt,
+      tooltip: "Stripe Transaction",
+      enabled: true,
+    },
+    {
       label: "Analytics",
       href: "/analytics",
       icon: BarChart,
@@ -68,6 +79,9 @@ function Navbar() {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   };
+
+  const shouldShowNotifications =
+    isAuthenticated && !isLoading && pathname !== "/login";
 
   return (
     <div className="w-full flex items-center justify-between p-4">
@@ -84,7 +98,7 @@ function Navbar() {
           </div>
 
           {show &&
-            sidebarItems
+            navItems
               .filter((item) => item.enabled)
               .map((item) => {
                 const active = isActive(item.href);
@@ -116,8 +130,10 @@ function Navbar() {
               })}
         </div>
       </div>
-
-      <LogoutButton />
+      <div className="flex  items-center gap-4">
+        {shouldShowNotifications && <Notifications />}
+        <LogoutButton />
+      </div>
     </div>
   );
 }
