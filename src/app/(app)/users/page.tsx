@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useEffect } from "react";
+import * as React from "react";
 import {
   Mail,
   Loader2,
@@ -27,7 +28,6 @@ import {
   Download,
   Activity,
   UserX,
-  Clock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { UserProfile } from "@/lib/types";
@@ -35,6 +35,29 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGlobal } from "@/contexts/global-context";
 import { getUserType } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import type { CreditUsage } from "@/lib/types";
+
+// Same activity calculation function as in users-table-realtime.tsx
+function calculateActivityStatusMap(
+  rawUsage: CreditUsage[],
+  activityWindowDays: number = 5,
+): Map<string, boolean> {
+  const now = new Date();
+  const cutoffDate = new Date(
+    now.getTime() - activityWindowDays * 24 * 60 * 60 * 1000,
+  );
+
+  const activityMap = new Map<string, boolean>();
+
+  // Single pass through rawUsage array
+  for (const usage of rawUsage) {
+    if (usage.createdAt >= cutoffDate) {
+      activityMap.set(usage.userId, true);
+    }
+  }
+
+  return activityMap;
+}
 
 export default function UsersPage() {
   const {
@@ -44,6 +67,7 @@ export default function UsersPage() {
     refreshUserProfiles,
     deleteUserProfile,
     bulkDeleteUserProfiles,
+    rawUsage, // Add rawUsage from global context
   } = useGlobal();
   const [showCustomizationDialog, setShowCustomizationDialog] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
@@ -83,44 +107,21 @@ export default function UsersPage() {
     }
   }, [selectedUserIds.size, userTypeFilter]);
 
-  const handleOpenEmailForGroup = (
-    group: "active" | "partial" | "inactive",
-  ) => {
-    // 1. Identify users
+  const handleOpenEmailForGroup = (group: "active" | "inactive") => {
+    // 1. Identify users using the same logic as the table component
     const filteredProfiles = userProfiles.filter((profile) => {
       const profileUserType = getUserType(profile.email);
       return profileUserType === userTypeFilter;
     });
 
-    const now = new Date();
-    const activeThreshold = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days
-    const partialThreshold = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000); // 60 days
-
     const targetUserIds = new Set<string>();
 
     filteredProfiles.forEach((user) => {
-      const activity = usageActivityMap[user.userId];
-      const lastActive = activity?.latestActivity
-        ? new Date(activity.latestActivity)
-        : null;
+      const isActive = activityMap.get(user.userId) ?? false;
 
-      const isInactive =
-        !activity ||
-        activity.usageCount === 0 ||
-        (lastActive && lastActive <= partialThreshold);
-      const isPartial =
-        !isInactive &&
-        lastActive &&
-        lastActive <= activeThreshold &&
-        lastActive > partialThreshold;
-      const isActive =
-        !isInactive && !isPartial && lastActive && lastActive > activeThreshold;
-
-      if (group === "inactive" && isInactive) {
+      if (group === "active" && isActive) {
         targetUserIds.add(user.userId);
-      } else if (group === "partial" && isPartial) {
-        targetUserIds.add(user.userId);
-      } else if (group === "active" && isActive) {
+      } else if (group === "inactive" && !isActive) {
         targetUserIds.add(user.userId);
       }
     });
@@ -141,31 +142,6 @@ export default function UsersPage() {
     if (group === "active") {
       setShowWelcomeDialog(true);
       return;
-    } else if (group === "partial") {
-      setEmailDialogOverride({
-        section: "activity",
-        subject: "We miss you! Come back to Helium",
-        textContent: `Hi there! 👋
-
-We've been thinking about you and noticed you haven't been as active on Helium recently. We completely understand that life gets busy, but we wanted to reach out because we genuinely miss having you as part of our community!
-
-We think you might love exploring some of the exciting new features we've added since you last visited.
-
-Here's what's new that might interest you:
-✨ Enhanced AI capabilities with better responses
-🎨 New creative tools for your projects
-📊 Improved analytics to track your progress
-🤝 A more vibrant community of creators
-
-We believe in your potential and would love to see you back in action.
-
-Remember, every great journey has its pauses - and that's perfectly okay! When you're ready to continue, we'll be here with open arms and exciting new possibilities.
-
-Take care, and we hope to see you back soon! 🌟
-
-With warm regards,
-The Helium Team 💙`,
-      });
     } else {
       setEmailDialogOverride({
         section: "activity",
@@ -189,7 +165,7 @@ Whether you return tomorrow, next month, or next year, know that you'll always h
 Take all the time you need. We're here when you are. 💙
 
 With understanding and care,
-The Helium Team 🌟`,
+The Helium Team �`,
       });
     }
 
@@ -679,38 +655,27 @@ The Helium Team 🌟`,
     }
   };
 
-  // Calculate user stats
-  const userStats = {
-    active: 0,
-    inactive: 0,
-    partial: 0,
-  };
+  // Calculate user stats using the same logic as the table component
+  const activityMap = React.useMemo(() => {
+    return calculateActivityStatusMap(rawUsage || []);
+  }, [rawUsage]);
 
   const filteredProfilesForStats = userProfiles.filter((profile) => {
     const profileUserType = getUserType(profile.email);
     return profileUserType === userTypeFilter;
   });
 
-  const now = new Date();
-  const activeThreshold = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000); // 30 days
-  const partialThreshold = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000); // 60 days
+  const userStats = {
+    active: 0,
+    inactive: 0,
+  };
 
   filteredProfilesForStats.forEach((user) => {
-    const activity = usageActivityMap[user.userId];
-    const lastActive = activity?.latestActivity
-      ? new Date(activity.latestActivity)
-      : null;
-
-    if (
-      !activity ||
-      activity.usageCount === 0 ||
-      (lastActive && lastActive <= partialThreshold)
-    ) {
-      userStats.inactive++;
-    } else if (lastActive && lastActive > activeThreshold) {
+    const isActive = activityMap.get(user.userId) ?? false;
+    if (isActive) {
       userStats.active++;
     } else {
-      userStats.partial++;
+      userStats.inactive++;
     }
   });
 
@@ -720,27 +685,17 @@ The Helium Team 🌟`,
       title: "Active Users",
       icon: Activity,
       count: userStats.active,
-      description: "Active in last 30 days",
+      description: "Active in last 5 days",
       buttonText: "Send Email",
       onClick: () => handleOpenEmailForGroup("active"),
       disabled: userStats.active === 0,
-    },
-    {
-      key: "partial",
-      title: "Partially Active",
-      icon: Clock,
-      count: userStats.partial,
-      description: "Inactive for 30-60 days",
-      buttonText: "Send Email",
-      onClick: () => handleOpenEmailForGroup("partial"),
-      disabled: userStats.partial === 0,
     },
     {
       key: "inactive",
       title: "Inactive Users",
       icon: UserX,
       count: userStats.inactive,
-      description: "No recent activity (> 60 days)",
+      description: "No activity in last 5 days",
       buttonText: "Send Email",
       onClick: () => handleOpenEmailForGroup("inactive"),
       disabled: userStats.inactive === 0,
@@ -751,59 +706,53 @@ The Helium Team 🌟`,
     <>
       <main className="w-full h-full space-y-8">
         {/* User Statistics Cards */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4 items-center justify-center">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 items-center justify-center">
           {userStatCards.map((card) => (
             <div
               key={card.title}
               className={`group relative  overflow-hidden rounded-xl  border bg-card p-5 transition-all hover:shadow-md hover:border-primary/40${card.disabled ? "opacity-60" : ""} `}
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {card.title}
-                  </p>
-                  <p className="text-3xl font-bold tracking-tight">
-                    {card.count}
-                  </p>
-                  <p className="text-xs text-muted-foreground/90">
-                    {card.description}
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`rounded-lg bg-primary/10 p-3 text-primary transition-colors group-hover:bg-primary/20`}
+                  >
+                    <card.icon className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {card.title}
+                    </p>
+                    <p className="text-3xl font-bold tracking-tight">
+                      {card.count}
+                    </p>
+                    <p className="text-xs text-muted-foreground/90">
+                      {card.description}
+                    </p>
+                  </div>
                 </div>
-
-                <div
-                  className={`
-        rounded-lg bg-primary/10 p-3 text-primary transition-colors
-        group-hover:bg-primary/20
-      `}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className={`mt-4 w-fit justify-center gap-2 text-xs font-medium ${card.disabled ? "" : "hover:bg-primary/10 hover:text-primary"}`}
+                  onClick={card.onClick}
+                  disabled={card.disabled}
                 >
-                  <card.icon className="h-6 w-6" />
-                </div>
+                  <Mail className="h-3.5 w-3.5" />
+                  {card.buttonText}
+                </Button>
               </div>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                className={`
-        mt-4 w-full justify-center gap-2 text-xs font-medium
-        ${card.disabled ? "" : "hover:bg-primary/10 hover:text-primary"}
-      `}
-                onClick={card.onClick}
-                disabled={card.disabled}
-              >
-                <Mail className="h-3.5 w-3.5" />
-                {card.buttonText}
-              </Button>
             </div>
           ))}
         </div>
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-2 items-start md:items-center justify-between">
           <h2 className="text-xl font-semibold">User Profiles</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 md:w-fit w-full gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 md:w-fit w-full gap-4 ">
             <Button
               onClick={() => setCreateUserDialogOpen(true)}
               variant="default"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 col-span-2 md:col-span-1"
             >
               <UserPlus className="h-4 w-4" />
               Create User
@@ -832,7 +781,7 @@ The Helium Team 🌟`,
           </div>
         </div>
 
-        <div className="w-full flex items-center justify-between">
+        <div className="w-full flex flex-col gap-2 items-center justify-between">
           {/* User Type Toggle */}
           <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-full md:w-fit">
             <Button

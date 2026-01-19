@@ -382,7 +382,7 @@ export function CreditBalanceTable() {
 
         {/* Pagination – now based on double-filtered list */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex flex-col md:flex-start gap-2 items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
               Showing {page * rowsPerPage + 1} to{" "}
               {Math.min((page + 1) * rowsPerPage, filteredBalances.length)} of{" "}

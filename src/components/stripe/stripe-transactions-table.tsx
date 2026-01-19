@@ -155,7 +155,7 @@ export function StripeTransactionsTable() {
         </div>
 
         {/* Environment Toggle and Controls */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="flex flex-col md:flex-row gap-4">
           <div className="flex items-center gap-2">
             <span
               className={`text-sm font-medium ${environment === "test" ? "text-foreground" : "text-muted-foreground"}`}
@@ -178,9 +178,10 @@ export function StripeTransactionsTable() {
           <div className="flex items-center gap-2">
             <Select
               value={sortField}
+            
               onValueChange={(value) => setSortField(value as SortField)}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[280px]">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
@@ -206,18 +207,17 @@ export function StripeTransactionsTable() {
                 <ArrowDown className="h-4 w-4" />
               )}
             </Button>
-          </div>
-
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={refresh}
             disabled={loading}
             className="flex items-center gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
           </Button>
+          </div>
+
         </div>
       </div>
 
@@ -299,7 +299,7 @@ export function StripeTransactionsTable() {
               </div>
 
               {/* Column 3 – Status + Amount */}
-              <div className="flex flex-wrap sm:flex-nowrap items-center justify-center md:justify-evenly gap-3 sm:gap-4">
+              <div className="flex flex-wrap sm:flex-nowrap items-center justify-between md:justify-evenly gap-3 sm:gap-4">
                 {getStatusBadge(charge)}
                 <div className="font-bold text-xl whitespace-nowrap">
                   {formatStripeAmount(charge.amount)}

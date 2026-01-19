@@ -68,7 +68,7 @@ export function TopActiveUsers() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2  md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {topUsers.map((user, index) => (
             <div
               key={user.userId}

@@ -4,6 +4,7 @@ import ".././globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
 import LayoutWrapper from "@/components/layout-wrapper";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "CEO Insights",

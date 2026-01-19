@@ -5,7 +5,7 @@ import Image from "next/image";
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <div className={cn("flex pb-4 px-6 mt-2", className)}>
+    <div className={cn("flex pb-4 px-2 mt-2", className)}>
       <Image
         src="/images/logo1.svg"
         alt="Helium Logo"

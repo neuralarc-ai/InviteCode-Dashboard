@@ -98,14 +98,14 @@ export function RecentTransactions() {
         </div>
 
         {/* Transaction Type Filter */}
-        <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-fit">
+        <div className="grid grid-cols-2 md:grid-cols-4 w-full gap-2 p-1 bg-muted rounded-lg w-fit">
           {transactionFilters.map(({ label, value, icon: Icon }) => (
             <Button
               key={value}
               variant={transactionTypeFilter === value ? "default" : "ghost"}
               size="sm"
               onClick={() => handleTransactionTypeFilter(value)}
-              className={`flex items-center gap-2 ${transactionTypeFilter === value ? "hover:bg-primary/80":""}`}
+              className={`flex items-center gap-2  ${transactionTypeFilter === value ? "hover:bg-primary/80":""}`}
             >
               <Icon className="h-4 w-4" />
               {label}
