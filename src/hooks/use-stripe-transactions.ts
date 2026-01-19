@@ -26,11 +26,13 @@ interface UseStripeTransactionsReturn {
 
 export function useStripeTransactions(
   limit: number = 100, // Fetch more data upfront for frontend pagination
+  initialEnvironment: Environment = "test", // Allow setting initial environment
 ): UseStripeTransactionsReturn {
   const [charges, setCharges] = useState<StripeCharge[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [environment, setEnvironment] = useState<Environment>("test");
+  const [environment, setEnvironment] =
+    useState<Environment>(initialEnvironment);
   const [sortField, setSortField] = useState<SortField>("created");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 

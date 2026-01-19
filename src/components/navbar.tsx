@@ -104,22 +104,16 @@ function Navbar() {
   const shouldShowNotifications =
     isAuthenticated && !isLoading && pathname !== "/login";
 
-  // Mobile: Dropdown version
-  // if (isMobile) {
-  //   return (
-      
-  //   );
-  // }
 
   // Desktop: Expanding vertical icon bar (matches FloatingSidebar style)
   return (
     <>
-      <div className="md:hidden w-full sticky top-0 z-50 flex items-center justify-between p-4 backdrop-blur-sm border-b bg-background/80">
-        <div className="flex items-center gap-3">
+      <div className="w-full sticky top-0 z-50 flex items-center justify-between p-4 md:px-4 backdrop-blur-sm border-b md:border-none bg-background/80 md:bg-background/30">
+        <div className="flex items-center gap-3 md:gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="p-2 bg-primary text-background rounded-full flex items-center justify-center transition-colors"
+                className="md:hidden p-2 bg-primary text-background rounded-full flex items-center justify-center transition-colors"
                 aria-label="Menu"
               >
                 <LayoutGrid size={20} />
@@ -139,18 +133,7 @@ function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
           <Logo />
-          <span className="font-semibold text-xl">{getPageName()}</span>
-        </div>
-
-        <div className="flex items-center gap-4">
-          {shouldShowNotifications && <Notifications />}
-          <LogoutButton />
-        </div>
-      </div>
-      <div className="hidden md:flex w-full sticky top-0 z-50  items-center justify-between px-4  backdrop-blur-sm  bg-background/30">
-        <div className="flex items-center gap-4">
-          <Logo />
-          <span className="font-semibold text-lg md:text-xl tracking-tight">
+          <span className="font-semibold text-xl md:text-lg tracking-tight">
             {getPageName()}
           </span>
         </div>
@@ -164,7 +147,7 @@ function Navbar() {
       {/* Floating vertical nav – positioned left or right depending on your preference */}
       <motion.div
         className={cn(
-          " fixed left-3 top-16 z-50 rounded-full p-1.5 bg-background/95 border border-border/40 shadow-lg backdrop-blur-md",
+          " fixed left-3 top-20 z-50 rounded-full p-1.5 bg-background/95 border border-border/40 shadow-lg backdrop-blur-md",
           "hidden md:flex flex-col items-center ",
         )}
         animate={{

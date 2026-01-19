@@ -70,7 +70,6 @@ export default function UsersPage() {
     rawUsage, // Add rawUsage from global context
   } = useGlobal();
   const [showCustomizationDialog, setShowCustomizationDialog] = useState(false);
-  const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [userTypeFilter, setUserTypeFilter] = useState<"internal" | "external">(
     "external",
@@ -91,7 +90,7 @@ export default function UsersPage() {
   >({});
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
   const [emailDialogOverride, setEmailDialogOverride] = useState<{
-    section: "activity";
+    section: "activity" | "uptime";
     subject: string;
     textContent: string;
   } | null>(null);
@@ -140,8 +139,22 @@ export default function UsersPage() {
 
     // 3. Prepare content
     if (group === "active") {
-      setShowWelcomeDialog(true);
-      return;
+      setEmailDialogOverride({
+        section: "uptime",
+        subject: "Helium is running smoothly",
+        textContent: `Hello,
+
+We wanted to reach out and let you know that Helium is running smoothly and all systems are operational.
+
+We appreciate your continued engagement with the platform. Your activity helps us build a better product for everyone.
+
+If you have any feedback or suggestions, we'd love to hear from you. Simply reply to this email or reach out to our support team.
+
+Thank you for being an active member of the Helium community!
+
+Best regards,
+The Helium Team`,
+      });
     } else {
       setEmailDialogOverride({
         section: "activity",
@@ -165,7 +178,7 @@ Whether you return tomorrow, next month, or next year, know that you'll always h
 Take all the time you need. We're here when you are. 💙
 
 With understanding and care,
-The Helium Team �`,
+The Helium Team ✨`,
       });
     }
 
@@ -925,22 +938,15 @@ The Helium Team �`,
           setShowCustomizationDialog(open);
           if (!open) {
             setEmailDialogOverride(null); // Clear override when dialog closes
+            setSelectedUserIds(new Set()); // Clear user selections when dialog closes
           }
         }}
         onSendEmail={handleSendEmail}
         onSendToIndividual={handleSendToIndividual}
         isSending={isSending}
         selectedCount={selectedUserIds.size}
-        initialTab={emailDialogOverride ? "activity" : "uptime"}
+        initialTab={emailDialogOverride?.section || "uptime"}
         overrideContent={emailDialogOverride}
-      />
-
-      <WelcomeEmailDialog
-        open={showWelcomeDialog}
-        onOpenChange={setShowWelcomeDialog}
-        onSendEmail={handleSendEmail}
-        isSending={isSending}
-        selectedCount={selectedUserIds.size}
       />
 
       {/* Credit Assignment Dialog */}

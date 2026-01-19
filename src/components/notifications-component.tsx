@@ -46,11 +46,7 @@ function Notifications() {
     clearTabNotification,
   } = useGlobal();
   const { creditBalances } = useCreditBalances();
-  const {
-    transactions,
-    isLoading: txnLoading,
-    userMap,
-  } = useRecentTransactions(5); // Get 5 most recent
+  const { transactions, isLoading: txnLoading } = useRecentTransactions(5); // Get 5 most recent
   const { recentUsers, isLoading: userLoading } = useRecentOnboardedUsers(7, 5);
   const { recentUsage, isLoading: usageLoading } = useRecentCreditUsage(5);
   const {
@@ -58,7 +54,7 @@ function Notifications() {
     loading: stripeLoading,
     error: stripeError,
     refresh: refreshStripe,
-  } = useStripeTransactions(5); // Fetch only 5 for notifications
+  } = useStripeTransactions(5, "production"); // Fetch only 5 for notifications, production mode only
 
   // Get refresh functions from global context
   const { refreshCreditPurchases } = useCreditPurchases();
@@ -416,30 +412,26 @@ function Notifications() {
     {
       label: "Users",
       key: "users",
-      header: "Recent Transactions",
-      loading: txnLoading,
-      url: "/transactions",
+      header: "New Users",
+      loading: userLoading,
     },
     {
       label: "Credit Usage",
       key: "credits",
-      header: "New Users",
-      loading: userLoading,
-      url: "/users",
+      header: "Credits Usage",
+      loading: usageLoading,
     },
     {
       label: "Stripe",
       key: "stripe",
       header: "Stripe Transactions",
-      loading: usageLoading,
-      url: "/stripe-transactions",
+      loading: stripeLoading,
     },
     {
       label: "Transactions",
       key: "transactions",
-      header: "Credits Usage",
-      loading: usageLoading,
-      url: "/credits",
+      header: "Recent Transactions",
+      loading: txnLoading,
     },
   ];
 
