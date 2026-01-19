@@ -1,5 +1,6 @@
 'use client';
 
+import { useGlobal } from "@/contexts/global-context";
 import { useUsageLogs } from '@/hooks/use-realtime-data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -34,8 +35,8 @@ export function TopActiveUsers() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {Array.from({ length: 5 }).map((_, i) => (
+          <div className="grid grid-cols-2  lg:grid-cols-5 gap-4">
+    4 xl:grid-cols-5      {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex flex-col items-center space-y-4 p-4 border rounded-lg">
                 <Skeleton className="h-12 w-12 rounded-full" />
                 <div className="space-y-2 text-center w-full">
@@ -54,7 +55,7 @@ export function TopActiveUsers() {
   const topUsers = usageLogs.slice(0, 10);
 
   return (
-    <Card className="w-full">
+    <Card className="w-full ">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
         <div className="space-y-1">
           <CardTitle className="text-xl font-bold flex items-center gap-2">
@@ -65,35 +66,44 @@ export function TopActiveUsers() {
             Most engaged users based on activity and credit usage
           </p>
         </div>
-       
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2  md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {topUsers.map((user, index) => (
-            <div 
-              key={user.userId} 
-              className="relative flex flex-col items-center p-6 bg-card border rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            <div
+              key={user.userId}
+              className="relative flex hover:shadow-[0_0_30px_rgba(112,185,215,0.1)] hover:scale-[1.01] transition-all duration-300 ease-out flex-col items-center p-6 bg-card border rounded-lg border-primary/20 hover:border-primary/40"
             >
               {/* Rank Badge */}
-              <div className="absolute top-4 left-4 flex items-center justify-center w-6 h-6 rounded-full bg-white text-black text-xs font-bold border border-border">
+              <div className="absolute top-4 left-4 flex items-center justify-center w-6 h-6 rounded-full bg-primary/70 text-white  text-sm font-bold border border-border">
                 {index + 1}
               </div>
 
               {/* Avatar */}
               <Avatar className="h-20 w-20 mb-4 ">
-                <AvatarImage 
-                  src={`data:image/svg+xml;utf8,${encodeURIComponent(createAvatar(adventurer, { seed: user.userId }).toString())}`} 
-                  alt={user.userName} 
+                <AvatarImage
+                  src={`data:image/svg+xml;utf8,${encodeURIComponent(
+                    createAvatar(adventurer, { seed: user.userId }).toString()
+                  )}`}
+                  alt={user.userName}
                 />
-                <AvatarFallback>{user.userName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarFallback>
+                  {user.userName.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
 
               {/* User Info */}
               <div className="text-center w-full mb-6">
-                <h3 className="font-semibold text-sm truncate w-full" title={user.userName}>
+                <h3
+                  className="font-semibold text-sm truncate w-full"
+                  title={user.userName}
+                >
                   {user.userName}
                 </h3>
-                <p className="text-xs text-muted-foreground truncate w-full" title={user.userEmail}>
+                <p
+                  className="text-xs text-muted-foreground truncate w-full"
+                  title={user.userEmail}
+                >
                   {user.userEmail}
                 </p>
               </div>
@@ -117,13 +127,17 @@ export function TopActiveUsers() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Active Status Indicator */}
-              <div className={`mt-4 h-1 w-12 rounded-full ${
-                user.activityLevel === 'high' ? 'bg-green-500' :
-                user.activityLevel === 'medium' ? 'bg-yellow-500' :
-                'bg-muted'
-              }`} />
+              <div
+                className={`mt-4 h-1 w-12 rounded-full ${
+                  user.activityLevel === "high"
+                    ? "bg-green-500"
+                    : user.activityLevel === "medium"
+                    ? "bg-yellow-500"
+                    : "bg-muted"
+                }`}
+              />
             </div>
           ))}
         </div>

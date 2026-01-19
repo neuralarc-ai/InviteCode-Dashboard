@@ -21,12 +21,12 @@ import { Mail, Loader2, Users, Building2, UserPlus, CreditCard, Download, Activi
 import { useToast } from '@/hooks/use-toast';
 import type { UserProfile } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useUserProfiles } from '@/hooks/use-realtime-data';
+import { useGlobal } from "@/contexts/global-context";
 import { getUserType } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
 export default function UsersPage() {
-  const { userProfiles, loading, error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles } = useUserProfiles();
+  const { userProfiles, userProfilesLoading: loading, userProfilesError: error, refreshUserProfiles, deleteUserProfile, bulkDeleteUserProfiles } = useGlobal();
   const [showCustomizationDialog, setShowCustomizationDialog] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -644,6 +644,39 @@ The Helium Team 🌟`
     }
   });
 
+  const userStatCards = [
+  {
+    key: 'active',
+    title: 'Active Users',
+    icon: Activity,
+    count: userStats.active,
+    description: 'Active in last 30 days',
+    buttonText: 'Send Email',
+    onClick: () => handleOpenEmailForGroup('active'),
+    disabled: userStats.active === 0
+  },
+  {
+    key: 'partial',
+    title: 'Partially Active',
+    icon: Clock,
+    count: userStats.partial,
+    description: 'Inactive for 30-60 days',
+    buttonText: 'Send Email',
+    onClick: () => handleOpenEmailForGroup('partial'),
+    disabled: userStats.partial === 0
+  },
+  {
+    key: 'inactive',
+    title: 'Inactive Users',
+    icon: UserX,
+    count: userStats.inactive,
+    description: 'No recent activity (> 60 days)',
+    buttonText: 'Send Email',
+    onClick: () => handleOpenEmailForGroup('inactive'),
+    disabled: userStats.inactive === 0
+  }
+];
+
   return (
     <>
       <SidebarProvider>
@@ -654,87 +687,43 @@ The Helium Team 🌟`
             <h1 className="text-2xl font-bold">Users</h1>
           </PageHeader>
           <main className="flex-1 space-y-6 p-4 md:p-6">
-            
             {/* User Statistics Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Active Users
-                  </CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{userStats.active}</div>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Active in last 30 days
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full h-8 text-xs"
-                    onClick={() => handleOpenEmailForGroup('active')}
-                    disabled={userStats.active === 0}
-                  >
-                    <Mail className="h-3 w-3 mr-2" />
-                    Send Email
-                  </Button>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Partially Active
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{userStats.partial}</div>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Inactive for 30-60 days
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full h-8 text-xs"
-                    onClick={() => handleOpenEmailForGroup('partial')}
-                    disabled={userStats.partial === 0}
-                  >
-                    <Mail className="h-3 w-3 mr-2" />
-                    Send Email
-                  </Button>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Inactive Users
-                  </CardTitle>
-                  <UserX className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{userStats.inactive}</div>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    No recent activity (&gt; 60 days)
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full h-8 text-xs"
-                    onClick={() => handleOpenEmailForGroup('inactive')}
-                    disabled={userStats.inactive === 0}
-                  >
-                    <Mail className="h-3 w-3 mr-2" />
-                    Send Email
-                  </Button>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {userStatCards.map((card) => (
+                <Card
+                  key={card.key}
+                  className="border-primary/20 hover:border-primary/50 duration-300 ease-in-out transition-all"
+                >
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-sm font-medium">
+                      {card.title}
+                    </CardTitle>
+                    <card.icon className="w-5 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{card.count}</div>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      {card.description}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-8 text-xs"
+                      onClick={card.onClick}
+                      disabled={card.disabled}
+                    >
+                      <Mail className="h-3 w-3 mr-2" />
+                      {card.buttonText}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
               <h2 className="text-xl font-semibold">User Profiles</h2>
-              <div className="flex items-center gap-2">
-                <Button 
+              <div className="grid grid-cols-2 md:grid-cols-3 md:w-fit w-full gap-2">
+                <Button
                   onClick={() => setCreateUserDialogOpen(true)}
                   variant="default"
                   className="flex items-center gap-2"
@@ -742,17 +731,10 @@ The Helium Team 🌟`
                   <UserPlus className="h-4 w-4" />
                   Create User
                 </Button>
-                <Button 
-                  onClick={handleDownloadCsv}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download CSV
-                </Button>
-                <Button 
+                <Button
                   onClick={() => setShowCustomizationDialog(true)}
                   disabled={isSending}
+                  variant={"secondary"}
                   className="flex items-center gap-2"
                 >
                   {isSending ? (
@@ -760,27 +742,39 @@ The Helium Team 🌟`
                   ) : (
                     <Mail className="h-4 w-4" />
                   )}
-                  {isSending ? "Sending..." : "Send EMAIL"}
+                  {isSending ? "Sending..." : "Send Email"}
+                </Button>
+                <Button
+                  onClick={handleDownloadCsv}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download CSV
                 </Button>
               </div>
             </div>
 
             {/* User Type Toggle */}
-            <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-fit">
+            <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-full md:w-fit">
               <Button
-                variant={userTypeFilter === 'external' ? 'default' : 'ghost'}
+                variant={userTypeFilter === "external" ? "default" : "ghost"}
                 size="sm"
-                onClick={() => setUserTypeFilter('external')}
-                className="flex items-center gap-2"
+                onClick={() => setUserTypeFilter("external")}
+                className={`flex items-center gap-2 w-full ${
+                  userTypeFilter === "external" ? "hover:bg-primary" : ""
+                }`}
               >
                 <Users className="h-4 w-4" />
                 External Users
               </Button>
               <Button
-                variant={userTypeFilter === 'internal' ? 'default' : 'ghost'}
+                variant={userTypeFilter === "internal" ? "default" : "ghost"}
                 size="sm"
-                onClick={() => setUserTypeFilter('internal')}
-                className="flex items-center gap-2"
+                onClick={() => setUserTypeFilter("internal")}
+                className={`flex items-center gap-2 w-full ${
+                  userTypeFilter === "internal" ? "hover:bg-primary" : ""
+                }`}
               >
                 <Building2 className="h-4 w-4" />
                 Internal Users
@@ -789,10 +783,11 @@ The Helium Team 🌟`
 
             {/* Bulk Credit Assignment Controls */}
             {selectedUserIds.size > 0 && (
-              <div className="flex items-end gap-3 p-4 bg-muted/50 rounded-lg border">
+              <div className="flex flex-col md:flex-row items-end gap-3 p-4 bg-muted/50 rounded-lg border">
                 <div className="flex-1 space-y-2">
                   <Label htmlFor="bulk-credits" className="text-sm font-medium">
-                    Assign Credits to {selectedUserIds.size} Selected User{selectedUserIds.size !== 1 ? 's' : ''}
+                    Assign Credits to {selectedUserIds.size} Selected User
+                    {selectedUserIds.size !== 1 ? "s" : ""}
                   </Label>
                   <div className="flex items-center gap-2">
                     <Input
@@ -806,19 +801,26 @@ The Helium Team 🌟`
                       disabled={isAssigningCredits}
                       className="max-w-xs"
                     />
-                    {bulkCreditsInput && !isNaN(parseFloat(bulkCreditsInput)) && parseFloat(bulkCreditsInput) > 0 && (
-                      <span className="text-sm text-muted-foreground">
-                        = ${(parseFloat(bulkCreditsInput) / 100).toFixed(2)}
-                      </span>
-                    )}
+                    {bulkCreditsInput &&
+                      !isNaN(parseFloat(bulkCreditsInput)) &&
+                      parseFloat(bulkCreditsInput) > 0 && (
+                        <span className="text-sm text-muted-foreground">
+                          = ${(parseFloat(bulkCreditsInput) / 100).toFixed(2)}
+                        </span>
+                      )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Enter the number of credits to add to all selected users' accounts (100 credits = $1.00)
+                    Enter the number of credits to add to all selected users'
+                    accounts (100 credits = $1.00)
                   </p>
                 </div>
                 <Button
                   onClick={handleBulkAssignCredits}
-                  disabled={isAssigningCredits || !bulkCreditsInput || parseFloat(bulkCreditsInput) <= 0}
+                  disabled={
+                    isAssigningCredits ||
+                    !bulkCreditsInput ||
+                    parseFloat(bulkCreditsInput) <= 0
+                  }
                   className="flex items-center gap-2"
                 >
                   {isAssigningCredits ? (
@@ -836,7 +838,7 @@ The Helium Team 🌟`
               </div>
             )}
 
-            <UsersTableRealtime 
+            <UsersTableRealtime
               userTypeFilter={userTypeFilter}
               selectedUserIds={selectedUserIds}
               onSelectionChange={setSelectedUserIds}
@@ -865,7 +867,7 @@ The Helium Team 🌟`
         onSendToIndividual={handleSendToIndividual}
         isSending={isSending}
         selectedCount={selectedUserIds.size}
-        initialTab={emailDialogOverride ? 'activity' : 'uptime'}
+        initialTab={emailDialogOverride ? "activity" : "uptime"}
         overrideContent={emailDialogOverride}
       />
 

@@ -1,12 +1,15 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
-import { PreviewCodesProvider } from '@/contexts/preview-codes-context';
-import { AuthProvider } from '@/components/auth-provider';
+import type { Metadata } from "next";
+import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import { PreviewCodesProvider } from "@/contexts/preview-codes-context";
+import { AuthProvider } from "@/components/auth-provider";
+import { GlobalProvider } from "@/contexts/global-context";
+import { NotificationProvider } from "@/components/notification-provider";
 
 export const metadata: Metadata = {
-  title: 'CEO Insights',
-  description: 'Dashboard for managing invite codes and waitlist for CEO Insights.',
+  title: "CEO Insights",
+  description:
+    "Dashboard for managing invite codes and waitlist for CEO Insights.",
 };
 
 export default function RootLayout({
@@ -18,8 +21,15 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+          rel="stylesheet"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -48,7 +58,9 @@ export default function RootLayout({
       <body className="font-body antialiased min-h-screen bg-background">
         <AuthProvider>
           <PreviewCodesProvider>
-            {children}
+            <GlobalProvider>
+              <NotificationProvider>{children}</NotificationProvider>
+            </GlobalProvider>
           </PreviewCodesProvider>
         </AuthProvider>
         <Toaster />

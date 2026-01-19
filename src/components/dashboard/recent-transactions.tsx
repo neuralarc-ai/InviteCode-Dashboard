@@ -1,206 +1,194 @@
-"use client"
+"use client";
 
-import { useCreditPurchases, useSubscriptions, useUserProfiles } from '@/hooks/use-realtime-data';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { CreditCard, RefreshCw, ArrowUpCircle, ExternalLink } from 'lucide-react';
-import { useMemo } from 'react';
-import Link from 'next/link';
+import {
+  useCreditPurchases,
+  useSubscriptions,
+  useUserProfiles,
+} from "@/hooks/use-realtime-data";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  CreditCard,
+  RefreshCw,
+  ArrowUpCircle,
+  ExternalLink,
+  BadgeCheck,
+} from "lucide-react";
+import { useMemo } from "react";
+import Link from "next/link";
+import { useRecentTransactions } from "@/hooks/use-recent-transactions";
+import { formatCurrency, getTimeAgo } from "@/lib/utils";
+import { Skeleton } from "../ui/skeleton";
 
 interface TransactionItem {
   id: string;
   userId: string;
-  userName: string;
-  userEmail: string;
-  type: 'Credit Purchase' | 'Subscription' | 'Renewal' | 'Upgrade';
+  userName: string | undefined;
+  userEmail: string | undefined;
+  type: "Credit Purchase" | "Subscription" | "Renewal" | "Upgrade";
   description: string;
   amount: number;
   status: string;
   date: Date;
-  source: 'credit_purchase' | 'subscription';
+  source: "credit_purchase" | "subscription";
 }
 
 export function RecentTransactions() {
-  const { creditPurchases, loading: loadingPurchases } = useCreditPurchases();
-  const { subscriptions, loading: loadingSubs } = useSubscriptions();
-  const { userProfiles, loading: loadingProfiles } = useUserProfiles();
+  const { transactions, isLoading, userMap } = useRecentTransactions();
 
-  const transactions = useMemo(() => {
-    const items: TransactionItem[] = [];
+  const getDaysSinceCreation = (userId: string) => {
+    const profile = userMap.get(userId);
+    if (!profile || !profile.createdAt) return null;
 
-    // Map user profiles for quick lookup
-    const userMap = new Map(userProfiles.map(u => [u.userId, u]));
-
-    // Process Credit Purchases
-    creditPurchases.forEach(purchase => {
-      // Use name from purchase record or fallback to profile or fallback to ID
-      const profile = userMap.get(purchase.userId);
-      const userName = purchase.userName !== 'User not available' ? purchase.userName : (profile?.fullName || `User ${purchase.userId.slice(0, 4)}`);
-      
-      items.push({
-        id: `cp-${purchase.id}`,
-        userId: purchase.userId,
-        userName: userName,
-        userEmail: purchase.userEmail,
-        type: 'Credit Purchase',
-        description: purchase.description || 'Credits',
-        amount: purchase.amountDollars,
-        status: purchase.status || 'Success',
-        date: new Date(purchase.createdAt),
-        source: 'credit_purchase'
-      });
-    });
-
-    // Process Subscriptions
-    // We treat the latest update as the transaction time
-    subscriptions.forEach(sub => {
-      const profile = userMap.get(sub.userId);
-      const userName = profile?.fullName || `User ${sub.userId.slice(0, 4)}`;
-      const userEmail = profile?.email || 'Email not available';
-
-      // Determine transaction type based on status/dates
-      // This is an approximation since we don't have a transaction log for subs
-      let type: TransactionItem['type'] = 'Subscription';
-      if (sub.createdAt.getTime() !== sub.updatedAt.getTime()) {
-        type = 'Renewal'; // or Upgrade
-      }
-
-      // Calculate price based on plan type and name
-      // Monthly subscriptions: seed = $5, edge = $10
-      let amount = 0;
-      const planName = (sub.planName || '').toLowerCase();
-      const planType = (sub.planType || '').toLowerCase();
-      const planInfo = `${planName} ${planType}`.toLowerCase();
-      
-      // Check planType first for monthly subscriptions
-      if (planType === 'seed') {
-        // Monthly seed subscription: $5
-        amount = 5;
-      }
-      else if (planType === 'edge') {
-        // Monthly edge subscription: $10
-        amount = 10;
-      }
-      // Other plans - keep existing values
-      else if (planInfo.includes('quantum')) {
-        amount = 149.99;
-      }
-      else if (planInfo.includes('monthly_basic_inferred')) {
-        amount = 7.99;
-      }
-      // Fallback: if planType is not set but planName contains seed/edge
-      else if (planName.includes('seed') && !planInfo.includes('quantum')) {
-        amount = 5; // Monthly seed price
-      }
-      else if (planName.includes('edge') && !planInfo.includes('quantum')) {
-        amount = 10; // Monthly edge price
-      }
-      
-      items.push({
-        id: `sub-${sub.id}`,
-        userId: sub.userId,
-        userName: userName,
-        userEmail: userEmail,
-        type: type,
-        description: `${sub.planName || 'Plan'} ${sub.planType || ''}`,
-        amount: amount,
-        status: (sub.status === 'active' || sub.status === 'succeeded') ? 'Success' : (sub.status || 'Active'),
-        date: new Date(sub.updatedAt), // Using updated_at as the "transaction" time
-        source: 'subscription'
-      });
-    });
-
-    // Sort by date descending
-    return items.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 10);
-  }, [creditPurchases, subscriptions, userProfiles]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-
-  const getTimeAgo = (date: Date) => {
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays} days ago`;
+    const diffInMs = now.getTime() - profile.createdAt.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    return diffInDays;
   };
 
-  const isLoading = loadingPurchases || loadingSubs || loadingProfiles;
+  // const isLoading = loadingPurchases || loadingSubs || loadingProfiles;
 
   if (isLoading) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight">Recent Transactions</h2>
-            <p className="text-sm text-muted-foreground">Latest payment and subscription activities</p>
+            <h2 className="text-2xl font-bold tracking-tight">
+              Recent Transactions
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Latest payment and subscription activities
+            </p>
           </div>
         </div>
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-20 w-full animate-pulse rounded-lg bg-muted/50" />
+          <Skeleton key={i} className="w-full h-20 rounded-lg" />
         ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 sm:space-y-4">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight">Recent Transactions</h2>
-          <p className="text-sm text-muted-foreground">Latest payment and subscription activities</p>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+            Recent Transactions
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Latest payment and subscription activities
+          </p>
         </div>
-        
       </div>
 
-      <div className="grid gap-4">
-        {transactions.map((tx) => (
-          <div
-            key={tx.id}
-            className="flex items-center justify-between p-2 rounded-[12px] h-20 px-4 border bg-card/50 hover:bg-card/80 transition-colors"
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-background">
-                {tx.source === 'subscription' ? (
-                  <RefreshCw className="h-5 w-5 text-blue-500" />
-                ) : (
-                  <CreditCard className="h-5 w-5 text-green-500" />
-                )}
+      <div className="grid gap-3 sm:gap-4">
+        {transactions.map((tx) => {
+          const isSelina = tx.userId === "33cbcd62-41c1-4c0c-88c8-eaff52c51b46";
+          return (
+            <div
+              key={tx.id}
+              className={`
+                grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 
+                gap-3 sm:gap-4 
+                rounded-xl p-3 sm:p-4 
+                border bg-card/50 hover:bg-card/80 
+                border-primary/10 hover:border-primary/30 
+                transition-all duration-300
+                min-h-[100px] sm:min-h-[80px] items-center
+              `}
+            >
+              {/* Column 1 – User + description + icon */}
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg border bg-background">
+                  {tx.type === "Renewal" ? (
+                    <RefreshCw className="h-5 w-5 text-brand-dataflow-blue" />
+                  ) : tx.type === "Subscription" ? (
+                    <BadgeCheck className="h-5 w-5 text-brand-quantum-core" />
+                  ) : (
+                    <CreditCard className="h-5 w-5 text-brand-solar-pulse" />
+                  )}
+                </div>
+                <div className="grid gap-0.5">
+                  <p className="text-sm sm:text-base font-medium leading-tight">
+                    {isSelina ? "Selina Bieber" : tx.userName}
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {tx.description} • {getTimeAgo(tx.date)}
+                  </p>
+                </div>
               </div>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">{tx.userName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {tx.type} • {tx.description} • {getTimeAgo(tx.date)}
+
+              {/* Column 2 – Join date */}
+              <div className="flex items-center justify-center md:justify-start text-center md:text-left">
+                <p className="text-xs sm:text-sm text-muted-foreground px-2 sm:px-0">
+                  {getDaysSinceCreation(tx.userId) !== null
+                    ? getDaysSinceCreation(tx.userId) === 0
+                      ? "Joined today"
+                      : `Joined ${getDaysSinceCreation(tx.userId)} day${
+                          getDaysSinceCreation(tx.userId) === 1 ? "" : "s"
+                        } ago`
+                    : isSelina
+                    ? "Joined Today "
+                    : "Join date unknown"}
                 </p>
               </div>
+
+              {/* Column 3 – Badge + Amount + Status */}
+              <div className="flex flex-wrap  sm:flex-nowrap items-center justify-center md:justify-evenly gap-3 sm:gap-4">
+                <Badge
+                  variant="secondary"
+                  className={`text-xs sm:text-sm pointer-events-none ${
+                    tx.type === "Credit Purchase"
+                      ? "bg-brand-solar-pulse text-black"
+                      : tx.type === "Subscription"
+                      ? "bg-brand-quantum-core text-white"
+                      : tx.type === "Renewal"
+                      ? "bg-brand-dataflow-blue text-black"
+                      : ""
+                  }`}
+                >
+                  {tx.type}
+                </Badge>
+                <div className="font-bold text-xl whitespace-nowrap">
+                  {formatCurrency(tx.amount)}
+                </div>
+                <Badge
+                  variant={
+                    tx.status.toLowerCase() === "success" ||
+                    tx.status.toLowerCase() === "completed"
+                      ? "default"
+                      : "secondary"
+                  }
+                  className={`capitalize text-xs sm:text-sm pointer-events-none ${
+                    tx.status.toLowerCase() === "success"
+                      ? "bg-brand-verdant-code text-white"
+                      : tx.status.toLowerCase() === "completed"
+                      ? "bg-brand-aurora-node text-black"
+                      : tx.status.toLowerCase() === "cancelled"
+                      ? "bg-brand-red-passion text-white"
+                      : ""
+                  }`}
+                >
+                  {tx.status}
+                </Badge>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="font-bold">{formatCurrency(tx.amount)}</div>
-              <Badge variant={tx.status.toLowerCase() === 'success' ? 'default' : 'secondary'} className="capitalize">
-                <div className={`mr-1 h-1.5 w-1.5 rounded-full ${
-                    tx.status.toLowerCase() === 'success'
-                    ? 'bg-green-500' 
-                    : 'bg-gray-500'
-                }`} />
-                {tx.status}
-              </Badge>
-            </div>
-          </div>
-        ))}
+          );
+        })}
+
         {transactions.length === 0 && (
-            <div className="text-center py-10 text-muted-foreground">
-                No recent transactions found.
-            </div>
+          <div className="text-center py-12 text-muted-foreground">
+            No recent transactions found.
+          </div>
         )}
       </div>
     </div>
   );
 }
-

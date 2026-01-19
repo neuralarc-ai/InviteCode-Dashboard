@@ -21,20 +21,22 @@ export function useSubscriptions() {
 
       const data = payload.data || [];
 
+      console.log('data from use subscriptions', data)
+
       const transformedSubscriptions = data.map((row: any) => ({
         id: row.id,
-        userId: row.user_id,
-        stripeSubscriptionId: row.stripe_subscription_id,
-        stripeCustomerId: row.stripe_customer_id,
+        userId: row.account_id,
+        stripeSubscriptionId: row.stripe_subscription_id || "",
+        stripeCustomerId: row.stripe_customer_id || "",
         status: row.status,
         currentPeriodStart: row.current_period_start ? new Date(row.current_period_start) : null,
         currentPeriodEnd: row.current_period_end ? new Date(row.current_period_end) : null,
         trialEnd: row.trial_end ? new Date(row.trial_end) : null,
         planName: row.plan_name,
-        planType: row.plan_type,
+        planType: row.metadata.plan_type,
         monthlyCreditAllocation: row.monthly_credit_allocation,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
+        createdAt: new Date(row.created),
+        updatedAt: row.updated_at ?  new Date(row.updated_at) : null,
       }));
 
       setSubscriptions(transformedSubscriptions);
@@ -83,8 +85,8 @@ export function useSubscriptions() {
                  const newItem: Subscription = {
                    id: row.id,
                    userId: row.user_id,
-                   stripeSubscriptionId: row.stripe_subscription_id,
-                   stripeCustomerId: row.stripe_customer_id,
+                   stripeSubscriptionId: row.stripe_subscription_id || "",
+                   stripeCustomerId: row.stripe_customer_id || "",
                    status: row.status,
                    currentPeriodStart: row.current_period_start ? new Date(row.current_period_start) : null,
                    currentPeriodEnd: row.current_period_end ? new Date(row.current_period_end) : null,

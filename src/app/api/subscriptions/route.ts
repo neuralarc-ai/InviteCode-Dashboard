@@ -9,9 +9,12 @@ export async function GET() {
 
     // Fetch all subscriptions with admin client to bypass RLS
     const { data, error } = await supabaseAdmin
-      .from('subscriptions')
-      .select('*')
-      .order('created_at', { ascending: false });
+    .schema('basejump')
+      .from('billing_subscriptions')
+      .select(`*`)
+      .order('created', { ascending: false });
+
+      console.log('data from subscriptions api', data)
 
     if (error) {
       throw error;

@@ -8,12 +8,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { DollarSign, Users, CreditCard, TrendingUp, UserPlus } from 'lucide-react';
-import { useCreditBalances, useUserProfiles, useCreditPurchases, useSubscriptions } from '@/hooks/use-realtime-data';
+import { useGlobal } from "@/contexts/global-context";
+import { useCreditBalances, useCreditPurchases, useSubscriptions } from '@/hooks/use-realtime-data';
 import { supabase } from '@/lib/supabase';
+import { formatCurrency } from '@/lib/utils';
 
 export function StatCardsRealtime() {
   const { creditBalances, loading: balancesLoading } = useCreditBalances();
-  const { userProfiles, loading: usersLoading } = useUserProfiles();
+  const { userProfiles, userProfilesLoading: usersLoading } = useGlobal();
   const { creditPurchases, loading: purchasesLoading } = useCreditPurchases();
   const { subscriptions, loading: subscriptionsLoading } = useSubscriptions();
   const [externalCredits, setExternalCredits] = React.useState<number>(0);
@@ -176,7 +178,7 @@ export function StatCardsRealtime() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => (
           <Card key={i} className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -193,15 +195,7 @@ export function StatCardsRealtime() {
     );
   }
 
-  // Format currency for revenue
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
+  
 
   const statCards = [
     {
@@ -253,12 +247,12 @@ export function StatCardsRealtime() {
   const themeColors = ['primary', 'secondary', 'muted', 'accent', 'primary'];
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-5">
       {statCards.map((stat, index) => (
-        <Card key={stat.title} className="bg-card border-border">
+        <Card key={stat.title} className="group bg-background border-primary/20 hover:border-primary/70 glare-effect hover:scale-[1.03] duration-500 transition-all ease-in-out">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-card-foreground">{stat.title}</CardTitle>
-            <stat.icon className={`h-4 w-4 text-${themeColors[index]}`} />
+            <stat.icon className={` group-hover:text-primary duration-700 ease-in-out transition-all`} />
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold text-${themeColors[index]}`}>{stat.value}</div>
