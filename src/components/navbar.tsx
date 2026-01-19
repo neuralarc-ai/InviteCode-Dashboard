@@ -6,11 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"; 
+
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -29,6 +25,7 @@ import { useAuth } from "./auth-provider";
 import { Logo } from "./logo";
 import { LogoutButton } from "./logout-button";
 import Notifications from "./notifications-component";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 // Simple hook to detect mobile (below ~768px)
 function useIsMobile() {
@@ -153,7 +150,7 @@ function Navbar() {
       <div className="hidden md:flex w-full sticky top-0 z-50  items-center justify-between px-4  backdrop-blur-sm  bg-background/30">
         <div className="flex items-center gap-4">
           <Logo />
-          <span className="font-semibold text-xl tracking-tight">
+          <span className="font-semibold text-lg md:text-xl tracking-tight">
             {getPageName()}
           </span>
         </div>
@@ -168,7 +165,7 @@ function Navbar() {
       <motion.div
         className={cn(
           " fixed left-3 top-16 z-50 rounded-full p-1.5 bg-background/95 border border-border/40 shadow-lg backdrop-blur-md",
-          "hidden md:flex flex-col items-center overflow-hidden",
+          "hidden md:flex flex-col items-center ",
         )}
         animate={{
           width: isExpanded ? 52 : 52,

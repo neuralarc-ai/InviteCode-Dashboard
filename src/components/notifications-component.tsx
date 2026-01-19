@@ -1,13 +1,21 @@
 "use client";
 import React, { useState } from "react";
 import { Button } from "./ui/button";
-import { BadgeCheck, Bell, CreditCard, RefreshCw, Zap } from "lucide-react";
+import {
+  BadgeCheck,
+  Bell,
+  CheckCircle2,
+  CreditCard,
+  RefreshCw,
+  Zap,
+  XCircle,
+  Clock,
+} from "lucide-react";
 import CustomDialog from "./CustomDialog";
-import { Dialog, DialogContent } from "./ui/dialog";
 import { useRecentTransactions } from "@/hooks/use-recent-transactions";
-import { createAvatar } from "@dicebear/core";
 import { useRecentOnboardedUsers } from "@/hooks/use-recent-onboard-users";
 import { useRecentCreditUsage } from "@/hooks/use-recent-credit-usage";
+import { useStripeTransactions } from "@/hooks/use-stripe-transactions";
 import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Card, CardContent } from "./ui/card";
@@ -19,6 +27,7 @@ import { formatCurrency, generateAvatar, getTimeAgo } from "@/lib/utils";
 import { Skeleton } from "./ui/skeleton";
 import { useAuth } from "./auth-provider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { StripeCharge } from "@/lib/types";
 
 function Notifications() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -36,7 +45,7 @@ function Notifications() {
     tabNotifications,
     clearTabNotification,
   } = useGlobal();
-  const { creditBalances, loading: loadingCredits } = useCreditBalances();
+  const { creditBalances } = useCreditBalances();
   const {
     transactions,
     isLoading: txnLoading,
@@ -44,6 +53,12 @@ function Notifications() {
   } = useRecentTransactions(5); // Get 5 most recent
   const { recentUsers, isLoading: userLoading } = useRecentOnboardedUsers(7, 5);
   const { recentUsage, isLoading: usageLoading } = useRecentCreditUsage(5);
+  const {
+    sortedCharges: stripeCharges,
+    loading: stripeLoading,
+    error: stripeError,
+    refresh: refreshStripe,
+  } = useStripeTransactions(5); // Fetch only 5 for notifications
 
   // Get refresh functions from global context
   const { refreshCreditPurchases } = useCreditPurchases();
@@ -51,16 +66,6 @@ function Notifications() {
   const { refreshUserProfiles, refreshCreditUsage } = useGlobal();
 
   const [active, setActive] = useState<string>("users");
-
-  const getDaysSinceCreation = (userId: string) => {
-    const profile = userMap.get(userId);
-    if (!profile || !profile.createdAt) return null;
-
-    const now = new Date();
-    const diffInMs = now.getTime() - profile.createdAt.getTime();
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    return diffInDays;
-  };
 
   const getDaysAgo = (date: Date) => {
     const now = new Date();
@@ -111,9 +116,73 @@ function Notifications() {
         case "credits":
           await refreshCreditUsage();
           break;
+        case "stripe":
+          refreshStripe();
+          break;
       }
     } catch (error) {
       console.error(`Failed to refresh ${tab}:`, error);
+    }
+  };
+
+  const formatStripeAmount = (amount: number): string => {
+    // Stripe amounts are in cents, so divide by 100
+    return formatCurrency(amount / 100);
+  };
+
+  const getStripeStatusBadge = (charge: StripeCharge) => {
+    const status = charge.status.toLowerCase();
+    const isRefunded = charge.refunded;
+
+    if (isRefunded) {
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-orange-500/20 text-orange-700 dark:text-orange-400 border-orange-500/30"
+        >
+          <XCircle className="h-3 w-3 mr-1" />
+          Refunded
+        </Badge>
+      );
+    }
+
+    switch (status) {
+      case "succeeded":
+        return (
+          <Badge
+            variant="default"
+            className="bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30"
+          >
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Succeeded
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/30"
+          >
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
+      case "failed":
+        return (
+          <Badge
+            variant="destructive"
+            className="bg-red-500/20 text-red-700 dark:text-red-400 border-red-500/30"
+          >
+            <XCircle className="h-3 w-3 mr-1" />
+            Failed
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="secondary" className="capitalize">
+            {status}
+          </Badge>
+        );
     }
   };
 
@@ -123,7 +192,7 @@ function Notifications() {
         return (
           <div className="w-full flex flex-col gap-2">
             {txnLoading ? (
-              [...Array(3)].map((_, i) => (
+              [...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="w-full h-20 rounded-lg" />
               ))
             ) : transactions.length === 0 ? (
@@ -161,6 +230,66 @@ function Notifications() {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        );
+      case "stripe":
+        return (
+          <div className="w-full flex flex-col gap-2">
+            {stripeLoading ? (
+              [...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="w-full h-20 rounded-lg" />
+              ))
+            ) : stripeError ? (
+              <div className="text-center py-4 text-muted-foreground">
+                <p className="text-sm text-red-500">{stripeError}</p>
+              </div>
+            ) : stripeCharges.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                <p>No Stripe transactions</p>
+              </div>
+            ) : (
+              stripeCharges.slice(0, 5).map((charge) => {
+                const createdDate = new Date(charge.created * 1000);
+                const cardInfo = charge.paymentMethodDetails?.card;
+
+                return (
+                  <div
+                    key={charge.id}
+                    className="w-full flex items-center justify-between gap-2 rounded-[12px] min-h-20 px-4 py-3 border bg-card/50 hover:bg-card/80 transition-colors"
+                  >
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-background">
+                        <CreditCard className="h-5 w-5 text-brand-solar-pulse" />
+                      </div>
+                      <div className="grid gap-1 min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-none truncate">
+                          {charge.description ||
+                            `Charge ${charge.id.slice(-8)}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {charge.customerEmail || charge.id}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {cardInfo && (
+                            <span>
+                              {cardInfo.brand.toUpperCase()} ••••{" "}
+                              {cardInfo.last4}
+                            </span>
+                          )}
+                          <span>• {getTimeAgo(createdDate)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      {getStripeStatusBadge(charge)}
+                      <div className="font-bold text-lg whitespace-nowrap">
+                        {formatStripeAmount(charge.amount)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         );
@@ -231,7 +360,7 @@ function Notifications() {
         return (
           <div className="w-full flex flex-col items-center gap-2">
             {usageLoading ? (
-              [...Array(3)].map((_, i) => (
+              [...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="w-full h-20 rounded-lg" />
               ))
             ) : recentUsage.length === 0 ? (
@@ -299,6 +428,13 @@ function Notifications() {
       url: "/users",
     },
     {
+      label: "Stripe",
+      key: "stripe",
+      header: "Stripe Transactions",
+      loading: usageLoading,
+      url: "/stripe-transactions",
+    },
+    {
       label: "Transactions",
       key: "transactions",
       header: "Credits Usage",
@@ -323,9 +459,7 @@ function Notifications() {
             <Bell />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="bottom">
-          View Notifications
-        </TooltipContent>
+        <TooltipContent side="bottom">View Notifications</TooltipContent>
       </Tooltip>
       <CustomDialog
         hideOptions
@@ -358,6 +492,7 @@ function Notifications() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">
                 {active === "transactions" && "Recent Transactions"}
+                {active === "stripe" && "Stripe Transactions"}
                 {active === "users" && "New Users"}
                 {active === "credits" && "Credits Usage"}
               </h3>
@@ -369,14 +504,16 @@ function Notifications() {
                 disabled={
                   (active === "transactions" && txnLoading) ||
                   (active === "users" && userLoading) ||
-                  (active === "credits" && usageLoading)
+                  (active === "credits" && usageLoading) ||
+                  (active === "stripe" && stripeLoading)
                 }
               >
                 <RefreshCw
                   className={`h-4 w-4 ${
                     (active === "transactions" && txnLoading) ||
                     (active === "users" && userLoading) ||
-                    (active === "credits" && usageLoading)
+                    (active === "credits" && usageLoading) ||
+                    (active === "stripe" && stripeLoading)
                       ? "animate-spin"
                       : ""
                   }`}

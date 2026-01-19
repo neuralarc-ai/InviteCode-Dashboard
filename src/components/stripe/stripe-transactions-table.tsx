@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import type { SortField } from "@/hooks/use-stripe-transactions";
 import { useStripeTransactions } from "@/hooks/use-stripe-transactions";
+import { useState, useEffect } from "react";
 
 export function StripeTransactionsTable() {
   const {
@@ -36,15 +37,34 @@ export function StripeTransactionsTable() {
     error,
     environment,
     setEnvironment,
-    hasMore,
-    canGoBack,
     sortField,
     sortDirection,
     setSortField,
     setSortDirection,
-    fetchCharges,
     refresh,
-  } = useStripeTransactions(10);
+  } = useStripeTransactions(100); // Fetch 100 transactions upfront
+
+  // Frontend pagination state
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 10;
+
+  // Reset to first page when environment changes
+  useEffect(() => {
+    setPage(0);
+  }, [environment]);
+
+  // Reset to first page when sorting changes
+  useEffect(() => {
+    setPage(0);
+  }, [sortField, sortDirection]);
+
+  // Calculate paginated data
+  const paginatedCharges = sortedCharges.slice(
+    page * rowsPerPage,
+    (page + 1) * rowsPerPage,
+  );
+
+  const totalPages = Math.ceil(sortedCharges.length / rowsPerPage);
 
   const formatStripeAmount = (amount: number): string => {
     // Stripe amounts are in cents, so divide by 100
@@ -108,13 +128,15 @@ export function StripeTransactionsTable() {
   };
 
   const handleNext = () => {
-    if (hasMore) {
-      fetchCharges("next");
+    if (page < totalPages - 1) {
+      setPage(page + 1);
     }
   };
 
   const handlePrev = () => {
-    fetchCharges("prev");
+    if (page > 0) {
+      setPage(page - 1);
+    }
   };
 
   const handleEnvironmentToggle = (checked: boolean) => {
@@ -178,7 +200,6 @@ export function StripeTransactionsTable() {
           <div className="flex items-center gap-2">
             <Select
               value={sortField}
-            
               onValueChange={(value) => setSortField(value as SortField)}
             >
               <SelectTrigger className="w-[280px]">
@@ -207,17 +228,18 @@ export function StripeTransactionsTable() {
                 <ArrowDown className="h-4 w-4" />
               )}
             </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={refresh}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={refresh}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
+            </Button>
           </div>
-
         </div>
       </div>
 
@@ -236,7 +258,7 @@ export function StripeTransactionsTable() {
 
       {/* Transactions List */}
       <div className="grid gap-3 sm:gap-4">
-        {sortedCharges.map((charge: StripeCharge) => {
+        {paginatedCharges.map((charge: StripeCharge) => {
           const createdDate = new Date(charge.created * 1000);
           const cardInfo = charge.paymentMethodDetails?.card;
 
@@ -314,7 +336,7 @@ export function StripeTransactionsTable() {
           );
         })}
 
-        {sortedCharges.length === 0 && !loading && !error && (
+        {paginatedCharges.length === 0 && !loading && !error && (
           <div className="text-center py-12 text-muted-foreground">
             No transactions found in {environment} mode.
           </div>
@@ -323,31 +345,38 @@ export function StripeTransactionsTable() {
 
       {/* Pagination Controls */}
       {sortedCharges.length > 0 && (
-        <div className="flex items-center justify-between pt-4 border-t">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrev}
-            disabled={!canGoBack || loading}
-            className="flex items-center gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
+        <div className="flex w-full flex-col md:flex-row gap-4 items-center justify-between pt-4 border-t">
           <p className="text-sm text-muted-foreground">
-            Showing {sortedCharges.length} transaction
+            Showing {page * rowsPerPage + 1} to{" "}
+            {Math.min((page + 1) * rowsPerPage, sortedCharges.length)} of{" "}
+            {sortedCharges.length} transaction
             {sortedCharges.length !== 1 ? "s" : ""}
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNext}
-            disabled={!hasMore || loading}
-            className="flex items-center gap-2"
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <div className="flex w-full md:w-fit items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrev}
+              disabled={page === 0 || loading}
+              className="flex items-center gap-2 w-full"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm w-full whitespace-nowrap text-center">
+              Page {page + 1} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNext}
+              disabled={page === totalPages - 1 || loading}
+              className="flex items-center gap-2 w-full"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>

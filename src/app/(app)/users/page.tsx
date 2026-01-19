@@ -781,7 +781,7 @@ The Helium Team �`,
           </div>
         </div>
 
-        <div className="w-full flex flex-col gap-2 items-center justify-between">
+        <div className="w-full flex flex-col md:flex-row gap-2 items-center justify-between">
           {/* User Type Toggle */}
           <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg w-full md:w-fit">
             <Button

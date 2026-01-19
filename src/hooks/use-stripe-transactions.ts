@@ -17,114 +17,75 @@ interface UseStripeTransactionsReturn {
   error: string | null;
   environment: Environment;
   setEnvironment: (env: Environment) => void;
-  hasMore: boolean;
-  canGoBack: boolean;
   sortField: SortField;
   sortDirection: SortDirection;
   setSortField: (field: SortField) => void;
   setSortDirection: (direction: SortDirection) => void;
-  fetchCharges: (direction?: "next" | "prev") => void;
   refresh: () => void;
 }
 
 export function useStripeTransactions(
-  limit: number = 10,
+  limit: number = 100, // Fetch more data upfront for frontend pagination
 ): UseStripeTransactionsReturn {
   const [charges, setCharges] = useState<StripeCharge[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [environment, setEnvironment] = useState<Environment>("test");
-  const [hasMore, setHasMore] = useState<boolean>(false);
-  const [lastChargeId, setLastChargeId] = useState<string | null>(null);
-  const [firstChargeId, setFirstChargeId] = useState<string | null>(null);
-  const [paginationHistory, setPaginationHistory] = useState<string[]>([]); // Track first charge IDs for back navigation
   const [sortField, setSortField] = useState<SortField>("created");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
-  const fetchCharges = useCallback(
-    async (direction: "next" | "prev" | undefined = undefined) => {
-      setLoading(true);
-      setError(null);
+  const fetchCharges = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        // Build query parameters
-        const params = new URLSearchParams({
-          environment,
-          limit: limit.toString(),
-        });
+    try {
+      // Build query parameters - fetch all data upfront
+      const params = new URLSearchParams({
+        environment,
+        limit: limit.toString(),
+      });
 
-        // Handle pagination
-        if (direction === "next" && lastChargeId) {
-          // Store current first charge ID before going to next page
-          if (firstChargeId) {
-            setPaginationHistory((prev) => [...prev, firstChargeId]);
-          }
-          params.append("starting_after", lastChargeId);
-        } else if (direction === "prev" && paginationHistory.length > 0) {
-          // Use the last entry in history as ending_before
-          const prevFirstId = paginationHistory[paginationHistory.length - 1];
-          params.append("ending_before", prevFirstId);
-          setPaginationHistory((prev) => prev.slice(0, -1));
-        }
+      const response = await fetch(
+        `/api/stripe-transactions?${params.toString()}`,
+      );
 
-        const response = await fetch(
-          `/api/stripe-transactions?${params.toString()}`,
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`,
         );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.error || `HTTP error! status: ${response.status}`,
-          );
-        }
-
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(
-            result.error || "Failed to fetch Stripe transactions",
-          );
-        }
-
-        setCharges(result.data || []);
-        setHasMore(result.hasMore || false);
-        setLastChargeId(result.lastChargeId || null);
-        setFirstChargeId(result.firstChargeId || null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error occurred");
-        setCharges([]);
-        setHasMore(false);
-      } finally {
-        setLoading(false);
       }
-    },
-    [environment, limit, lastChargeId, firstChargeId, paginationHistory],
-  );
 
-  // Refresh function that resets pagination
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to fetch Stripe transactions");
+      }
+
+      setCharges(result.data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+      setCharges([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [environment, limit]);
+
+  // Refresh function
   const refresh = useCallback(() => {
-    setPaginationHistory([]);
-    setLastChargeId(null);
-    setFirstChargeId(null);
     fetchCharges();
   }, [fetchCharges]);
 
   // Fetch charges when environment changes
   useEffect(() => {
-    setPaginationHistory([]);
-    setLastChargeId(null);
-    setFirstChargeId(null);
     fetchCharges();
-  }, [environment]); // Only depend on environment, fetchCharges will be recreated
+  }, [environment, fetchCharges]);
 
   // Handle environment change
   const handleSetEnvironment = useCallback((env: Environment) => {
     setEnvironment(env);
     setCharges([]);
     setError(null);
-    setPaginationHistory([]);
-    setLastChargeId(null);
-    setFirstChargeId(null);
   }, []);
 
   // Sort charges based on sortField and sortDirection
@@ -185,13 +146,10 @@ export function useStripeTransactions(
     error,
     environment,
     setEnvironment: handleSetEnvironment,
-    hasMore,
-    canGoBack: paginationHistory.length > 0,
     sortField,
     sortDirection,
     setSortField,
     setSortDirection,
-    fetchCharges,
     refresh,
   };
 }

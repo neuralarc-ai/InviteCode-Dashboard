@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRecentTransactions } from "@/hooks/use-recent-transactions";
 import { formatCurrency, getTimeAgo } from "@/lib/utils";
-import { BadgeCheck, CreditCard, RefreshCw } from "lucide-react";
+import {
+  BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  RefreshCw,
+} from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 
 type TransactionTypeFilter =
@@ -18,6 +24,15 @@ export function RecentTransactions() {
   const { transactions, isLoading, userMap } = useRecentTransactions();
   const [transactionTypeFilter, setTransactionTypeFilter] =
     useState<TransactionTypeFilter>("all");
+
+  // Frontend pagination state
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 10;
+
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setPage(0);
+  }, [transactionTypeFilter]);
 
   const getDaysSinceCreation = (userId: string) => {
     const profile = userMap.get(userId);
@@ -38,6 +53,27 @@ export function RecentTransactions() {
     transactionTypeFilter === "all"
       ? transactions
       : transactions.filter((tx) => tx.type === transactionTypeFilter);
+
+  // Calculate paginated data
+  const paginatedTransactions = filteredTransactions.slice(
+    page * rowsPerPage,
+    (page + 1) * rowsPerPage,
+  );
+
+  const totalPages = Math.ceil(filteredTransactions.length / rowsPerPage);
+
+  // Pagination handlers
+  const handleNext = () => {
+    if (page < totalPages - 1) {
+      setPage(page + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (page > 0) {
+      setPage(page - 1);
+    }
+  };
 
   // const isLoading = loadingPurchases || loadingSubs || loadingProfiles;
 
@@ -63,7 +99,6 @@ export function RecentTransactions() {
       icon: RefreshCw,
     },
   ];
-
 
   if (isLoading) {
     return (
@@ -98,14 +133,16 @@ export function RecentTransactions() {
         </div>
 
         {/* Transaction Type Filter */}
-        <div className="grid grid-cols-2 md:grid-cols-4 w-full gap-2 p-1 bg-muted rounded-lg w-fit">
+        <div className="grid grid-cols-2 md:grid-cols-4 w-full gap-2 p-1 bg-muted rounded-lg md:w-fit">
           {transactionFilters.map(({ label, value, icon: Icon }) => (
             <Button
               key={value}
               variant={transactionTypeFilter === value ? "default" : "ghost"}
               size="sm"
-              onClick={() => handleTransactionTypeFilter(value)}
-              className={`flex items-center gap-2  ${transactionTypeFilter === value ? "hover:bg-primary/80":""}`}
+              onClick={() =>
+                handleTransactionTypeFilter(value as TransactionTypeFilter)
+              }
+              className={`flex items-center gap-2  ${transactionTypeFilter === value ? "hover:bg-primary/80" : ""}`}
             >
               <Icon className="h-4 w-4" />
               {label}
@@ -115,7 +152,7 @@ export function RecentTransactions() {
       </div>
 
       <div className="grid gap-3 sm:gap-4">
-        {filteredTransactions.map((tx) => {
+        {paginatedTransactions.map((tx) => {
           return (
             <div
               key={tx.id}
@@ -171,10 +208,10 @@ export function RecentTransactions() {
                     tx.type === "Credit Purchase"
                       ? "bg-brand-solar-pulse text-black"
                       : tx.type === "Subscription"
-                      ? "bg-brand-quantum-core text-white"
-                      : tx.type === "Renewal"
-                      ? "bg-brand-dataflow-blue text-black"
-                      : ""
+                        ? "bg-brand-quantum-core text-white"
+                        : tx.type === "Renewal"
+                          ? "bg-brand-dataflow-blue text-black"
+                          : ""
                   }`}
                 >
                   {tx.type}
@@ -193,10 +230,10 @@ export function RecentTransactions() {
                     tx.status.toLowerCase() === "success"
                       ? "bg-brand-verdant-code text-white"
                       : tx.status.toLowerCase() === "completed"
-                      ? "bg-brand-aurora-node text-black"
-                      : tx.status.toLowerCase() === "cancelled"
-                      ? "bg-brand-red-passion text-white"
-                      : ""
+                        ? "bg-brand-aurora-node text-black"
+                        : tx.status.toLowerCase() === "cancelled"
+                          ? "bg-brand-red-passion text-white"
+                          : ""
                   }`}
                 >
                   {tx.status}
@@ -206,7 +243,7 @@ export function RecentTransactions() {
           );
         })}
 
-        {filteredTransactions.length === 0 && (
+        {paginatedTransactions.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             {transactionTypeFilter === "all"
               ? "No transactions found."
@@ -214,6 +251,43 @@ export function RecentTransactions() {
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {filteredTransactions.length > 0 && totalPages > 1 && (
+        <div className="flex w-full flex-col md:flex-row gap-4 items-center justify-between pt-4 border-t">
+          <p className="text-sm text-muted-foreground">
+            Showing {page * rowsPerPage + 1} to{" "}
+            {Math.min((page + 1) * rowsPerPage, filteredTransactions.length)} of{" "}
+            {filteredTransactions.length} transaction
+            {filteredTransactions.length !== 1 ? "s" : ""}
+          </p>
+          <div className="flex w-full md:w-fit items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrev}
+              disabled={page === 0}
+              className="flex items-center gap-2 w-full"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm w-full whitespace-nowrap text-center">
+              Page {page + 1} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleNext}
+              disabled={page === totalPages - 1}
+              className="flex items-center gap-2 w-full"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
