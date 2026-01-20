@@ -108,7 +108,7 @@ function Navbar() {
   // Desktop: Expanding vertical icon bar (matches FloatingSidebar style)
   return (
     <>
-      <div className="w-full sticky top-0 z-50 flex items-center justify-between p-4 md:px-4 backdrop-blur-sm border-b md:border-none bg-background/80 md:bg-background/30">
+      <div className="w-full sticky top-0 z-50 flex items-center justify-between px-4 backdrop-blur bg-background/60">
         <div className="flex items-center gap-3 md:gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -147,7 +147,7 @@ function Navbar() {
       {/* Floating vertical nav – positioned left or right depending on your preference */}
       <motion.div
         className={cn(
-          " fixed left-3 top-20 z-50 rounded-full p-1.5 bg-background/95 border border-border/40 shadow-lg backdrop-blur-md",
+          " fixed left-3 top-16 z-50 rounded-full p-1.5 bg-background/95 border border-border/40 shadow-lg backdrop-blur-md",
           "hidden md:flex flex-col items-center ",
         )}
         animate={{
