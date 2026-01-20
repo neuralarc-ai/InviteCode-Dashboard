@@ -14,7 +14,7 @@ import {
   BarChart,
   CreditCard,
   LayoutDashboard,
-  LayoutGrid,
+  Menu,
   Receipt,
   TrendingUp,
   UserCheck,
@@ -116,7 +116,7 @@ function Navbar() {
                 className="md:hidden p-2 bg-primary text-background rounded-full flex items-center justify-center transition-colors"
                 aria-label="Menu"
               >
-                <LayoutGrid size={20} />
+                <Menu size={20} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56 mt-2">
@@ -165,7 +165,7 @@ function Navbar() {
               className="bg-primary text-background p-2 rounded-full flex items-center justify-center transition-colors"
               aria-label="Navigation menu"
             >
-              <LayoutGrid size={20} strokeWidth={1.6} />
+              <Menu size={20} strokeWidth={1.6} />
             </motion.button>
           </TooltipTrigger>
           <TooltipContent side="right" sideOffset={10}>
