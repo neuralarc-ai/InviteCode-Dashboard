@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency, getTimeAgo } from "@/lib/utils";
 import { StripeCharge } from "@/lib/types";
@@ -17,6 +18,7 @@ import {
   AlertCircle,
   ArrowUp,
   ArrowDown,
+  Search,
 } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import {
@@ -46,25 +48,44 @@ export function StripeTransactionsTable() {
 
   // Frontend pagination state
   const [page, setPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
   const rowsPerPage = 10;
 
-  // Reset to first page when environment changes
+  // Reset to first page when environment or search changes
   useEffect(() => {
     setPage(0);
-  }, [environment]);
+  }, [environment, searchQuery]);
 
   // Reset to first page when sorting changes
   useEffect(() => {
     setPage(0);
   }, [sortField, sortDirection]);
 
+  // Filter charges based on search query
+  const filteredCharges = sortedCharges.filter((charge) => {
+    if (searchQuery === "") return true;
+
+    const searchLower = searchQuery.toLowerCase();
+    const cardInfo = charge.paymentMethodDetails?.card;
+
+    return (
+      charge.id.toLowerCase().includes(searchLower) ||
+      charge.description?.toLowerCase().includes(searchLower) ||
+      charge.customerEmail?.toLowerCase().includes(searchLower) ||
+      charge.status.toLowerCase().includes(searchLower) ||
+      cardInfo?.brand.toLowerCase().includes(searchLower) ||
+      cardInfo?.last4.includes(searchQuery) ||
+      (charge.refunded && "refunded".includes(searchLower))
+    );
+  });
+
   // Calculate paginated data
-  const paginatedCharges = sortedCharges.slice(
+  const paginatedCharges = filteredCharges.slice(
     page * rowsPerPage,
     (page + 1) * rowsPerPage,
   );
 
-  const totalPages = Math.ceil(sortedCharges.length / rowsPerPage);
+  const totalPages = Math.ceil(filteredCharges.length / rowsPerPage);
 
   const formatStripeAmount = (amount: number): string => {
     // Stripe amounts are in cents, so divide by 100
@@ -243,6 +264,18 @@ export function StripeTransactionsTable() {
         </div>
       </div>
 
+      {/* Search Input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Search by charge ID, description, email, status, or card..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       {/* Error State */}
       {error && (
         <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-4 flex items-center gap-3">
@@ -338,19 +371,21 @@ export function StripeTransactionsTable() {
 
         {paginatedCharges.length === 0 && !loading && !error && (
           <div className="text-center py-12 text-muted-foreground">
-            No transactions found in {environment} mode.
+            {searchQuery
+              ? `No transactions found matching "${searchQuery}" in ${environment} mode.`
+              : `No transactions found in ${environment} mode.`}
           </div>
         )}
       </div>
 
       {/* Pagination Controls */}
-      {sortedCharges.length > 0 && (
+      {filteredCharges.length > 0 && (
         <div className="flex w-full flex-col md:flex-row gap-4 items-center justify-between pt-4 border-t">
           <p className="text-sm text-muted-foreground">
             Showing {page * rowsPerPage + 1} to{" "}
-            {Math.min((page + 1) * rowsPerPage, sortedCharges.length)} of{" "}
-            {sortedCharges.length} transaction
-            {sortedCharges.length !== 1 ? "s" : ""}
+            {Math.min((page + 1) * rowsPerPage, filteredCharges.length)} of{" "}
+            {filteredCharges.length} transaction
+            {filteredCharges.length !== 1 ? "s" : ""}
           </p>
           <div className="flex w-full md:w-fit items-center gap-2">
             <Button

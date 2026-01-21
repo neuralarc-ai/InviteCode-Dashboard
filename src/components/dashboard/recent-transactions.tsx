@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useRecentTransactions } from "@/hooks/use-recent-transactions";
 import { formatCurrency, getTimeAgo } from "@/lib/utils";
 import {
@@ -11,6 +12,7 @@ import {
   ChevronRight,
   CreditCard,
   RefreshCw,
+  Search,
 } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 
@@ -22,17 +24,19 @@ type TransactionTypeFilter =
 
 export function RecentTransactions() {
   const { transactions, isLoading, userMap } = useRecentTransactions();
+
   const [transactionTypeFilter, setTransactionTypeFilter] =
     useState<TransactionTypeFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Frontend pagination state
   const [page, setPage] = useState(0);
   const rowsPerPage = 10;
 
-  // Reset to first page when filter changes
+  // Reset to first page when filter or search changes
   useEffect(() => {
     setPage(0);
-  }, [transactionTypeFilter]);
+  }, [transactionTypeFilter, searchQuery]);
 
   const getDaysSinceCreation = (userId: string) => {
     const profile = userMap.get(userId);
@@ -48,11 +52,23 @@ export function RecentTransactions() {
     setTransactionTypeFilter(filter);
   };
 
-  // Filter transactions based on selected type
-  const filteredTransactions =
-    transactionTypeFilter === "all"
-      ? transactions
-      : transactions.filter((tx) => tx.type === transactionTypeFilter);
+  // Filter transactions based on selected type and search query
+  const filteredTransactions = transactions.filter((tx) => {
+    // Type filter
+    const matchesType =
+      transactionTypeFilter === "all" || tx.type === transactionTypeFilter;
+
+    // Search filter
+    const matchesSearch =
+      searchQuery === "" ||
+      tx.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.userEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tx.status.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesType && matchesSearch;
+  });
 
   // Calculate paginated data
   const paginatedTransactions = filteredTransactions.slice(
@@ -151,6 +167,18 @@ export function RecentTransactions() {
         </div>
       </div>
 
+      {/* Search Input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Search by user name, email, description, type, or status..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       <div className="grid gap-3 sm:gap-4">
         {paginatedTransactions.map((tx) => {
           return (
@@ -245,9 +273,11 @@ export function RecentTransactions() {
 
         {paginatedTransactions.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
-            {transactionTypeFilter === "all"
-              ? "No transactions found."
-              : `No ${transactionTypeFilter} transactions found.`}
+            {searchQuery
+              ? `No transactions found matching "${searchQuery}".`
+              : transactionTypeFilter === "all"
+                ? "No transactions found."
+                : `No ${transactionTypeFilter} transactions found.`}
           </div>
         )}
       </div>

@@ -124,9 +124,10 @@ export function useRecentTransactions(limit: number = 10) {
     const validItems = items.filter((item) => item.userCreatedAt !== null);
 
     return validItems.sort((a, b) => {
-      // Both should have userCreatedAt because of the filter above
-      const aTime = a.userCreatedAt!.getTime();
-      const bTime = b.userCreatedAt!.getTime();
+      // const aTime = a.userCreatedAt!.getTime();
+      // const bTime = b.userCreatedAt!.getTime();
+      const aTime = a.date.getTime();
+      const bTime = b.date.getTime();
       return bTime - aTime; // newest → oldest
     });
     // .slice(0, limit)   ← still commented out — uncomment if you want only top N
