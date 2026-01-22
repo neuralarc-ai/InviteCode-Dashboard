@@ -66,27 +66,6 @@ export function RecentlyUsedCredits() {
             Latest credit consumption activities
           </p>
         </div>
-        {/* <Button
-          variant="outline"
-          size="sm"
-          className="hidden sm:flex shrink-0"
-          asChild
-        >
-          <Link href="/usage">
-            <ExternalLink className="mr-2 h-4 w-4" />
-            View All
-          </Link>
-        </Button> */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="sm:hidden shrink-0"
-          asChild
-        >
-          <Link href="/usage">
-            <ExternalLink className="h-4 w-4" />
-          </Link>
-        </Button>
       </div>
 
       <div className="grid gap-3 sm:gap-4">
