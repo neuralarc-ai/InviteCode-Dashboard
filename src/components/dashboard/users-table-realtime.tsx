@@ -278,7 +278,7 @@ export function UsersTableRealtime({
       return (
         <Badge
           variant="default"
-          className="bg-green-700 hover:bg-green-800 text-white flex items-center gap-1"
+          className="bg-green-700 hover:bg-green-800 text-white flex items-center gap-1 w-fit"
         >
           <CheckCircle2 className="h-3 w-3" />
           Sent
@@ -288,7 +288,7 @@ export function UsersTableRealtime({
       return (
         <Badge
           variant="default"
-          className="bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1"
+          className="bg-blue-700 hover:bg-blue-800 text-white flex items-center gap-1 w-fit"
         >
           <CheckCircle2 className="h-3 w-3" />
           Assigned

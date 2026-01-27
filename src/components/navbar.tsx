@@ -26,6 +26,7 @@ import { Logo } from "./logo";
 import { LogoutButton } from "./logout-button";
 import Notifications from "./notifications-component";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import Link from "next/link";
 
 // Simple hook to detect mobile (below ~768px)
 function useIsMobile() {
@@ -132,7 +133,9 @@ function Navbar() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <Link href="/">
           <Logo />
+          </Link>
           <span className="font-semibold text-xl md:text-lg tracking-tight">
             {getPageName()}
           </span>

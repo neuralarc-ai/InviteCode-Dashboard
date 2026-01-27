@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatCardsRealtime } from "@/components/dashboard/stat-cards-realtime";
 import { AnalyticsCharts } from "@/components/dashboard/analytics-charts";
 import { TopActiveUsers } from "@/components/dashboard/top-active-users";
+import { TopStripeTransactions } from "@/components/dashboard/top-stripe-transactions";
 import { SharedSidebar } from "@/components/shared-sidebar";
 
 export default function Dashboard() {
@@ -19,6 +20,9 @@ export default function Dashboard() {
 
       {/* Top Active Users */}
       <TopActiveUsers />
+
+      {/* Top Stripe Transactions */}
+      <TopStripeTransactions />
     </main>
   );
 }

@@ -116,9 +116,9 @@ export function SharedSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="flex flex-row items-center justify-between pb-2 pr-4 bg-background">
-        <div className="group-data-[collapsible=icon]:hidden">
+        <Link href={"/"} className="group-data-[collapsible=icon]:hidden">
           <Logo />
-        </div>
+        </Link>
         <button 
           onClick={toggleSidebar}
           className="p-2 rounded-md hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
@@ -127,7 +127,7 @@ export function SharedSidebar() {
          <PanelLeft size={20}/>
         </button>
       </SidebarHeader>
-      <SidebarContent className='p-2 bg-background'>
+      <SidebarContent className='p-2'>
         <SidebarMenu>
           {sidebarItems.map((item, idx) =>
             item.enabled ? (

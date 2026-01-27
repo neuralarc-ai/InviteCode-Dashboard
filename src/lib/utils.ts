@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 
 // Helper function to determine user type based on email domain
 export const getUserType = (
-  email: string | undefined
+  email: string | undefined,
 ): "internal" | "external" => {
   if (!email || typeof email !== "string") {
     return "external"; // Default to external if email is missing
@@ -40,7 +40,7 @@ export const getNameFromEmail = (email: string | undefined | null): string => {
 
   // Find the first part that starts with a letter and has at least 2 characters
   let namePart = parts.find(
-    (part) => part.length >= 2 && /^[a-zA-Z]/.test(part)
+    (part) => part.length >= 2 && /^[a-zA-Z]/.test(part),
   );
 
   // If found, remove trailing numbers and format
@@ -86,11 +86,12 @@ export const formatCurrency = (amount: number): string => {
 export const getTimeAgo = (date: Date) => {
   const now = new Date();
   const diffInHours = Math.floor(
-    (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60),
   );
 
   if (diffInHours < 1) return "Just now";
-  if (diffInHours < 24) return `${diffInHours} hour${diffInHours === 1 ? "": "s"} ago`;
+  if (diffInHours < 24)
+    return `${diffInHours} hour${diffInHours === 1 ? "" : "s"} ago`;
   const diffInDays = Math.floor(diffInHours / 24);
   return `${diffInDays} days ago`;
 };

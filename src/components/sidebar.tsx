@@ -82,7 +82,7 @@ function Sidebar() {
     <div className="hidden md:block p-2 sticky top-16">
       <motion.div
         className={cn(
-          "  rounded-full p-1.5 bg-background/95 border border-border/40 shadow-lg backdrop-blur-md",
+          "rounded-full p-1.5 bg-muted border border-border/40 shadow-lg backdrop-blur-md",
         )}
         animate={{
           width: isExpanded ? 52 : 52,
@@ -131,7 +131,7 @@ function Sidebar() {
                           "transition-colors",
                           active
                             ? "bg-primary/10 text-primary"
-                            : "hover:bg-muted/70 text-muted-foreground hover:text-foreground",
+                            : "hover:bg-accent text-muted-foreground hover:text-foreground",
                         )}
                         aria-label={item.label}
                       >

@@ -26,7 +26,7 @@ interface UseStripeTransactionsReturn {
 
 export function useStripeTransactions(
   limit: number = 100, // Fetch more data upfront for frontend pagination
-  initialEnvironment: Environment = "test", // Allow setting initial environment
+  initialEnvironment: Environment = "production", // Allow setting initial environment
 ): UseStripeTransactionsReturn {
   const [charges, setCharges] = useState<StripeCharge[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

@@ -229,6 +229,14 @@ The Helium Team 🌟`
     sort: string = sortBy,
     range: string = timeRange
   ) => {
+    console.log("Fetching with params:", {
+      page,
+      sortBy,
+      timeRange,
+      activityFilter,
+      userTypeFilter,
+      searchQuery,
+    });
     try {
       if (!silent) {
         setLoading(true);
